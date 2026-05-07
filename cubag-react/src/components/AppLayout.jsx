@@ -17,11 +17,19 @@ export default function AppLayout({ children, title, hideSearch }) {
         const url = import.meta.env.VITE_API_URL
         const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
         
-        // Fetch announcements
+        // Fetch announcements — count only UNREAD ones
         const annRes = await fetch(`${url}/announcements`, { headers: authHeader })
         if (annRes.ok) {
           const data = await annRes.json()
-          if (Array.isArray(data)) setNotifCount(data.length)
+          if (Array.isArray(data)) {
+            try {
+              const readIds = new Set(JSON.parse(localStorage.getItem('cubag_read_announcements') || '[]'))
+              const unread = data.filter(a => !readIds.has(a.id)).length
+              setNotifCount(unread)
+            } catch {
+              setNotifCount(data.length)
+            }
+          }
         }
 
         // Fetch tasks
