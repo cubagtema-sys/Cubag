@@ -97,7 +97,7 @@ export default function AdminCargoSchedules() {
   }
 
   return (
-    <AppLayout title="Manage Schedules (Admin)" hideSearch>
+    <AppLayout title="Cargo Management" hideSearch>
       <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>

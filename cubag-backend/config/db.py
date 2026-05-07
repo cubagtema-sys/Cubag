@@ -155,6 +155,12 @@ def init_db():
                 ADD COLUMN IF NOT EXISTS progress INT DEFAULT 0;
             """)
 
+            # Add soft-delete to support tickets
+            cursor.execute("""
+                ALTER TABLE support_tickets
+                ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;
+            """)
+
         conn.commit()
         print("[OK] Database tables initialised successfully.")
     except Exception as e:

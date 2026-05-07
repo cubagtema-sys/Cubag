@@ -61,6 +61,24 @@ export default function AdminTickets() {
     }
   }
 
+  const handleArchive = async (ticketId, e) => {
+    e.stopPropagation() // prevent opening the ticket detail
+    if (!window.confirm('Archive this ticket? It stays in the database but will no longer appear here.')) return
+    try {
+      const res = await fetch(`${API_URL}/tickets/admin/${ticketId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
+      })
+      if (res.ok) {
+        showToast(`Ticket ${ticketId} archived`, 'success')
+        if (selectedTicket?.id === ticketId) setSelectedTicket(null)
+        fetchTickets()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const handleReply = async (e) => {
     e.preventDefault()
     if (!reply.trim() || !selectedTicket) return
@@ -107,9 +125,19 @@ export default function AdminTickets() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{ticket.id}</span>
-                      <span style={{ padding: '2px 8px', borderRadius: 12, background: style.bg, color: style.color, fontSize: '0.7rem', fontWeight: 800 }}>{style.label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ padding: '2px 8px', borderRadius: 12, background: style.bg, color: style.color, fontSize: '0.7rem', fontWeight: 800 }}>{style.label}</span>
+                        <button
+                          title="Archive ticket"
+                          onClick={(e) => handleArchive(ticket.id, e)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 2, borderRadius: 4 }}
+                          onMouseOver={e => e.currentTarget.style.color = '#ef4444'}
+                          onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>archive</span>
+                        </button>
+                      </div>
                     </div>
-                    {/* Member name — prominent */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: 'var(--brand-primary)' }}>person</span>
                       <span style={{ fontWeight: 800, color: 'var(--brand-primary)', fontSize: '0.9rem' }}>{ticket.member_name || 'Unknown Member'}</span>

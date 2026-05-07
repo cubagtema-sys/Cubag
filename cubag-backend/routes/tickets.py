@@ -78,6 +78,7 @@ def get_all_tickets_admin():
                 SELECT t.id, t.subject, t.message, t.status, t.created_at, t.updated_at, m.name as member_name
                 FROM support_tickets t
                 JOIN members m ON t.member_id = m.id
+                WHERE t.deleted_at IS NULL
                 ORDER BY t.updated_at DESC
             """)
             tickets = cursor.fetchall()
@@ -142,6 +143,24 @@ def add_ticket_reply(ticket_id):
             """, (ticket_id,))
             conn.commit()
         return jsonify({'message': 'Reply added'}), 201
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+# ─── DELETE /tickets/admin/<id> — Soft delete (keeps data in DB) ──────────────
+@tickets_bp.route('/admin/<ticket_id>', methods=['DELETE'])
+def soft_delete_ticket(ticket_id):
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                UPDATE support_tickets
+                SET deleted_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (ticket_id,))
+            conn.commit()
+        return jsonify({'message': 'Ticket archived'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
