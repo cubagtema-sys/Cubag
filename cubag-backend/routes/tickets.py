@@ -98,7 +98,7 @@ def get_all_tickets_admin():
                 
                 t['date'] = t['created_at'].strftime('%Y-%m-%d')
                 t['lastUpdate'] = t['updated_at'].strftime('%Y-%m-%d %H:%M')
-                t['subject'] = f"{t['subject']} ({t['member_name']})"
+                # member_name is already in the row from the JOIN — no need to concat into subject
                 
             return jsonify(tickets), 200
     except Exception as e:

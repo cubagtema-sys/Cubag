@@ -96,22 +96,26 @@ export default function AdminTickets() {
                 const style = STATUS_STYLES[ticket.status] || STATUS_STYLES.open
                 const isSelected = selectedTicket?.id === ticket.id
                 return (
-                  <div 
-                    key={ticket.id} 
+                  <div key={ticket.id}
                     onClick={() => setSelectedTicket(ticket)}
-                    style={{ 
+                    style={{
                       padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer',
                       background: isSelected ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
                       borderLeft: isSelected ? '4px solid var(--brand-primary)' : '4px solid transparent',
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{ticket.id}</span>
                       <span style={{ padding: '2px 8px', borderRadius: 12, background: style.bg, color: style.color, fontSize: '0.7rem', fontWeight: 800 }}>{style.label}</span>
                     </div>
-                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontSize: '0.95rem' }}>{ticket.subject}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Opened: {ticket.date}</div>
+                    {/* Member name — prominent */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: 'var(--brand-primary)' }}>person</span>
+                      <span style={{ fontWeight: 800, color: 'var(--brand-primary)', fontSize: '0.9rem' }}>{ticket.member_name || 'Unknown Member'}</span>
+                    </div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, fontSize: '0.88rem' }}>{ticket.subject}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Opened: {ticket.date}</div>
                   </div>
                 )
               })
@@ -133,8 +137,14 @@ export default function AdminTickets() {
               <div style={{ background: 'var(--bg-elevated)', padding: 20, borderRadius: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                   <div>
-                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.2rem' }}>{selectedTicket.subject}</h3>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 6 }}>ID: {selectedTicket.id} • Submitted: {selectedTicket.date}</div>
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.1rem' }}>{selectedTicket.subject}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(240,130,50,0.08)', border: '1px solid rgba(240,130,50,0.2)', borderRadius: 20, padding: '4px 12px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: 'var(--brand-primary)' }}>person</span>
+                        <span style={{ fontWeight: 800, color: 'var(--brand-primary)', fontSize: '0.88rem' }}>{selectedTicket.member_name || 'Unknown Member'}</span>
+                      </div>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>ID: {selectedTicket.id} · {selectedTicket.date}</span>
+                    </div>
                   </div>
                   
                   <div style={{ minWidth: '150px' }}>
