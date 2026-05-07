@@ -7,7 +7,6 @@ const ALL_NAV_ITEMS = [
     items: [
       { to: '/dashboard',      icon: 'home',             label: 'Dashboard',       isPrimary: true },
       { to: '/announcements',  icon: 'campaign',         label: 'Announcements',   isPrimary: true },
-      { to: '/notifications',  icon: 'notifications',    label: 'Notifications' },
       { to: '/events',         icon: 'event',            label: 'Events' },
     ],
   },

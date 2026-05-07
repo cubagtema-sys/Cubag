@@ -38,7 +38,10 @@ export default function AdminCargoSchedules() {
 
   useEffect(() => { fetchSchedules() }, [])
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value })
+  const handleChange = (e) => {
+    const val = e.target.type === 'range' ? parseInt(e.target.value, 10) : e.target.value
+    setFormData({ ...formData, [e.target.name]: val })
+  }
 
   const handleUpload = async (e) => {
     e.preventDefault()
