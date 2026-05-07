@@ -73,6 +73,22 @@ export default function AdminTasks() {
     return 'attach_file'
   }
 
+  const triggerDownload = async (url, filename) => {
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(link.href)
+    } catch (e) {
+      console.error('Download failed', e)
+    }
+  }
+
   // Group tasks by title+due_date for history view
   const groupedTasks = {}
   tasks.forEach(task => {
@@ -238,10 +254,10 @@ export default function AdminTasks() {
                                       <span className="material-symbols-outlined" style={{ fontSize: '0.95rem' }}>visibility</span> View
                                     </button>
                                   )}
-                                  <a href={fileUrl} download={f.original_name}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', border: '1px solid var(--border-subtle)', borderRadius: 6, background: 'var(--bg-base)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                  <button onClick={() => triggerDownload(fileUrl, f.original_name)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', border: '1px solid var(--border-subtle)', borderRadius: 6, background: 'var(--bg-base)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                     <span className="material-symbols-outlined" style={{ fontSize: '0.95rem' }}>download</span> Download
-                                  </a>
+                                  </button>
                                 </div>
                               </div>
                             )
@@ -377,10 +393,10 @@ export default function AdminTasks() {
             <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{viewFile.name}</div>
               <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-                <a href={viewFile.url} download={viewFile.name}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: 'var(--brand-primary)', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600 }}>
+                <button onClick={() => triggerDownload(viewFile.url, viewFile.name)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>download</span> Download
-                </a>
+                </button>
                 <button onClick={() => setViewFile(null)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
                   <span className="material-symbols-outlined">close</span>
