@@ -161,6 +161,35 @@ def init_db():
                 ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;
             """)
 
+            # Task submission tracking
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS task_submissions (
+                    id SERIAL PRIMARY KEY,
+                    task_id INT NOT NULL,
+                    member_id INT NOT NULL,
+                    completion_note TEXT,
+                    admin_verified BOOLEAN DEFAULT FALSE,
+                    admin_verified_at TIMESTAMP NULL,
+                    admin_notes TEXT,
+                    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (task_id) REFERENCES tasks(id),
+                    FOREIGN KEY (member_id) REFERENCES members(id)
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS task_submission_files (
+                    id SERIAL PRIMARY KEY,
+                    submission_id INT NOT NULL,
+                    filename VARCHAR(255),
+                    original_name VARCHAR(255),
+                    file_type VARCHAR(100),
+                    file_size INT,
+                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (submission_id) REFERENCES task_submissions(id)
+                )
+            """)
+
         conn.commit()
         print("[OK] Database tables initialised successfully.")
     except Exception as e:

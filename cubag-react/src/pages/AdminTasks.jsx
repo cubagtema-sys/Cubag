@@ -12,7 +12,9 @@ export default function AdminTasks() {
   const [memberId, setMemberId] = useState('')
   
   const [message, setMessage] = useState('')
-  const [activeTab, setActiveTab] = useState('create') // 'create' or 'history'
+  const [activeTab, setActiveTab] = useState('create') // 'create' | 'history' | 'submissions'
+  const [verifyingId, setVerifyingId] = useState(null)
+  const [verifyNotes, setVerifyNotes] = useState({})
 
   const fetchData = async () => {
     try {
@@ -64,6 +66,28 @@ export default function AdminTasks() {
     }
   }
 
+  const handleVerify = async (submissionId) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/tasks/admin/${submissionId}/verify`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
+        },
+        body: JSON.stringify({ admin_notes: verifyNotes[submissionId] || '' })
+      })
+      if (res.ok) { fetchData(); setVerifyingId(null) }
+    } catch (e) { console.error(e) }
+  }
+
+  const fileIcon = (type = '') => {
+    if (type.includes('image')) return 'image'
+    if (type.includes('pdf')) return 'picture_as_pdf'
+    if (type.includes('video')) return 'videocam'
+    if (type.includes('word') || type.includes('doc')) return 'description'
+    return 'attach_file'
+  }
+
   const groupedTasks = {}
   tasks.forEach(task => {
     const key = `${task.title}|${task.due_date}`
@@ -96,18 +120,16 @@ export default function AdminTasks() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Assign compliance duties and monitor task completion status across all members.</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-          <button 
-            className={`btn ${activeTab === 'create' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => { setActiveTab('create'); setSelectedAssignment(null); }}
-          >
-            Assign Task
-          </button>
-          <button 
-            className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => { setActiveTab('history'); setSelectedAssignment(null); }}
-          >
-            Assignment History
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <button className={`btn ${activeTab === 'create' ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActiveTab('create'); setSelectedAssignment(null) }}>Assign Task</button>
+          <button className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActiveTab('history'); setSelectedAssignment(null) }}>Assignment History</button>
+          <button className={`btn ${activeTab === 'submissions' ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActiveTab('submissions'); setSelectedAssignment(null) }} style={{ position: 'relative' }}>
+            Member Submissions
+            {tasks.filter(t => t.submission_id && !t.admin_verified).length > 0 && (
+              <span style={{ marginLeft: 8, background: '#ef4444', borderRadius: 12, padding: '1px 8px', fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>
+                {tasks.filter(t => t.submission_id && !t.admin_verified).length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -239,8 +261,92 @@ export default function AdminTasks() {
               </table>
             </div>
           </div>
-        )}
-      </div>
-    </AppLayout>
-  )
-}
+        ) : activeTab === 'submissions' ? (
+          <div className="card">
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={{ margin: 0 }}>Member Submissions</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>Review evidence submitted by members and mark tasks as verified.</p>
+            </div>
+            {tasks.filter(t => t.submission_id).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', display: 'block', marginBottom: 8 }}>inbox</span>
+                No submissions yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {tasks.filter(t => t.submission_id).map((task, i) => (
+                  <div key={i} style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
+                    {/* Header */}
+                    <div style={{ padding: '14px 20px', background: task.admin_verified ? 'rgba(16,185,129,0.06)' : 'rgba(59,130,246,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{task.title}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>person</span>
+                          {task.member_name}
+                          <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>· Submitted {task.submitted_at ? new Date(task.submitted_at).toLocaleDateString() : ''}</span>
+                        </div>
+                      </div>
+                      {task.admin_verified ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: 20, padding: '4px 14px', fontSize: '0.8rem', fontWeight: 800 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>verified</span> Verified
+                        </span>
+                      ) : (
+                        <button className="btn btn-primary btn-sm" onClick={() => setVerifyingId(verifyingId === task.submission_id ? null : task.submission_id)}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '1rem', marginRight: 4 }}>check_circle</span>
+                          Mark Verified
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Completion note */}
+                    {task.completion_note && (
+                      <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-base)' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 }}>MEMBER NOTE</div>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{task.completion_note}</p>
+                      </div>
+                    )}
+
+                    {/* Attached files */}
+                    {task.files && task.files.length > 0 && (
+                      <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8 }}>ATTACHMENTS ({task.files.length})</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {task.files.map((f, fi) => (
+                            <a key={fi} href={`${import.meta.env.VITE_API_URL}/tasks/uploads/${f.filename}`}
+                              target="_blank" rel="noreferrer"
+                              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-subtle)', textDecoration: 'none', color: 'var(--text-primary)' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)' }}>{fileIcon(f.file_type)}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{f.file_type}</div>
+                              </div>
+                              <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>download</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Verify panel */}
+                    {verifyingId === task.submission_id && (
+                      <div style={{ padding: '16px 20px', background: 'rgba(16,185,129,0.04)', borderTop: '1px solid rgba(16,185,129,0.15)' }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.85rem', display: 'block', marginBottom: 8 }}>Admin Notes (optional)</label>
+                        <textarea rows={2} placeholder="Any notes for the member..."
+                          value={verifyNotes[task.submission_id] || ''}
+                          onChange={e => setVerifyNotes(prev => ({ ...prev, [task.submission_id]: e.target.value }))}
+                          style={{ width: '100%', padding: 10, border: '1px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-base)', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 12 }}
+                        />
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button className="btn btn-primary" onClick={() => handleVerify(task.submission_id)}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '1rem', marginRight: 4 }}>verified</span>Confirm Verified
+                          </button>
+                          <button className="btn btn-ghost" onClick={() => setVerifyingId(null)}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        
