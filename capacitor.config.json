@@ -1,0 +1,16 @@
+{
+  "appId": "com.cubag.app",
+  "appName": "CUBAG Mobile",
+  "webDir": "cubag-react/dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0d0d0d",
+      "showSpinner": false
+    }
+  }
+}

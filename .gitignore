@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Build outputs
+cubag-react/dist/
+cubag-react/build/
+android/app/build/
+android/.gradle/
+android/build/
+*.apk
+*.aab
+
+# Environment files — NEVER commit real keys
+.env
+.env.local
+.env.production
+.env.*.local
+cubag-backend/.env
+cubag-react/.env
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python virtual environments
+venv/
+env/
+.venv/
+
+# Flask cache
+instance/
+*.db
+*.sqlite3
+
+# Logs
+*.log
+npm-debug.log*
+
+# Capacitor generated (will be re-generated on build)
+cubag-react/assets/android/
+cubag-react/assets/ios/
