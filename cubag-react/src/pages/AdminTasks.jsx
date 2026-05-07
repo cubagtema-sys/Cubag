@@ -2,78 +2,62 @@ import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout.jsx'
 import CustomSelect from '../components/CustomSelect.jsx'
 
+const API_URL = import.meta.env.VITE_API_URL
+const AUTH = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
+})
+
 export default function AdminTasks() {
   const [tasks, setTasks] = useState([])
   const [members, setMembers] = useState([])
-  
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [memberId, setMemberId] = useState('')
-  
   const [message, setMessage] = useState('')
-  const [activeTab, setActiveTab] = useState('create') // 'create' | 'history' | 'submissions'
+  const [activeTab, setActiveTab] = useState('create')
+  const [selectedAssignment, setSelectedAssignment] = useState(null)
   const [verifyingId, setVerifyingId] = useState(null)
   const [verifyNotes, setVerifyNotes] = useState({})
 
   const fetchData = async () => {
     try {
-      // Fetch members for dropdown
-      const memRes = await fetch(`${import.meta.env.VITE_API_URL}/members`)
-      if (memRes.ok) {
-        setMembers(await memRes.json())
-      }
-      
-      // Fetch tasks
-      const taskRes = await fetch(`${import.meta.env.VITE_API_URL}/tasks/admin/all`)
-      if (taskRes.ok) {
-        setTasks(await taskRes.json())
-      }
-    } catch (e) {
-      console.error(e)
-    }
+      const [memRes, taskRes] = await Promise.all([
+        fetch(`${API_URL}/members`),
+        fetch(`${API_URL}/tasks/admin/all`)
+      ])
+      if (memRes.ok) setMembers(await memRes.json())
+      if (taskRes.ok) setTasks(await taskRes.json())
+    } catch (e) { console.error(e) }
   }
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+  useEffect(() => { fetchData() }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/tasks/admin/create`, {
+      const res = await fetch(`${API_URL}/tasks/admin/create`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
-        },
+        headers: AUTH(),
         body: JSON.stringify({ title, description, due_date: dueDate, member_id: memberId })
       })
-
       if (res.ok) {
         setMessage('Task successfully assigned.')
-        setTitle('')
-        setDescription('')
-        setDueDate('')
-        setMemberId('')
+        setTitle(''); setDescription(''); setDueDate(''); setMemberId('')
         fetchData()
         setTimeout(() => setMessage(''), 3000)
       } else {
         setMessage('Failed to assign task.')
       }
-    } catch (e) {
-      setMessage('Network error.')
-    }
+    } catch (e) { setMessage('Network error.') }
   }
 
   const handleVerify = async (submissionId) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/tasks/admin/${submissionId}/verify`, {
+      const res = await fetch(`${API_URL}/tasks/admin/${submissionId}/verify`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
-        },
+        headers: AUTH(),
         body: JSON.stringify({ admin_notes: verifyNotes[submissionId] || '' })
       })
       if (res.ok) { fetchData(); setVerifyingId(null) }
@@ -88,76 +72,81 @@ export default function AdminTasks() {
     return 'attach_file'
   }
 
+  // Group tasks by title+due_date for history view
   const groupedTasks = {}
   tasks.forEach(task => {
     const key = `${task.title}|${task.due_date}`
     if (!groupedTasks[key]) {
-      groupedTasks[key] = {
-        title: task.title,
-        description: task.description,
-        due_date: task.due_date,
-        total: 0,
-        completed: 0,
-        members: []
-      }
+      groupedTasks[key] = { title: task.title, description: task.description, due_date: task.due_date, total: 0, completed: 0, members: [] }
     }
     groupedTasks[key].total += 1
     if (task.done) groupedTasks[key].completed += 1
     groupedTasks[key].members.push(task)
   })
-
   const assignmentGroups = Object.values(groupedTasks).sort((a, b) => new Date(b.due_date) - new Date(a.due_date))
-  const [selectedAssignment, setSelectedAssignment] = useState(null)
+
+  const submissions = tasks.filter(t => t.submission_id)
+  const pendingVerify = submissions.filter(t => !t.admin_verified).length
 
   return (
     <AppLayout title="Compliance & Tasks">
       <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
         <div>
           <h2 style={{ fontSize: '1.5rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)' }}>assignment_add</span>
             Task Assignment & Tracking
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Assign compliance duties and monitor task completion status across all members.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Assign compliance duties and monitor task completion across all members.</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-          <button className={`btn ${activeTab === 'create' ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActiveTab('create'); setSelectedAssignment(null) }}>Assign Task</button>
-          <button className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActiveTab('history'); setSelectedAssignment(null) }}>Assignment History</button>
-          <button className={`btn ${activeTab === 'submissions' ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActiveTab('submissions'); setSelectedAssignment(null) }} style={{ position: 'relative' }}>
+        {/* Tab bar */}
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <button className={`btn ${activeTab === 'create' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => { setActiveTab('create'); setSelectedAssignment(null) }}>
+            Assign Task
+          </button>
+          <button className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => { setActiveTab('history'); setSelectedAssignment(null) }}>
+            Assignment History
+          </button>
+          <button className={`btn ${activeTab === 'submissions' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => { setActiveTab('submissions'); setSelectedAssignment(null) }}>
             Member Submissions
-            {tasks.filter(t => t.submission_id && !t.admin_verified).length > 0 && (
+            {pendingVerify > 0 && (
               <span style={{ marginLeft: 8, background: '#ef4444', borderRadius: 12, padding: '1px 8px', fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>
-                {tasks.filter(t => t.submission_id && !t.admin_verified).length}
+                {pendingVerify}
               </span>
             )}
           </button>
         </div>
 
-        {activeTab === 'create' ? (
-          <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* ── CREATE TAB ─────────────────────────────────────────────────────── */}
+        {activeTab === 'create' && (
+          <div className="card" style={{ maxWidth: 600, margin: '0 auto' }}>
+            <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="material-symbols-outlined">assignment_add</span>
               New Assignment
             </h3>
             {message && (
-              <div style={{ padding: '12px', background: message.includes('success') ? 'var(--brand-success)' : 'var(--brand-danger)', color: '#fff', borderRadius: 'var(--radius-md)', marginBottom: '16px', fontSize: '0.9rem' }}>
+              <div style={{ padding: 12, background: message.includes('success') ? 'var(--brand-success)' : 'var(--brand-danger)', color: '#fff', borderRadius: 8, marginBottom: 16, fontSize: '0.9rem' }}>
                 {message}
               </div>
             )}
             <form onSubmit={handleSubmit}>
               <div className="form-group" style={{ zIndex: 10 }}>
-                <CustomSelect 
+                <CustomSelect
                   label="Assign To"
                   options={[
                     { value: '', label: 'Select a member...' },
                     { value: 'all', label: 'All Active Members (Broadcast)' },
                     ...members.map(m => ({ value: m.id.toString(), label: `${m.name} (${m.company})` }))
                   ]}
-                  value={memberId.toString()} 
+                  value={memberId.toString()}
                   onChange={setMemberId}
                 />
               </div>
-              <div className="form-group" style={{ marginTop: '16px' }}>
+              <div className="form-group" style={{ marginTop: 16 }}>
                 <label>Task Title</label>
                 <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Submit Q3 Compliance Form" />
               </div>
@@ -167,115 +156,32 @@ export default function AdminTasks() {
               </div>
               <div className="form-group">
                 <label>Instructions</label>
-                <textarea required value={description} onChange={e => setDescription(e.target.value)} rows="4" placeholder="Detailed instructions for the task..."></textarea>
+                <textarea required value={description} onChange={e => setDescription(e.target.value)} rows="4" placeholder="Detailed instructions for the task..." />
               </div>
-              <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '16px' }}>
+              <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: 16 }}>
                 <span className="material-symbols-outlined">send</span> Assign Task
               </button>
             </form>
           </div>
-        ) : selectedAssignment ? (
-          <div className="card">
-            <button className="btn btn-ghost btn-sm" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setSelectedAssignment(null)}>
-              <span className="material-symbols-outlined">arrow_back</span> Back to Assignments
-            </button>
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>{selectedAssignment.title}</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Due: {new Date(selectedAssignment.due_date).toLocaleDateString()}</p>
-              <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-elevated)', borderRadius: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                {selectedAssignment.description}
-              </div>
-            </div>
-            
-            <h4 style={{ marginBottom: '12px' }}>Member Status ({selectedAssignment.completed}/{selectedAssignment.total} Completed)</h4>
-            <div className="responsive-table-wrapper">
-              <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Member Name</th>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedAssignment.members.map((m, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                      <td data-label="Member Name" style={{ padding: '12px', fontSize: '0.9rem', fontWeight: 600 }}>{m.member_name}</td>
-                      <td data-label="Status" style={{ padding: '12px' }}>
-                        <span className={`badge ${m.done ? 'badge-success' : 'badge-warning'}`}>
-                          {m.done ? 'Completed' : 'Pending'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : (
-          <div className="card">
-            <h3 style={{ marginBottom: '16px' }}>Assignment History</h3>
-            <div className="responsive-table-wrapper">
-              <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Assignment</th>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Due Date</th>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Completion Rate</th>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignmentGroups.map((group, i) => {
-                    const isOverdue = new Date(group.due_date) < new Date() && group.completed < group.total
-                    return (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                        <td data-label="Assignment" style={{ padding: '12px', fontSize: '0.9rem' }}>
-                          <div style={{ fontWeight: 600 }}>{group.title}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{group.description.substring(0, 50)}...</div>
-                        </td>
-                        <td data-label="Due Date" style={{ padding: '12px', fontSize: '0.9rem' }}>
-                          <span style={{ color: isOverdue ? 'var(--brand-danger)' : 'var(--text-secondary)', fontWeight: isOverdue ? 700 : 400 }}>
-                            {new Date(group.due_date).toLocaleDateString()}
-                          </span>
-                        </td>
-                        <td data-label="Completion Rate" style={{ padding: '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                            <div style={{ width: '100px', height: '6px', background: 'var(--border-subtle)', borderRadius: '3px', overflow: 'hidden' }}>
-                              <div style={{ width: `${(group.completed / group.total) * 100}%`, height: '100%', background: group.completed === group.total ? 'var(--brand-success)' : 'var(--brand-primary)' }}></div>
-                            </div>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{group.completed}/{group.total}</span>
-                          </div>
-                        </td>
-                        <td data-label="Actions" style={{ padding: '12px' }}>
-                          <button className="btn btn-outline btn-sm" onClick={() => setSelectedAssignment(group)}>View Status</button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  {assignmentGroups.length === 0 && (
-                    <tr>
-                      <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No assignments found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : activeTab === 'submissions' ? (
+        )}
+
+        {/* ── SUBMISSIONS TAB ────────────────────────────────────────────────── */}
+        {activeTab === 'submissions' && (
           <div className="card">
             <div style={{ marginBottom: 20 }}>
               <h3 style={{ margin: 0 }}>Member Submissions</h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>Review evidence submitted by members and mark tasks as verified.</p>
             </div>
-            {tasks.filter(t => t.submission_id).length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+            {submissions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', display: 'block', marginBottom: 8 }}>inbox</span>
                 No submissions yet.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {tasks.filter(t => t.submission_id).map((task, i) => (
+                {submissions.map((task, i) => (
                   <div key={i} style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
+
                     {/* Header */}
                     <div style={{ padding: '14px 20px', background: task.admin_verified ? 'rgba(16,185,129,0.06)' : 'rgba(59,130,246,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                       <div>
@@ -283,7 +189,9 @@ export default function AdminTasks() {
                         <div style={{ fontSize: '0.8rem', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                           <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>person</span>
                           {task.member_name}
-                          <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>· Submitted {task.submitted_at ? new Date(task.submitted_at).toLocaleDateString() : ''}</span>
+                          <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
+                            · Submitted {task.submitted_at ? new Date(task.submitted_at).toLocaleDateString() : ''}
+                          </span>
                         </div>
                       </div>
                       {task.admin_verified ? (
@@ -291,7 +199,8 @@ export default function AdminTasks() {
                           <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>verified</span> Verified
                         </span>
                       ) : (
-                        <button className="btn btn-primary btn-sm" onClick={() => setVerifyingId(verifyingId === task.submission_id ? null : task.submission_id)}>
+                        <button className="btn btn-primary btn-sm"
+                          onClick={() => setVerifyingId(verifyingId === task.submission_id ? null : task.submission_id)}>
                           <span className="material-symbols-outlined" style={{ fontSize: '1rem', marginRight: 4 }}>check_circle</span>
                           Mark Verified
                         </button>
@@ -306,14 +215,13 @@ export default function AdminTasks() {
                       </div>
                     )}
 
-                    {/* Attached files */}
+                    {/* Files */}
                     {task.files && task.files.length > 0 && (
                       <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8 }}>ATTACHMENTS ({task.files.length})</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {task.files.map((f, fi) => (
-                            <a key={fi} href={`${import.meta.env.VITE_API_URL}/tasks/uploads/${f.filename}`}
-                              target="_blank" rel="noreferrer"
+                            <a key={fi} href={`${API_URL}/tasks/uploads/${f.filename}`} target="_blank" rel="noreferrer"
                               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-subtle)', textDecoration: 'none', color: 'var(--text-primary)' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)' }}>{fileIcon(f.file_type)}</span>
                               <div style={{ flex: 1, minWidth: 0 }}>
@@ -349,4 +257,100 @@ export default function AdminTasks() {
               </div>
             )}
           </div>
-        
+        )}
+
+        {/* ── HISTORY TAB ────────────────────────────────────────────────────── */}
+        {activeTab === 'history' && (
+          selectedAssignment ? (
+            <div className="card">
+              <button className="btn btn-ghost btn-sm" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => setSelectedAssignment(null)}>
+                <span className="material-symbols-outlined">arrow_back</span> Back to Assignments
+              </button>
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ margin: 0 }}>{selectedAssignment.title}</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 4 }}>Due: {new Date(selectedAssignment.due_date).toLocaleDateString()}</p>
+                <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-elevated)', borderRadius: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  {selectedAssignment.description}
+                </div>
+              </div>
+              <h4 style={{ marginBottom: 12 }}>Member Status ({selectedAssignment.completed}/{selectedAssignment.total} Completed)</h4>
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <th style={{ padding: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Member</th>
+                    <th style={{ padding: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Status</th>
+                    <th style={{ padding: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Verified</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedAssignment.members.map((m, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: 12, fontWeight: 600 }}>{m.member_name}</td>
+                      <td style={{ padding: 12 }}>
+                        <span className={`badge ${m.done ? 'badge-success' : 'badge-warning'}`}>{m.done ? 'Submitted' : 'Pending'}</span>
+                      </td>
+                      <td style={{ padding: 12, fontSize: '0.85rem' }}>
+                        {m.admin_verified
+                          ? <span style={{ color: '#10b981', fontWeight: 700 }}>✅ Verified</span>
+                          : m.submission_id
+                            ? <span style={{ color: '#f59e0b' }}>⏳ Awaiting review</span>
+                            : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="card">
+              <h3 style={{ marginBottom: 16 }}>Assignment History</h3>
+              <div className="responsive-table-wrapper">
+                <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <th style={{ padding: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Assignment</th>
+                      <th style={{ padding: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Due Date</th>
+                      <th style={{ padding: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Rate</th>
+                      <th style={{ padding: 12, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assignmentGroups.map((group, i) => {
+                      const isOverdue = new Date(group.due_date) < new Date() && group.completed < group.total
+                      return (
+                        <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td style={{ padding: 12 }}>
+                            <div style={{ fontWeight: 600 }}>{group.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{(group.description || '').substring(0, 50)}...</div>
+                          </td>
+                          <td style={{ padding: 12, color: isOverdue ? 'var(--brand-danger)' : 'var(--text-secondary)', fontWeight: isOverdue ? 700 : 400 }}>
+                            {new Date(group.due_date).toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 80, height: 6, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: `${(group.completed / group.total) * 100}%`, height: '100%', background: group.completed === group.total ? 'var(--brand-success)' : 'var(--brand-primary)' }} />
+                              </div>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{group.completed}/{group.total}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: 12 }}>
+                            <button className="btn btn-outline btn-sm" onClick={() => setSelectedAssignment(group)}>View</button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                    {assignmentGroups.length === 0 && (
+                      <tr><td colSpan="4" style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>No assignments found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
+        )}
+
+      </div>
+    </AppLayout>
+  )
+}
