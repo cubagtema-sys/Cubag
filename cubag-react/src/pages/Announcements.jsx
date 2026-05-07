@@ -128,26 +128,15 @@ export default function Announcements() {
                         <span className={`badge badge-${alert.color || 'info'}`} style={{ flexShrink: 0, marginLeft: 12 }}>{alert.category || alert.type}</span>
                       </div>
 
-                      {/* Body — truncated or full */}
-                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12, display: isExpanded ? 'block' : '-webkit-box', WebkitLineClamp: isExpanded ? 'none' : 2, WebkitBoxOrient: 'vertical', overflow: isExpanded ? 'visible' : 'hidden' }}>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
                         {alert.body}
                       </p>
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          {alert.posted_by && <span style={{ marginRight: 8 }}>By {alert.posted_by} ·</span>}
+                          <span style={{ marginRight: 8 }}>By {alert.posted_by || 'CUBAG Unit'} ·</span>
                           {alert.time || (alert.created_at && new Date(alert.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))}
                         </div>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ padding: '4px 12px', color: 'var(--brand-primary)', fontWeight: 600 }}
-                          onClick={() => toggleExpand(alert.id)}
-                        >
-                          {isExpanded ? 'Show less' : 'Read full'}
-                          <span className="material-symbols-outlined" style={{ fontSize: '1rem', marginLeft: 4, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
-                            arrow_forward
-                          </span>
-                        </button>
                       </div>
                     </div>
                   </div>
