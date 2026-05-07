@@ -134,7 +134,9 @@ export default function Announcements() {
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          <span style={{ marginRight: 8 }}>By {alert.posted_by || 'CUBAG Unit'} ·</span>
+                          <span style={{ marginRight: 8 }}>
+                            By {['System Administrator', 'Admin', '', null, undefined].includes(alert.posted_by) ? 'CUBAG Unit' : alert.posted_by} ·
+                          </span>
                           {alert.time || (alert.created_at && new Date(alert.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))}
                         </div>
                       </div>

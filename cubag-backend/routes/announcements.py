@@ -29,7 +29,7 @@ def create_announcement():
             cursor.execute("""
                 INSERT INTO announcements (title, body, category, posted_by)
                 VALUES (%s, %s, %s, %s)
-            """, (data.get('title'), data.get('body'), data.get('category', 'General'), data.get('posted_by', 'Admin')))
+            """, (data.get('title'), data.get('body'), data.get('category', 'General'), data.get('posted_by', 'CUBAG Unit')))
             conn.commit()
         return jsonify({'message': 'Announcement posted'}), 201
     except Exception as e:
