@@ -20,6 +20,7 @@ export default function AdminTasks() {
   const [selectedAssignment, setSelectedAssignment] = useState(null)
   const [verifyingId, setVerifyingId] = useState(null)
   const [verifyNotes, setVerifyNotes] = useState({})
+  const [viewFile, setViewFile] = useState(null) // { url, type, name }
 
   const fetchData = async () => {
     try {
@@ -220,17 +221,31 @@ export default function AdminTasks() {
                       <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8 }}>ATTACHMENTS ({task.files.length})</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {task.files.map((f, fi) => (
-                            <a key={fi} href={`${API_URL}/tasks/uploads/${f.filename}`} target="_blank" rel="noreferrer"
-                              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-subtle)', textDecoration: 'none', color: 'var(--text-primary)' }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)' }}>{fileIcon(f.file_type)}</span>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{f.file_type}</div>
+                          {task.files.map((f, fi) => {
+                            const fileUrl = `${API_URL}/tasks/uploads/${f.filename}`
+                            const isViewable = f.file_type?.startsWith('image') || f.file_type?.includes('pdf')
+                            return (
+                              <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)', flexShrink: 0 }}>{fileIcon(f.file_type)}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</div>
+                                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{f.file_type}</div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                  {isViewable && (
+                                    <button onClick={() => setViewFile({ url: fileUrl, type: f.file_type, name: f.original_name })}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', border: '1px solid var(--border-subtle)', borderRadius: 6, background: 'var(--bg-base)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: 'var(--brand-primary)' }}>
+                                      <span className="material-symbols-outlined" style={{ fontSize: '0.95rem' }}>visibility</span> View
+                                    </button>
+                                  )}
+                                  <a href={fileUrl} download={f.original_name}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', border: '1px solid var(--border-subtle)', borderRadius: 6, background: 'var(--bg-base)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '0.95rem' }}>download</span> Download
+                                  </a>
+                                </div>
                               </div>
-                              <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>download</span>
-                            </a>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -351,6 +366,38 @@ export default function AdminTasks() {
         )}
 
       </div>
+
+      {/* ── File Viewer Lightbox ─────────────────────────────────────────── */}
+      {viewFile && (
+        <div onClick={() => setViewFile(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg-card)', borderRadius: 16, maxWidth: '90vw', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px rgba(0,0,0,0.6)', width: '100%' }}>
+            {/* Header */}
+            <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{viewFile.name}</div>
+              <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+                <a href={viewFile.url} download={viewFile.name}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: 'var(--brand-primary)', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>download</span> Download
+                </a>
+                <button onClick={() => setViewFile(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+            {/* Content */}
+            <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: '#111', minHeight: 300 }}>
+              {viewFile.type?.startsWith('image') ? (
+                <img src={viewFile.url} alt={viewFile.name} style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 8 }} />
+              ) : viewFile.type?.includes('pdf') ? (
+                <iframe src={viewFile.url} title={viewFile.name} style={{ width: '100%', height: '75vh', border: 'none', borderRadius: 8 }} />
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   )
 }

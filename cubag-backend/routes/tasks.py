@@ -116,7 +116,6 @@ def submit_task(task_id):
 
 # ─── GET /tasks/uploads/<filename> ─ Serve uploaded files ────────────────────
 @tasks_bp.route('/uploads/<filename>', methods=['GET'])
-@jwt_required()
 def serve_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
