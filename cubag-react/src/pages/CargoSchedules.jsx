@@ -1,16 +1,27 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 
 export default function CargoSchedules() {
   const [activeTab, setActiveTab] = useState('vanning')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Data will be fetched from API/database as uploaded by the admin
-  const schedules = []
+  const [schedules, setSchedules] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const filtered = schedules.filter(s => 
-    s.type === activeTab && 
-    (s.container.toLowerCase().includes(searchQuery.toLowerCase()) || s.vessel.toLowerCase().includes(searchQuery.toLowerCase()))
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/schedules`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setSchedules(Array.isArray(data) ? data : []))
+      .catch(() => setSchedules([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filtered = schedules.filter(s =>
+    s.type === activeTab &&
+    (
+      (s.container || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.vessel || '').toLowerCase().includes(searchQuery.toLowerCase())
+    )
   )
 
   return (
@@ -46,7 +57,12 @@ export default function CargoSchedules() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 20 }}>
-          {filtered.length > 0 ? filtered.map((s, i) => (
+          {loading ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>
+              <div className="spinner" style={{ margin: '0 auto 12px' }} />
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading schedules...</div>
+            </div>
+          ) : filtered.length > 0 ? filtered.map((s, i) => (
             <div key={i} style={{ background: 'var(--bg-base)', borderRadius: 16, padding: 20, border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div>
