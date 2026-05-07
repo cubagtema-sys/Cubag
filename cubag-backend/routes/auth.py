@@ -162,7 +162,8 @@ def login():
                     'memberType': member['member_type'],
                     'licenseNumber': member['license_number'],
                     'portOfOperation': member['port_of_operation'],
-                    'status': member['status']
+                    'status': member['status'],
+                    'role': member.get('role', 'member')   # 'admin' or 'member'
                 }
             }), 200
     except Exception as e:

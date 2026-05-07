@@ -140,10 +140,11 @@ def init_db():
                 )
             """)
 
-            # Add transaction info to members if not exists
+            # Add transaction info and role to members if not exists
             cursor.execute("""
                 ALTER TABLE members 
-                ADD COLUMN IF NOT EXISTS payment_ref VARCHAR(255);
+                ADD COLUMN IF NOT EXISTS payment_ref VARCHAR(255),
+                ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'member';
             """)
 
         conn.commit()

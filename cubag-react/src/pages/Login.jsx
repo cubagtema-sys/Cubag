@@ -25,7 +25,8 @@ export default function Login() {
       if (res.ok) {
         localStorage.setItem('cubag_token', data.token)
         localStorage.setItem('cubag_user', JSON.stringify(data.user))
-        navigate('/dashboard')
+        // Redirect based on role — admin → /admin, everyone else → /dashboard
+        navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard')
       } else {
         setError(data.error || data.message || 'Login failed. Please check credentials.')
       }
