@@ -21,6 +21,7 @@ export default function AdminTickets() {
   const [tickets, setTickets] = useState([])
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [reply, setReply] = useState('')
+  const [archiveConfirm, setArchiveConfirm] = useState(null) // ticketId pending confirmation
 
   const fetchTickets = async () => {
     try {
@@ -62,20 +63,25 @@ export default function AdminTickets() {
   }
 
   const handleArchive = async (ticketId, e) => {
-    e.stopPropagation() // prevent opening the ticket detail
-    if (!window.confirm('Archive this ticket? It stays in the database but will no longer appear here.')) return
+    e.stopPropagation()
+    setArchiveConfirm(ticketId)
+  }
+
+  const confirmArchive = async (ticketId) => {
     try {
       const res = await fetch(`${API_URL}/tickets/admin/${ticketId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
       })
       if (res.ok) {
-        showToast(`Ticket ${ticketId} archived`, 'success')
+        showToast(`Ticket ${ticketId} archived successfully`, 'success')
         if (selectedTicket?.id === ticketId) setSelectedTicket(null)
         fetchTickets()
       }
     } catch (e) {
       console.error(e)
+    } finally {
+      setArchiveConfirm(null)
     }
   }
 
@@ -144,6 +150,24 @@ export default function AdminTickets() {
                     </div>
                     <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, fontSize: '0.88rem' }}>{ticket.subject}</div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Opened: {ticket.date}</div>
+
+                    {/* Inline archive confirmation */}
+                    {archiveConfirm === ticket.id && (
+                      <div onClick={e => e.stopPropagation()}
+                        style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ef4444' }}>Archive this ticket?</span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={() => confirmArchive(ticket.id)}
+                            style={{ padding: '5px 14px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+                            Yes
+                          </button>
+                          <button onClick={() => setArchiveConfirm(null)}
+                            style={{ padding: '5px 14px', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+                            No
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })
