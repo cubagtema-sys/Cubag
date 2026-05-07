@@ -20,7 +20,8 @@ export default function AdminCargoSchedules() {
   const [deletingId, setDeletingId] = useState(null)
 
   const [formData, setFormData] = useState({
-    type: 'vanning', container: '', vessel: '', cargo: '', date: '', port: '', status: 'Scheduled'
+    type: 'vanning', container: '', vessel: '', cargo: '', date: '', port: '', status: 'Scheduled',
+    origin: '', destination: '', progress: 0
   })
 
   const authHeader = {
@@ -51,7 +52,7 @@ export default function AdminCargoSchedules() {
       })
       if (res.ok) {
         setSuccess(true)
-        setFormData({ type: 'vanning', container: '', vessel: '', cargo: '', date: '', port: '', status: 'Scheduled' })
+        setFormData({ type: 'vanning', container: '', vessel: '', cargo: '', date: '', port: '', status: 'Scheduled', origin: '', destination: '', progress: 0 })
         fetchSchedules()
         setTimeout(() => setSuccess(false), 3000)
       }
@@ -157,6 +158,45 @@ export default function AdminCargoSchedules() {
                   <input required type="text" name="date" placeholder="e.g. 10 May 2026" value={formData.date} onChange={handleChange} style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
                 </div>
               </div>
+
+              {/* ── Movement-only fields ──────────────────────────────────── */}
+              {formData.type === 'movement' && (
+                <>
+                  <div style={{ padding: '12px 16px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, marginBottom: 16 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#3b82f6', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>directions_boat</span>
+                      Vessel Route Details
+                    </div>
+                    <div className="form-row" style={{ marginBottom: 12 }}>
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Origin Port (Departure)</label>
+                        <input type="text" name="origin" placeholder="e.g. Port of Hamburg" value={formData.origin} onChange={handleChange}
+                          style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
+                      </div>
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Destination Port (Arrival)</label>
+                        <input type="text" name="destination" placeholder="e.g. Tema Port, Ghana" value={formData.destination} onChange={handleChange}
+                          style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Current Route Progress — {formData.progress}%</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <input type="range" name="progress" min="0" max="100" value={formData.progress} onChange={handleChange}
+                          style={{ flex: 1, accentColor: 'var(--brand-primary)' }} />
+                        <span style={{ fontWeight: 800, color: 'var(--brand-primary)', minWidth: 40, textAlign: 'right' }}>{formData.progress}%</span>
+                      </div>
+                      <div style={{ marginTop: 8, height: 8, background: 'var(--border-subtle)', borderRadius: 8, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${formData.progress}%`, background: 'var(--brand-primary)', borderRadius: 8, transition: 'width 0.2s' }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                        <span>🚢 {formData.origin || 'Origin'}</span>
+                        <span>{formData.destination || 'Destination'} ⚓</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="form-row" style={{ marginBottom: 32 }}>
                 <div className="form-group">

@@ -25,11 +25,15 @@ def create_schedule():
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO schedules (type, container, vessel, cargo, date, port, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO schedules (type, container, vessel, cargo, date, port, status, origin, destination, progress)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 data.get('type'), data.get('container'), data.get('vessel'),
-                data.get('cargo'), data.get('date'), data.get('port'), data.get('status', 'Scheduled')
+                data.get('cargo'), data.get('date'), data.get('port'),
+                data.get('status', 'Scheduled'),
+                data.get('origin'),       # vessel movement: departure port
+                data.get('destination'),  # vessel movement: arrival port
+                data.get('progress', 0)   # 0–100 percent along route
             ))
             conn.commit()
         return jsonify({'message': 'Schedule added successfully'}), 201

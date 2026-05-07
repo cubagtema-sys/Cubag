@@ -147,6 +147,14 @@ def init_db():
                 ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'member';
             """)
 
+            # Add movement-specific columns to schedules if not exists
+            cursor.execute("""
+                ALTER TABLE schedules
+                ADD COLUMN IF NOT EXISTS origin VARCHAR(150),
+                ADD COLUMN IF NOT EXISTS destination VARCHAR(150),
+                ADD COLUMN IF NOT EXISTS progress INT DEFAULT 0;
+            """)
+
         conn.commit()
         print("[OK] Database tables initialised successfully.")
     except Exception as e:
