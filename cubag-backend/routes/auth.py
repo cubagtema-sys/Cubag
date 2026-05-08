@@ -5,12 +5,19 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask import Blueprint, request, jsonify, make_response
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_cors import cross_origin
 from config.db import get_db
+import requests as http_req
 
 auth_bp = Blueprint('auth', __name__)
+
+# ─── Supabase config (shared with public_materials) ──────────────────────────
+SUPABASE_URL  = os.getenv('SUPABASE_URL', '')
+SUPABASE_KEY  = os.getenv('SUPABASE_SERVICE_KEY', '')
+PHOTO_BUCKET  = os.getenv('SUPABASE_BUCKET', 'public-materials')  # reuse same bucket
 
 def send_verification_email(to_email, token):
     smtp_host = os.getenv('SMTP_HOST')
@@ -165,7 +172,8 @@ def login():
                     'licenseNumber': member['license_number'],
                     'portOfOperation': member['port_of_operation'],
                     'status': member['status'],
-                    'role': member.get('role', 'member')   # 'admin' or 'member'
+                    'role': member.get('role', 'member'),
+                    'profile_photo': member.get('profile_photo') or None
                 }
             }), 200
     except Exception as e:
@@ -183,13 +191,115 @@ def me():
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT id, name, email, phone, company, license_number,
-                       member_type, port_of_operation, status
+                       member_type, port_of_operation, status, profile_photo
                 FROM members WHERE id = %s
             """, (member_id,))
             member = cursor.fetchone()
             if not member:
                 return jsonify({'message': 'Member not found'}), 404
             return jsonify(member), 200
+    finally:
+        conn.close()
+
+
+@auth_bp.route('/upload-photo', methods=['POST'])
+@jwt_required()
+def upload_photo():
+    """Upload profile photo to Supabase Storage and save URL in DB."""
+    member_id = get_jwt_identity()
+
+    if 'photo' not in request.files:
+        return jsonify({'message': 'No photo provided'}), 400
+
+    file = request.files['photo']
+    if not file or not file.filename:
+        return jsonify({'message': 'No file selected'}), 400
+
+    ext = file.filename.rsplit('.', 1)[-1].lower()
+    if ext not in ('jpg', 'jpeg', 'png', 'webp'):
+        return jsonify({'message': 'Only JPG, PNG, or WebP allowed'}), 400
+
+    # Size check (max 5MB)
+    file.seek(0, 2)
+    if file.tell() > 5 * 1024 * 1024:
+        return jsonify({'message': 'Photo too large. Max 5MB.'}), 413
+    file.seek(0)
+
+    safe_name = f"profile_{member_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    file_bytes = file.read()
+    content_type = file.content_type or 'image/jpeg'
+
+    # Upload to Supabase Storage
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return jsonify({'message': 'Storage not configured'}), 500
+
+    storage_url = f"{SUPABASE_URL}/storage/v1/object/{PHOTO_BUCKET}/{safe_name}"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": content_type,
+        "x-upsert": "true",
+    }
+    resp = http_req.post(storage_url, data=file_bytes, headers=headers, timeout=30)
+    if resp.status_code not in (200, 201):
+        return jsonify({'message': f'Upload failed: {resp.text}'}), 500
+
+    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{PHOTO_BUCKET}/{safe_name}"
+
+    # Save URL to DB
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE members SET profile_photo = %s WHERE id = %s", (public_url, member_id))
+            conn.commit()
+        return jsonify({'message': 'Photo uploaded', 'photo_url': public_url}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@auth_bp.route('/change-password', methods=['POST', 'OPTIONS'])
+@cross_origin(supports_credentials=True)
+def change_password():
+    print(f"[DEBUG] Change Password request: {request.method}")
+    if request.method == 'OPTIONS':
+        res = make_response('', 200)
+        res.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin", "*")
+        res.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        res.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+        res.headers["Access-Control-Allow-Credentials"] = "true"
+        return res
+
+    try:
+        # Manually verify JWT so it doesn't block the preflight
+        verify_jwt_in_request()
+        member_id = get_jwt_identity()
+    except Exception as e:
+        print(f"[DEBUG] JWT Verification failed: {str(e)}")
+        return jsonify({'message': 'Authentication required'}), 401
+
+    data = request.get_json()
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if not current_password or not new_password:
+        return jsonify({'message': 'Current and new passwords are required'}), 400
+
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT password_hash FROM members WHERE id = %s", (member_id,))
+            member = cursor.fetchone()
+            if not member or not check_password_hash(member['password_hash'], current_password):
+                return jsonify({'message': 'Incorrect current password'}), 401
+
+            hashed_pw = generate_password_hash(new_password)
+            cursor.execute("UPDATE members SET password_hash = %s WHERE id = %s", (hashed_pw, member_id))
+            conn.commit()
+            return jsonify({'message': 'Password changed successfully'}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
 

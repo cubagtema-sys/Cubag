@@ -53,8 +53,13 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS otp_codes (
                     email VARCHAR(150) PRIMARY KEY,
                     code VARCHAR(10) NOT NULL,
+                    type VARCHAR(50) DEFAULT 'email_verification',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
+            """)
+
+            cursor.execute("""
+                ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS type VARCHAR(50) DEFAULT 'email_verification';
             """)
 
             # Announcements
@@ -166,11 +171,12 @@ def init_db():
                 )
             """)
 
-            # Add transaction info and role to members if not exists
+            # Add transaction info, role and profile photo to members if not exists
             cursor.execute("""
                 ALTER TABLE members 
                 ADD COLUMN IF NOT EXISTS payment_ref VARCHAR(255),
-                ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'member';
+                ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'member',
+                ADD COLUMN IF NOT EXISTS profile_photo TEXT;
             """)
 
             # Add movement-specific columns to schedules if not exists

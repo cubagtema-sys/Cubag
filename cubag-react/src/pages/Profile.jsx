@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { showToast } from '../utils/toast'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 export default function Profile() {
   const [user, setUser] = useState({})
   const navigate = useNavigate()
@@ -15,13 +17,11 @@ export default function Profile() {
         return
       }
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+        const res = await fetch(`${API_URL}/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (res.ok) {
           const data = await res.json()
-          // Map backend fields to frontend expected fields
-          const savedPhoto = localStorage.getItem(`cubag_photo_${data.email}`)
           const mappedUser = {
             name: data.name,
             email: data.email,
@@ -31,18 +31,16 @@ export default function Profile() {
             role: data.member_type,
             licenseExpiry: data.license_number || 'No Active License',
             status: data.status,
-            photo: savedPhoto || null
+            photo: data.profile_photo || null
           }
           setUser(mappedUser)
           localStorage.setItem('cubag_user', JSON.stringify(mappedUser))
         } else {
-          // Token invalid
           localStorage.removeItem('cubag_token')
           navigate('/login')
         }
       } catch (e) {
         console.error(e)
-        // Fallback to local storage if offline
         const userData = JSON.parse(localStorage.getItem('cubag_user') || '{}')
         if (userData.name) setUser(userData)
       }
@@ -50,25 +48,43 @@ export default function Profile() {
     fetchUser()
   }, [navigate])
 
-
-
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result
-        const updatedUser = { ...user, photo: base64String }
+    if (!file) return
+
+    // Show optimistic preview immediately
+    const previewUrl = URL.createObjectURL(file)
+    const previousPhoto = user.photo
+    setUser(prev => ({ ...prev, photo: previewUrl }))
+
+    // Upload to backend → Supabase Storage
+    const formData = new FormData()
+    formData.append('photo', file)
+
+    try {
+      const token = localStorage.getItem('cubag_token')
+      const res = await fetch(`${API_URL}/auth/upload-photo`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      })
+      const result = await res.json()
+      if (res.ok && result.photo_url) {
+        const updatedUser = { ...user, photo: result.photo_url }
         setUser(updatedUser)
         localStorage.setItem('cubag_user', JSON.stringify(updatedUser))
-        if (user.email) {
-          localStorage.setItem(`cubag_photo_${user.email}`, base64String)
-        }
-
-        // Auto-show ID card after successful upload
+        showToast('Profile photo updated!', 'success')
         setShowIdCard(true)
+      } else {
+        showToast(result.message || 'Photo upload failed', 'error')
+        setUser(prev => ({ ...prev, photo: previousPhoto }))
       }
-      reader.readAsDataURL(file)
+    } catch (err) {
+      console.error(err)
+      showToast('Connection error uploading photo', 'error')
+      setUser(prev => ({ ...prev, photo: previousPhoto }))
+    } finally {
+      URL.revokeObjectURL(previewUrl)
     }
   }
 
