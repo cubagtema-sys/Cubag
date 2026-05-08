@@ -219,14 +219,9 @@ export default function AdminCargoSchedules() {
           /* ── History Tab ── */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* Filter bar */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div style={{ flex: 1 }}>
-                <CustomSelect value={filterStatus} onChange={setFilterStatus} options={FILTER_OPTIONS} icon="filter_list" />
-              </div>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                {displayed.length} record{displayed.length !== 1 ? 's' : ''}
-              </span>
+            {/* Filter bar — no record count */}
+            <div style={{ flex: 1 }}>
+              <CustomSelect value={filterStatus} onChange={setFilterStatus} options={FILTER_OPTIONS} icon="filter_list" />
             </div>
 
             {displayed.length === 0 ? (
@@ -238,13 +233,12 @@ export default function AdminCargoSchedules() {
               const ss = statusStyle[s.status] || statusStyle['Scheduled']
               const icon = typeIcon[s.type] || 'local_shipping'
               return (
-                <div key={s.id} className="feed-card" style={{ padding: 0, borderRadius: 14, overflow: 'hidden', opacity: deletingId === s.id ? 0.4 : 1 }}>
+                <div key={s.id} className="feed-card" style={{ padding: 0, borderRadius: 14, opacity: deletingId === s.id ? 0.4 : 1 }}>
                   {/* Colored top stripe */}
                   <div style={{ height: 3, background: ss.color }} />
 
                   <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {/* Header row */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                      {/* Header row — icon + vessel + container only */}
                       <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
                         <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ss.color}18`, color: ss.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>{icon}</span>
@@ -254,17 +248,6 @@ export default function AdminCargoSchedules() {
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: 1 }}>{s.container}</div>
                         </div>
                       </div>
-
-                      {/* Status pill — CustomSelect inline */}
-                      <div style={{ minWidth: 130, flexShrink: 0 }}>
-                        <CustomSelect
-                          value={s.status}
-                          onChange={val => handleStatusChange(s.id, val)}
-                          options={STATUS_OPTIONS}
-                          icon="flag"
-                        />
-                      </div>
-                    </div>
 
                     {/* Detail row */}
                     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -288,11 +271,20 @@ export default function AdminCargoSchedules() {
                       )}
                     </div>
 
-                    {/* Footer */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+                    {/* Footer — status dropdown + remove button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+                      {/* Status selector — full width before remove */}
+                      <div style={{ flex: 1 }}>
+                        <CustomSelect
+                          value={s.status}
+                          onChange={val => handleStatusChange(s.id, val)}
+                          options={STATUS_OPTIONS}
+                          icon="flag"
+                        />
+                      </div>
                       <button
                         onClick={() => setPendingDelete(s.id)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '0.95rem' }}>delete</span>
                         Remove
