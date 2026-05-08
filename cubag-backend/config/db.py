@@ -130,6 +130,26 @@ def init_db():
                 )
             """)
 
+            cursor.execute("""
+                ALTER TABLE surveys
+                ADD COLUMN IF NOT EXISTS deadline DATE,
+                ADD COLUMN IF NOT EXISTS options TEXT;
+            """)
+
+            # Survey Responses
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS survey_responses (
+                    id SERIAL PRIMARY KEY,
+                    survey_id INT NOT NULL,
+                    member_id INT NOT NULL,
+                    answers TEXT,
+                    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (survey_id, member_id),
+                    FOREIGN KEY (survey_id) REFERENCES surveys(id),
+                    FOREIGN KEY (member_id) REFERENCES members(id)
+                )
+            """)
+
             # Schedules
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS schedules (
