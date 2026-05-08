@@ -13,10 +13,10 @@ const EventCard = ({ ev, isPast, onEdit, onDelete }) => (
     {/* Date badge */}
     <div style={{ width: 52, height: 52, borderRadius: 12, background: isPast ? 'var(--bg-surface)' : 'rgba(240,130,50,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isPast ? 'var(--text-muted)' : 'var(--brand-primary)', textTransform: 'uppercase' }}>
-        {new Date(ev.date).toLocaleString('en', { month: 'short' })}
+        {new Date(ev.date).toLocaleString('en', { month: 'short', timeZone: 'UTC' })}
       </span>
       <span style={{ fontSize: '1.3rem', fontWeight: 800, color: isPast ? 'var(--text-muted)' : 'var(--brand-primary)', lineHeight: 1 }}>
-        {new Date(ev.date).getDate()}
+        {new Date(ev.date).getUTCDate()}
       </span>
     </div>
 
@@ -144,10 +144,17 @@ export default function AdminEvents() {
 
   const openEdit = (ev) => {
     setEditingEvent(ev)
+    
+    // Parse UTC date to YYYY-MM-DD correctly for input
+    let safeDate = ''
+    if (ev.date) {
+      safeDate = new Date(ev.date).toISOString().split('T')[0]
+    }
+
     setEditForm({
       title: ev.title || '',
       description: ev.description || '',
-      date: ev.date || '',
+      date: safeDate,
       time: ev.time || '',
       location: ev.location || '',
       capacity: ev.capacity || ''
@@ -171,10 +178,18 @@ export default function AdminEvents() {
     }
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const upcomingEvents = events.filter(e => new Date(e.date) >= today)
-  const pastEvents = events.filter(e => new Date(e.date) < today)
+  const todayObj = new Date()
+  const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`
+  
+  const upcomingEvents = events.filter(e => {
+    if (!e.date) return false;
+    return new Date(e.date).toISOString().split('T')[0] >= todayStr;
+  })
+  
+  const pastEvents = events.filter(e => {
+    if (!e.date) return false;
+    return new Date(e.date).toISOString().split('T')[0] < todayStr;
+  })
 
   const TABS = [
     { id: 'upcoming', label: `Upcoming (${upcomingEvents.length})`, icon: 'event_available' },
