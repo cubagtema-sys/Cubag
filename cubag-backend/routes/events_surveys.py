@@ -94,10 +94,17 @@ def get_all_events_admin():
 @surveys_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_surveys():
+    member_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM surveys ORDER BY created_at DESC")
+            cursor.execute("""
+                SELECT s.*, 
+                       (CASE WHEN sr.id IS NOT NULL THEN TRUE ELSE FALSE END) as has_responded
+                FROM surveys s
+                LEFT JOIN survey_responses sr ON s.id = sr.survey_id AND sr.member_id = %s
+                ORDER BY s.created_at DESC
+            """, (member_id,))
             data = cursor.fetchall()
         return jsonify(data), 200
     finally:
@@ -230,7 +237,8 @@ def submit_response(survey_id):
             cursor.execute("""
                 INSERT INTO survey_responses (survey_id, member_id, answers)
                 VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE answers = VALUES(answers), submitted_at = NOW()
+                ON CONFLICT (survey_id, member_id) 
+                DO UPDATE SET answers = EXCLUDED.answers, submitted_at = CURRENT_TIMESTAMP
             """, (survey_id, member_id, json_lib.dumps(data.get('answers', {}))))
             conn.commit()
         return jsonify({'message': 'Response submitted'}), 200

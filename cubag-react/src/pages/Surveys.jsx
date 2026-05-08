@@ -209,9 +209,16 @@ export default function Surveys() {
                       Deadline: <strong>{s.deadline || 'No deadline'}</strong>
                     </div>
                     {activeTab === 'active' ? (
-                      <button className="btn btn-primary" onClick={() => { setAnswering(s); setSelectedOption(''); }}>
-                        Participate
-                      </button>
+                      s.has_responded ? (
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>check_circle</span>
+                          Voted
+                        </span>
+                      ) : (
+                        <button className="btn btn-primary" onClick={() => { setAnswering(s); setSelectedOption(''); }}>
+                          Participate
+                        </button>
+                      )
                     ) : (
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Closed</span>
                     )}
