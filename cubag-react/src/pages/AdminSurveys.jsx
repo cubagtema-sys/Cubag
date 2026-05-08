@@ -4,7 +4,7 @@ import CustomSelect from '../components/CustomSelect'
 
 const API_URL = import.meta.env.VITE_API_URL
 const EMPTY_OPTION = { name: '', photo: '' }
-const EMPTY_FORM = { title: '', description: '', type: 'Survey', deadline: '', options: [EMPTY_OPTION] }
+const EMPTY_FORM = { title: '', description: '', type: 'Survey', method: 'Multiple Choice', deadline: '', options: [EMPTY_OPTION] }
 
 export default function AdminSurveys() {
   const [surveys, setSurveys] = useState([])
@@ -128,25 +128,34 @@ export default function AdminSurveys() {
                   <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. 2026 Presidential Election" />
                 </div>
                 <div className="form-group" style={{ zIndex: 10 }}>
-                  <label>Type</label>
-                  <CustomSelect 
-                    value={form.type} 
-                    onChange={val => {
-                      if (val === 'Yes/No Survey') {
-                        setForm({ ...form, type: val, options: [{ name: 'Yes' }, { name: 'No' }] })
-                      } else if (val === 'Star Rating') {
-                        setForm({ ...form, type: val, options: [] })
-                      } else {
-                        setForm({ ...form, type: val, options: [EMPTY_OPTION] })
-                      }
-                    }}
-                    options={[
-                      { value: 'Survey', label: 'General Survey' },
-                      { value: 'Election', label: 'Election (Photos)' },
-                      { value: 'Yes/No Survey', label: 'Yes/No Poll' },
-                      { value: 'Star Rating', label: '5-Star Rating' },
-                    ]}
-                  />
+                  <label>Type & Method</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <CustomSelect 
+                      value={form.type} 
+                      onChange={val => setForm({ ...form, type: val })}
+                      options={[
+                        { value: 'Survey', label: 'Survey' },
+                        { value: 'Election', label: 'Election' },
+                      ]}
+                    />
+                    <CustomSelect 
+                      value={form.method} 
+                      onChange={val => {
+                        if (val === 'Yes/No') {
+                          setForm({ ...form, method: val, options: [{ name: 'Yes' }, { name: 'No' }] })
+                        } else if (val === 'Star Rating') {
+                          setForm({ ...form, method: val, options: [] })
+                        } else {
+                          setForm({ ...form, method: val, options: [EMPTY_OPTION] })
+                        }
+                      }}
+                      options={[
+                        { value: 'Multiple Choice', label: 'Multiple Choice' },
+                        { value: 'Yes/No', label: 'Yes / No' },
+                        { value: 'Star Rating', label: 'Star Rating' },
+                      ]}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="form-group">
@@ -158,7 +167,7 @@ export default function AdminSurveys() {
                 <input required type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
               </div>
 
-              {form.type !== 'Star Rating' && form.type !== 'Yes/No Survey' && (
+              {form.method === 'Multiple Choice' && (
                 <div style={{ marginTop: 12 }}>
                   <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span>Options / Candidates</span>
@@ -222,7 +231,7 @@ export default function AdminSurveys() {
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Participation Rate</div>
                     <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981' }}>{resultsData.response_rate}%</div>
                   </div>
-                  {viewingResults.type === 'Star Rating' && (
+                  {(!viewingResults.options || viewingResults.options === '[]') && (
                     <div style={{ background: 'var(--bg-surface)', padding: 16, borderRadius: 12 }}>
                       <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Average Rating</div>
                       <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -232,7 +241,7 @@ export default function AdminSurveys() {
                   )}
                 </div>
 
-                {viewingResults.type !== 'Star Rating' && resultsData.tallies && Object.keys(resultsData.tallies).length > 0 && (
+                {(!(!viewingResults.options || viewingResults.options === '[]')) && resultsData.tallies && Object.keys(resultsData.tallies).length > 0 && (
                   <div>
                     <h4 style={{ margin: '0 0 12px' }}>Voting Results</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

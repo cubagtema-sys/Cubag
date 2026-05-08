@@ -74,62 +74,72 @@ export default function Surveys() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 24 }}>{answering.description}</p>
 
             <form onSubmit={handleSubmit}>
-              {answering.type === 'Star Rating' ? (
-                <div style={{ textAlign: 'center', margin: '40px 0' }}>
-                  <h4 style={{ marginBottom: 20 }}>Rate your experience:</h4>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setSelectedOption(star)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                          transition: 'transform 0.1s'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
-                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                      >
-                        <span className="material-symbols-outlined" style={{
-                          fontSize: '3rem',
-                          color: selectedOption >= star ? '#f59e0b' : 'var(--border-default)',
-                          fontVariationSettings: selectedOption >= star ? "'FILL' 1" : "'FILL' 0"
+              {(() => {
+                const parsedOptions = JSON.parse(answering.options || '[]');
+                const isStarRating = parsedOptions.length === 0;
+                const isYesNo = parsedOptions.length === 2 && parsedOptions[0].name === 'Yes' && parsedOptions[1].name === 'No';
+
+                if (isStarRating) {
+                  return (
+                    <div style={{ textAlign: 'center', margin: '40px 0' }}>
+                      <h4 style={{ marginBottom: 20 }}>Rate your experience:</h4>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setSelectedOption(star)}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                              transition: 'transform 0.1s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                          >
+                            <span className="material-symbols-outlined" style={{
+                              fontSize: '3rem',
+                              color: selectedOption >= star ? '#f59e0b' : 'var(--border-default)',
+                              fontVariationSettings: selectedOption >= star ? "'FILL' 1" : "'FILL' 0"
+                            }}>
+                              star
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <h4 style={{ marginBottom: 16 }}>Select your choice:</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+                      {parsedOptions.map((opt, i) => (
+                        <label key={i} style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 20,
+                          border: selectedOption === opt.name ? '2px solid var(--brand-primary)' : '2px solid var(--border-subtle)',
+                          borderRadius: 12, cursor: 'pointer', background: selectedOption === opt.name ? 'rgba(240,130,50,0.05)' : 'var(--bg-base)',
+                          transition: 'all 0.2s', textAlign: 'center'
                         }}>
-                          star
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <h4 style={{ marginBottom: 16 }}>Select your choice:</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-                    {JSON.parse(answering.options || '[]').map((opt, i) => (
-                      <label key={i} style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 20,
-                        border: selectedOption === opt.name ? '2px solid var(--brand-primary)' : '2px solid var(--border-subtle)',
-                        borderRadius: 12, cursor: 'pointer', background: selectedOption === opt.name ? 'rgba(240,130,50,0.05)' : 'var(--bg-base)',
-                        transition: 'all 0.2s', textAlign: 'center'
-                      }}>
-                        {answering.type === 'Election' && (
-                          <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                            {opt.photo ? (
-                              <img src={opt.photo} alt={opt.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: 'var(--text-muted)' }}>person</span>
-                            )}
+                          {!isYesNo && (
+                            <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                              {opt.photo ? (
+                                <img src={opt.photo} alt={opt.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: 'var(--text-muted)' }}>person</span>
+                              )}
+                            </div>
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{opt.name}</div>
                           </div>
-                        )}
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{opt.name}</div>
-                        </div>
-                        <input type="radio" name="vote" value={opt.name} checked={selectedOption === opt.name} onChange={() => setSelectedOption(opt.name)} style={{ width: 18, height: 18, accentColor: 'var(--brand-primary)' }} />
-                      </label>
-                    ))}
-                  </div>
-                </>
-              )}
+                          <input type="radio" name="vote" value={opt.name} checked={selectedOption === opt.name} onChange={() => setSelectedOption(opt.name)} style={{ width: 18, height: 18, accentColor: 'var(--brand-primary)' }} />
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
 
               <button type="submit" className="btn btn-primary btn-lg" disabled={submitting || !selectedOption} style={{ width: '100%' }}>
                 {submitting ? 'Submitting...' : 'Submit Vote / Response'}
