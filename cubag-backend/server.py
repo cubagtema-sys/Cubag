@@ -61,8 +61,10 @@ app.register_blueprint(public_materials_bp, url_prefix='/api/public-materials')
 def health():
     return {'status': 'CUBAG API is running'}, 200
 
+# Run DB migrations on startup (works with both gunicorn and direct python)
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     port = int(os.getenv('PORT', 5001))
     print(f"[*] CUBAG Flask API running on http://localhost:{port}")
     app.run(host='0.0.0.0', port=port, debug=True)
