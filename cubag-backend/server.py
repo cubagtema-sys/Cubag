@@ -53,7 +53,9 @@ app.register_blueprint(settings_bp,      url_prefix='/api/settings')
 app.register_blueprint(intelligence_bp,  url_prefix='/api/intelligence')
 
 from routes.uploads import uploads_bp
-app.register_blueprint(uploads_bp,       url_prefix='/api/uploads')
+from routes.public_materials import public_materials_bp
+app.register_blueprint(uploads_bp,          url_prefix='/api/uploads')
+app.register_blueprint(public_materials_bp, url_prefix='/api/public-materials')
 
 @app.route('/api/health', methods=['GET'])
 def health():
