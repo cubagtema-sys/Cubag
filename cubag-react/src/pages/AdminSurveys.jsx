@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
+import CustomSelect from '../components/CustomSelect'
 
 const API_URL = import.meta.env.VITE_API_URL
 const EMPTY_OPTION = { name: '', photo: '' }
@@ -126,12 +127,26 @@ export default function AdminSurveys() {
                   <label>Title</label>
                   <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. 2026 Presidential Election" />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ zIndex: 10 }}>
                   <label>Type</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-                    <option value="Survey">General Survey</option>
-                    <option value="Election">Election</option>
-                  </select>
+                  <CustomSelect 
+                    value={form.type} 
+                    onChange={val => {
+                      if (val === 'Yes/No Survey') {
+                        setForm({ ...form, type: val, options: [{ name: 'Yes' }, { name: 'No' }] })
+                      } else if (val === 'Star Rating') {
+                        setForm({ ...form, type: val, options: [] })
+                      } else {
+                        setForm({ ...form, type: val, options: [EMPTY_OPTION] })
+                      }
+                    }}
+                    options={[
+                      { value: 'Survey', label: 'General Survey' },
+                      { value: 'Election', label: 'Election (Photos)' },
+                      { value: 'Yes/No Survey', label: 'Yes/No Poll' },
+                      { value: 'Star Rating', label: '5-Star Rating' },
+                    ]}
+                  />
                 </div>
               </div>
               <div className="form-group">
@@ -143,41 +158,43 @@ export default function AdminSurveys() {
                 <input required type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
               </div>
 
-              <div style={{ marginTop: 12 }}>
-                <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <span>Options / Candidates</span>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setForm({ ...form, options: [...form.options, { ...EMPTY_OPTION }] })}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>add</span> Add Option
-                  </button>
-                </label>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {form.options.map((opt, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'var(--bg-surface)', padding: 12, borderRadius: 12, border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ width: 60, height: 60, borderRadius: 8, background: 'var(--bg-base)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                        {opt.photo ? (
-                          <img src={opt.photo} alt="Candidate" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <span className="material-symbols-outlined" style={{ color: 'var(--text-muted)' }}>person</span>
+              {form.type !== 'Star Rating' && form.type !== 'Yes/No Survey' && (
+                <div style={{ marginTop: 12 }}>
+                  <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <span>Options / Candidates</span>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setForm({ ...form, options: [...form.options, { ...EMPTY_OPTION }] })}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>add</span> Add Option
+                    </button>
+                  </label>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {form.options.map((opt, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'var(--bg-surface)', padding: 12, borderRadius: 12, border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ width: 60, height: 60, borderRadius: 8, background: 'var(--bg-base)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                          {opt.photo ? (
+                            <img src={opt.photo} alt="Candidate" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <span className="material-symbols-outlined" style={{ color: 'var(--text-muted)' }}>person</span>
+                          )}
+                          <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(i, e)} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                        </div>
+                        <input required style={{ flex: 1 }} placeholder="Option or Candidate Name..." value={opt.name} onChange={e => {
+                          const newOpts = [...form.options];
+                          newOpts[i].name = e.target.value;
+                          setForm({ ...form, options: newOpts });
+                        }} />
+                        {form.options.length > 1 && (
+                          <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--brand-danger)' }} onClick={() => {
+                            setForm({ ...form, options: form.options.filter((_, idx) => idx !== i) })
+                          }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>delete</span>
+                          </button>
                         )}
-                        <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(i, e)} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
                       </div>
-                      <input required style={{ flex: 1 }} placeholder="Option or Candidate Name..." value={opt.name} onChange={e => {
-                        const newOpts = [...form.options];
-                        newOpts[i].name = e.target.value;
-                        setForm({ ...form, options: newOpts });
-                      }} />
-                      {form.options.length > 1 && (
-                        <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--brand-danger)' }} onClick={() => {
-                          setForm({ ...form, options: form.options.filter((_, idx) => idx !== i) })
-                        }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>delete</span>
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: 12, width: '100%' }}>
                 {submitting ? 'Creating...' : 'Publish Poll'}
@@ -196,7 +213,7 @@ export default function AdminSurveys() {
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading results...</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                   <div style={{ background: 'var(--bg-surface)', padding: 16, borderRadius: 12 }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Responses</div>
                     <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--brand-primary)' }}>{resultsData.responded.length} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>/ {resultsData.total}</span></div>
@@ -205,7 +222,32 @@ export default function AdminSurveys() {
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Participation Rate</div>
                     <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981' }}>{resultsData.response_rate}%</div>
                   </div>
+                  {viewingResults.type === 'Star Rating' && (
+                    <div style={{ background: 'var(--bg-surface)', padding: 16, borderRadius: 12 }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Average Rating</div>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {resultsData.average_stars} <span className="material-symbols-outlined" style={{ fontSize: '1.5rem', color: '#f59e0b', fontVariationSettings: "'FILL' 1" }}>star</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {viewingResults.type !== 'Star Rating' && resultsData.tallies && Object.keys(resultsData.tallies).length > 0 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 12px' }}>Voting Results</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {Object.entries(resultsData.tallies).sort((a, b) => b[1] - a[1]).map(([optionName, count]) => (
+                        <div key={optionName} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ flex: 1, fontWeight: 600 }}>{optionName}</div>
+                          <div style={{ flex: 2, background: 'var(--bg-base)', height: 12, borderRadius: 6, overflow: 'hidden' }}>
+                            <div style={{ width: `${(count / resultsData.responded.length) * 100}%`, height: '100%', background: 'var(--brand-primary)' }}></div>
+                          </div>
+                          <div style={{ width: 40, textAlign: 'right', fontWeight: 800 }}>{count}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <h4 style={{ margin: '0 0 12px' }}>Respondents</h4>
@@ -219,7 +261,7 @@ export default function AdminSurveys() {
                             <div style={{ fontWeight: 600 }}>{r.name}</div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{r.company}</div>
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 600 }}>Responded</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 600 }}>{r.vote ? `Voted: ${r.vote}` : 'Responded'}</div>
                         </div>
                       ))}
                     </div>

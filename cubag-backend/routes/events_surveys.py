@@ -167,17 +167,40 @@ def get_survey_participation(survey_id):
 
             # Members who responded
             cursor.execute("""
-                SELECT member_id, submitted_at
+                SELECT member_id, submitted_at, answers
                 FROM survey_responses WHERE survey_id = %s
             """, (survey_id,))
             responses = cursor.fetchall()
-            responded_ids = {r['member_id']: r['submitted_at'] for r in responses}
+            responded_ids = {r['member_id']: r for r in responses}
 
         responded = []
         not_responded = []
+        import json
+        
+        tallies = {}
+        total_stars = 0
+        star_count = 0
+
         for m in all_members:
             if m['id'] in responded_ids:
-                responded.append({**m, 'submitted_at': str(responded_ids[m['id']])})
+                r_data = responded_ids[m['id']]
+                ans = {}
+                try:
+                    ans = json.loads(r_data['answers']) if r_data['answers'] else {}
+                except:
+                    pass
+                
+                vote = ans.get('vote')
+                if vote is not None:
+                    try:
+                        # Try to parse as integer for star ratings
+                        vote_int = int(vote)
+                        total_stars += vote_int
+                        star_count += 1
+                    except ValueError:
+                        tallies[vote] = tallies.get(vote, 0) + 1
+
+                responded.append({**m, 'submitted_at': str(r_data['submitted_at']), 'vote': vote})
             else:
                 not_responded.append(m)
 
@@ -185,7 +208,9 @@ def get_survey_participation(survey_id):
             'responded': responded,
             'not_responded': not_responded,
             'total': len(all_members),
-            'response_rate': round(len(responded) / len(all_members) * 100) if all_members else 0
+            'response_rate': round(len(responded) / len(all_members) * 100) if all_members else 0,
+            'tallies': tallies,
+            'average_stars': round(total_stars / star_count, 1) if star_count > 0 else 0
         }), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
