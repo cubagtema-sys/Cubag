@@ -179,14 +179,11 @@ export default function Networking() {
               {/* Drag handle */}
               <div style={{ width: 40, height: 4, background: 'var(--border-default)', borderRadius: 2, margin: '12px auto 0' }} />
 
-              {/* Header banner */}
-              <div style={{ height: 72, background: `linear-gradient(135deg, ${color}cc, ${color})`, margin: '12px 16px 0', borderRadius: 14, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, background: '#fff', opacity: 0.1, borderRadius: '50%' }} />
-              </div>
+
 
               <div style={{ padding: '0 20px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {/* Avatar + name row — below banner, not overlapping */}
-                <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 16 }}>
+                {/* Avatar + name row */}
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 8 }}>
                   <div style={{
                     width: 60, height: 60, borderRadius: '50%',
                     background: `${color}20`,
