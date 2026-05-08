@@ -52,6 +52,9 @@ app.register_blueprint(tickets_bp,       url_prefix='/api/tickets')
 app.register_blueprint(settings_bp,      url_prefix='/api/settings')
 app.register_blueprint(intelligence_bp,  url_prefix='/api/intelligence')
 
+from routes.uploads import uploads_bp
+app.register_blueprint(uploads_bp,       url_prefix='/api/uploads')
+
 @app.route('/api/health', methods=['GET'])
 def health():
     return {'status': 'CUBAG API is running'}, 200

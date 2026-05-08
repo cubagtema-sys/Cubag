@@ -38,24 +38,47 @@ export default function AdminSurveys() {
 
   useAutoRefresh(fetchSurveys, 30000)
 
-  const handlePhotoUpload = (index, e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const newOptions = [...form.options]
-      newOptions[index].photo = event.target.result
-      setForm({ ...form, options: newOptions })
-    }
-    reader.readAsDataURL(file)
+  // Upload image to server, returns the URL path
+  const uploadImage = async (file) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    const res = await fetch(`${API_URL}/uploads/image`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    })
+    if (!res.ok) throw new Error('Upload failed')
+    const data = await res.json()
+    // Return the full URL so images load correctly
+    return `${API_URL.replace('/api', '')}${data.url}`
   }
 
-  const handleCoverUpload = (e) => {
+  const handlePhotoUpload = async (index, e) => {
     const file = e.target.files[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (event) => setForm({ ...form, cover_image: event.target.result })
-    reader.readAsDataURL(file)
+    // Show local preview instantly
+    const preview = URL.createObjectURL(file)
+    const newOptions = [...form.options]
+    newOptions[index].photo = preview
+    setForm({ ...form, options: newOptions })
+    try {
+      const url = await uploadImage(file)
+      // Replace preview with the real server URL
+      const updated = [...form.options]
+      updated[index].photo = url
+      setForm(prev => ({ ...prev, options: updated }))
+    } catch { /* keep preview on error */ }
+  }
+
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    // Show local preview instantly
+    setForm(prev => ({ ...prev, cover_image: URL.createObjectURL(file) }))
+    try {
+      const url = await uploadImage(file)
+      setForm(prev => ({ ...prev, cover_image: url }))
+    } catch { /* keep preview on error */ }
   }
 
   const handleCreate = async (e) => {
