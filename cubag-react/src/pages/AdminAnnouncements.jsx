@@ -3,6 +3,7 @@ import AppLayout from '../components/AppLayout.jsx'
 import CustomSelect from '../components/CustomSelect.jsx'
 
 const API = import.meta.env.VITE_API_URL
+const PAGE_SIZE = 8
 
 export default function AdminAnnouncements() {
   const [announcements, setAnnouncements] = useState([])
@@ -13,6 +14,7 @@ export default function AdminAnnouncements() {
   const [activeTab, setActiveTab] = useState('create')
   const [deletingId, setDeletingId] = useState(null)
   const [actionMsg, setActionMsg] = useState('')
+  const [page, setPage] = useState(1)
 
   const token = () => localStorage.getItem('cubag_token')
 
@@ -79,6 +81,10 @@ export default function AdminAnnouncements() {
 
   const active   = announcements.filter(a => !a.is_deleted)
   const archived = announcements.filter(a =>  a.is_deleted)
+
+  // Pagination for active announcements
+  const totalPages = Math.max(1, Math.ceil(active.length / PAGE_SIZE))
+  const paginatedActive = active.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <AppLayout title="Announcements">
@@ -161,7 +167,7 @@ export default function AdminAnnouncements() {
             )}
 
             {/* Active announcements */}
-            {active.map(ann => (
+            {paginatedActive.map(ann => (
               <div key={ann.id} className="feed-card" style={{ padding: '14px 16px', borderRadius: 12 }}>
                 {/* Header row — only badge, date, and delete icon */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
@@ -226,6 +232,25 @@ export default function AdminAnnouncements() {
                 )}
               </div>
             ))}
+
+            {/* ── Pagination ── */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: page === 1 ? 'var(--text-muted)' : 'var(--text-primary)', cursor: page === 1 ? 'default' : 'pointer', fontWeight: 600, opacity: page === 1 ? 0.5 : 1 }}
+                >← Prev</button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                  <button key={n} onClick={() => setPage(n)} style={{ width: 34, height: 34, borderRadius: 8, border: 'none', background: page === n ? 'var(--brand-primary)' : 'var(--bg-card)', color: page === n ? '#fff' : 'var(--text-secondary)', fontWeight: 700, cursor: 'pointer' }}>{n}</button>
+                ))}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: page === totalPages ? 'var(--text-muted)' : 'var(--text-primary)', cursor: page === totalPages ? 'default' : 'pointer', fontWeight: 600, opacity: page === totalPages ? 0.5 : 1 }}
+                >Next →</button>
+              </div>
+            )}
 
             {/* Archived section */}
             {archived.length > 0 && (
