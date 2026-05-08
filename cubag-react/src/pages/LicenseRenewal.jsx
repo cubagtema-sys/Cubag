@@ -74,8 +74,8 @@ export default function LicenseRenewal() {
         pdf.save(filename)
         setViewCert(null)
       } else {
-        const blob = pdf.output('blob')
-        setPdfPreviewUrl(URL.createObjectURL(blob))
+        // Use the high-res PNG for mobile-friendly preview instead of PDF iframe
+        setPdfPreviewUrl(imgData)
         setViewCert(null)
       }
     } catch (e) { 
@@ -157,25 +157,26 @@ export default function LicenseRenewal() {
         </div>
       </div>
 
-      {/* ── Inline PDF Viewer Modal ────────────────────────────────────────── */}
+      {/* ── Inline Viewer Modal ────────────────────────────────────────── */}
       {pdfPreviewUrl && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.8)',
-          display: 'flex', flexDirection: 'column', padding: '20px'
+          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)',
+          display: 'flex', flexDirection: 'column', padding: '16px'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12, flexShrink: 0 }}>
             <button className="btn btn-primary" onClick={() => {
-              URL.revokeObjectURL(pdfPreviewUrl)
               setPdfPreviewUrl(null)
             }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="material-symbols-outlined">close</span> Close Preview
             </button>
           </div>
-          <iframe 
-            src={pdfPreviewUrl} 
-            style={{ width: '100%', flex: 1, border: 'none', borderRadius: 8, background: '#fff' }}
-            title="Certificate Preview"
-          />
+          <div style={{ flex: 1, overflow: 'auto', background: '#fff', borderRadius: 8, display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
+            <img 
+              src={pdfPreviewUrl} 
+              alt="Certificate Preview"
+              style={{ width: '100%', maxWidth: '800px', height: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto' }}
+            />
+          </div>
         </div>
       )}
 
