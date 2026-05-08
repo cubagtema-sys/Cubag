@@ -122,6 +122,7 @@ def serve_file(filename):
 
 # ─── GET /tasks/admin/all ─────────────────────────────────────────────────────
 @tasks_bp.route('/admin/all', methods=['GET'])
+@jwt_required()
 def get_all_tasks_admin():
     conn = get_db()
     try:

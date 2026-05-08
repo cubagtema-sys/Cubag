@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import useAutoRefresh from '../hooks/useAutoRefresh'
+import ConfirmModal from '../components/ConfirmModal'
 
 const API_URL = import.meta.env.VITE_API_URL
 const STATUSES = ['Scheduled', 'In Progress', 'Completed', 'Cancelled']
@@ -83,9 +84,9 @@ export default function AdminCargoSchedules() {
     }
   }
 
-  // ── Delete ───────────────────────────────────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState(null)
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this schedule? This cannot be undone.')) return
     setDeletingId(id)
     try {
       const res = await fetch(`${API_URL}/schedules/${id}`, {
@@ -285,7 +286,7 @@ export default function AdminCargoSchedules() {
                         </td>
                         <td style={{ padding: '14px 12px', textAlign: 'right' }}>
                           <button
-                            onClick={() => handleDelete(s.id)}
+                            onClick={() => setPendingDelete(s.id)}
                             disabled={deletingId === s.id}
                             title="Delete schedule"
                             style={{ background: 'rgba(239,68,68,0.08)', border: 'none', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: '#ef4444', display: 'inline-flex', alignItems: 'center', transition: 'background 0.2s' }}
@@ -313,6 +314,12 @@ export default function AdminCargoSchedules() {
         )}
       </div>
     </AppLayout>
+    <ConfirmModal
+      open={!!pendingDelete}
+      message="Delete this schedule? This cannot be undone."
+      onConfirm={() => handleDelete(pendingDelete)}
+      onCancel={() => setPendingDelete(null)}
+    />
   )
 }
 

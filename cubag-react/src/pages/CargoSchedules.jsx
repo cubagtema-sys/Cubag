@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppLayout from '../components/AppLayout'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 export default function CargoSchedules() {
   const [activeTab, setActiveTab] = useState('vanning')
@@ -8,13 +9,16 @@ export default function CargoSchedules() {
   const [schedules, setSchedules] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const firstLoad = useRef(true)
+
+  useAutoRefresh(() => {
+    if (firstLoad.current) setLoading(true)
     fetch(`${import.meta.env.VITE_API_URL}/schedules`)
       .then(r => r.ok ? r.json() : [])
       .then(data => setSchedules(Array.isArray(data) ? data : []))
       .catch(() => setSchedules([]))
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => { setLoading(false); firstLoad.current = false })
+  }, 20000)
 
   const filtered = schedules.filter(s =>
     s.type === activeTab &&

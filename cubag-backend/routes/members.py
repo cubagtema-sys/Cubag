@@ -24,6 +24,7 @@ def get_members():
         conn.close()
 
 @members_bp.route('/admin/all', methods=['GET'])
+@jwt_required()
 def get_all_members_admin():
     conn = get_db()
     try:

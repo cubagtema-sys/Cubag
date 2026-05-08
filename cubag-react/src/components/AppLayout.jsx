@@ -120,7 +120,8 @@ export default function AppLayout({ children, title, hideSearch }) {
               className="mobile-menu-btn"
               onClick={() => setSidebarOpen(o => !o)}
               aria-label="Menu"
-            >☰</button>
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', lineHeight: 1 }}>menu</span></button>
             <span className="page-title">{title}</span>
           </div>
 

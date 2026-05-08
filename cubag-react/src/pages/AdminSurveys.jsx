@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
 import useAutoRefresh from '../hooks/useAutoRefresh'
+import ConfirmModal from '../components/ConfirmModal'
 
 const API_URL = import.meta.env.VITE_API_URL
 const EMPTY_OPTION = { name: '', photo: '' }
@@ -15,6 +16,7 @@ export default function AdminSurveys() {
   const [submitting, setSubmitting] = useState(false)
   const [viewingResults, setViewingResults] = useState(null)
   const [resultsData, setResultsData] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
   const firstLoad = useRef(true)
 
   const token = localStorage.getItem('cubag_token')
@@ -98,7 +100,6 @@ export default function AdminSurveys() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this poll? All responses will be lost.')) return
     try {
       await fetch(`${API_URL}/surveys/${id}`, {
         method: 'DELETE',
@@ -353,7 +354,7 @@ export default function AdminSurveys() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn btn-outline btn-sm" onClick={() => viewResults(s)}>View Results</button>
-                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--brand-danger)' }} onClick={() => handleDelete(s.id)}>
+                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--brand-danger)' }} onClick={() => setPendingDelete(s.id)}>
                       <span className="material-symbols-outlined">delete</span>
                     </button>
                   </div>
@@ -365,5 +366,11 @@ export default function AdminSurveys() {
         )}
       </div>
     </AppLayout>
+    <ConfirmModal
+      open={!!pendingDelete}
+      message="Are you sure you want to delete this poll? All responses will be lost."
+      onConfirm={() => handleDelete(pendingDelete)}
+      onCancel={() => setPendingDelete(null)}
+    />
   )
 }

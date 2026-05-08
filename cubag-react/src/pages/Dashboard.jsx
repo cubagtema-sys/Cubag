@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -8,6 +9,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [user, setUser] = useState({})
   const [tasks, setTasks] = useState([])
+  const [announcements, setAnnouncements] = useState([])
   const [forex, setForex] = useState({ USD: '15.42', EUR: '16.85' })
   const [loading, setLoading] = useState(true)
 
@@ -31,6 +33,15 @@ export default function Dashboard() {
           if (Array.isArray(taskData)) setTasks(taskData)
         }
 
+        // Load announcements
+        const annRes = await fetch(`${API_URL}/announcements`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
+        })
+        if (annRes.ok) {
+          const annData = await annRes.json()
+          if (Array.isArray(annData)) setAnnouncements(annData.slice(0, 3))
+        }
+
         // Load forex
         const forexRes = await fetch('https://open.er-api.com/v6/latest/GHS')
         if (forexRes.ok) {
@@ -50,6 +61,15 @@ export default function Dashboard() {
     }
     loadData()
   }, [])
+
+  useAutoRefresh(() => {
+    // Silently refresh announcements every 60s
+    const token = localStorage.getItem('cubag_token')
+    fetch(`${API_URL}/announcements`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data)) setAnnouncements(data.slice(0, 3)) })
+      .catch(() => {})
+  }, 60000)
 
   const toggleTask = (id) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
@@ -142,9 +162,19 @@ export default function Dashboard() {
               <Link to="/announcements" className="card-action">View all</Link>
             </div>
             <div className="card-body" style={{ padding: 0 }}>
-              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <p style={{ fontSize: '0.85rem' }}>No new announcements from the secretariat.</p>
-              </div>
+              {announcements.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <p style={{ fontSize: '0.85rem' }}>No new announcements from the secretariat.</p>
+                </div>
+              ) : announcements.map(a => (
+                <div key={a.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', gap: 10 }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)', fontSize: '1.1rem', flexShrink: 0, marginTop: 2 }}>campaign</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 2 }}>{a.title}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{a.content}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

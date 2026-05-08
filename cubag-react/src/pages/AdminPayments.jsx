@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
+import ConfirmModal from '../components/ConfirmModal'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -12,6 +13,14 @@ export default function AdminPayments() {
   const [filterType, setFilterType] = useState('all')
   const [actionLoading, setActionLoading] = useState(null)
   const [selectedTx, setSelectedTx] = useState(null)
+  const [pendingPaid, setPendingPaid] = useState(null)       // { txId }
+  const [pendingLicense, setPendingLicense] = useState(null) // { txId, memberId }
+  const [toast, setToast] = useState(null)
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   const fetchPayments = async () => {
     try {
@@ -28,30 +37,28 @@ export default function AdminPayments() {
   }
 
   const markAsPaid = async (txId) => {
-    if (!window.confirm('Mark this payment as PAID? This cannot be undone.')) return
     setActionLoading(txId)
     try {
       const res = await fetch(`${API_URL}/payments/admin/mark-paid/${txId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
       })
-      if (res.ok) { await fetchPayments() }
-      else alert('Failed to update payment status.')
-    } catch { alert('Network error.') }
+      if (res.ok) { await fetchPayments(); showToast('Payment marked as paid.') }
+      else showToast('Failed to update payment status.', 'error')
+    } catch { showToast('Network error.', 'error') }
     finally { setActionLoading(null) }
   }
 
   const approveLicense = async (txId, memberId) => {
-    if (!window.confirm('Approve this license renewal?')) return
     setActionLoading(txId)
     try {
       const res = await fetch(`${API_URL}/payments/admin/approve-license/${txId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
       })
-      if (res.ok) { await fetchPayments(); alert('License approved successfully!') }
-      else alert('Failed to approve license.')
-    } catch { alert('Network error.') }
+      if (res.ok) { await fetchPayments(); showToast('License approved successfully!') }
+      else showToast('Failed to approve license.', 'error')
+    } catch { showToast('Network error.', 'error') }
     finally { setActionLoading(null) }
   }
 
@@ -288,7 +295,7 @@ export default function AdminPayments() {
                                 className="btn btn-sm btn-primary"
                                 style={{ padding: '6px 12px', fontSize: '0.75rem', opacity: actionLoading === tx.tx_id ? 0.5 : 1 }}
                                 disabled={actionLoading === tx.tx_id}
-                                onClick={() => approveLicense(tx.tx_id, tx.member_id)}
+                                onClick={() => setPendingLicense({ txId: tx.tx_id, memberId: tx.member_id })}
                               >
                                 {actionLoading === tx.tx_id ? '...' : 'Approve License'}
                               </button>
@@ -298,7 +305,7 @@ export default function AdminPayments() {
                                 className="btn btn-sm btn-outline"
                                 style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#10b981', borderColor: '#10b981', opacity: actionLoading === tx.tx_id ? 0.5 : 1 }}
                                 disabled={actionLoading === tx.tx_id}
-                                onClick={() => markAsPaid(tx.tx_id)}
+                                onClick={() => setPendingPaid(tx.tx_id)}
                               >
                                 {actionLoading === tx.tx_id ? '...' : 'Mark Paid'}
                               </button>
@@ -321,6 +328,32 @@ export default function AdminPayments() {
 
       </div>
     </AppLayout>
+
+    <ConfirmModal
+      open={!!pendingPaid}
+      message="Mark this payment as PAID? This cannot be undone."
+      onConfirm={() => markAsPaid(pendingPaid)}
+      onCancel={() => setPendingPaid(null)}
+    />
+    <ConfirmModal
+      open={!!pendingLicense}
+      message="Approve this license renewal? This will mark the member as licensed."
+      onConfirm={() => approveLicense(pendingLicense?.txId, pendingLicense?.memberId)}
+      onCancel={() => setPendingLicense(null)}
+      danger={false}
+    />
+    {toast && (
+      <div style={{
+        position: 'fixed', top: 32, left: '50%', transform: 'translateX(-50%)',
+        background: toast.type === 'success' ? '#10b981' : '#ef4444',
+        color: '#fff', padding: '12px 24px', borderRadius: 8, fontWeight: 600,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 9999,
+        display: 'flex', alignItems: 'center', gap: 8
+      }}>
+        <span className="material-symbols-outlined">{toast.type === 'success' ? 'check_circle' : 'error'}</span>
+        {toast.msg}
+      </div>
+    )}
   )
 }
 

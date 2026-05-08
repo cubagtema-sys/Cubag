@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
+import ConfirmModal from '../components/ConfirmModal'
 import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -132,8 +133,9 @@ export default function AdminEvents() {
     }
   }
 
+  const [pendingDelete, setPendingDelete] = useState(null)
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this event?')) return
     try {
       await fetch(`${API_URL}/events/${id}`, {
         method: 'DELETE',
@@ -250,7 +252,7 @@ export default function AdminEvents() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {upcomingEvents.map(ev => <EventCard key={ev.id} ev={ev} isPast={false} onEdit={openEdit} onDelete={handleDelete} />)}
+                {upcomingEvents.map(ev => <EventCard key={ev.id} ev={ev} isPast={false} onEdit={openEdit} onDelete={(id) => setPendingDelete(id)} />)}
               </div>
             )}
           </div>
@@ -269,7 +271,7 @@ export default function AdminEvents() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {pastEvents.map(ev => <EventCard key={ev.id} ev={ev} isPast={true} onEdit={openEdit} onDelete={handleDelete} />)}
+                {pastEvents.map(ev => <EventCard key={ev.id} ev={ev} isPast={true} onEdit={openEdit} onDelete={(id) => setPendingDelete(id)} />)}
               </div>
             )}
           </div>
@@ -293,5 +295,11 @@ export default function AdminEvents() {
       )}
 
     </AppLayout>
+    <ConfirmModal
+      open={!!pendingDelete}
+      message="Delete this event? This cannot be undone."
+      onConfirm={() => handleDelete(pendingDelete)}
+      onCancel={() => setPendingDelete(null)}
+    />
   )
 }
