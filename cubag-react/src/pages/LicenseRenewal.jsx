@@ -152,17 +152,17 @@ export default function LicenseRenewal() {
               <div key={i} style={{ position: 'absolute', cssText: s, width: 40, height: 40, borderTop: '3px solid #333', borderLeft: '3px solid #333', zIndex: 1 }} />
             ))}
 
-            <div style={{ position: 'relative', zIndex: 2, padding: '44px 56px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ position: 'relative', zIndex: 2, padding: '32px 48px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
 
               {/* ══ HEADER — CUBAG logo left, Ghana emblem right ════════════ */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 {/* Left — CUBAG Logo + Name */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <img src="/logo.jpeg" alt="CUBAG" crossOrigin="anonymous"
-                    style={{ width: 68, height: 68, borderRadius: 10, objectFit: 'cover', border: '2.5px solid #f08232', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }} />
+                    style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover', border: '2px solid #f08232', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }} />
                   <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: '#f08232', letterSpacing: 0.5, lineHeight: 1.2 }}>CUBAG</div>
-                    <div style={{ fontSize: 8.5, color: '#555', letterSpacing: 0.8, lineHeight: 1.3, maxWidth: 180 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#f08232', letterSpacing: 0.5, lineHeight: 1.1 }}>CUBAG</div>
+                    <div style={{ fontSize: 8, color: '#555', letterSpacing: 0.5, lineHeight: 1.2, maxWidth: 160 }}>
                       Customs Brokers &amp; Agents<br/>Association of Ghana
                     </div>
                   </div>
@@ -171,61 +171,60 @@ export default function LicenseRenewal() {
                 {/* Right — Ghana Coat of Arms */}
                 <div style={{ textAlign: 'center' }}>
                   <img src="/ghana.jpg" alt="Ghana Coat of Arms" crossOrigin="anonymous"
-                    style={{ width: 76, height: 76, objectFit: 'contain' }} />
-                  <div style={{ fontSize: 8, color: '#444', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 2 }}>
+                    style={{ width: 64, height: 64, objectFit: 'contain' }} />
+                  <div style={{ fontSize: 7, color: '#444', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 }}>
                     Republic of Ghana
                   </div>
                 </div>
               </div>
 
               {/* ══ Green & Gold bands ══════════════════════════════════════ */}
-              <div style={{ background: '#f08232', padding: '7px 0', textAlign: 'center', marginBottom: 0 }}>
-                <div style={{ color: '#fff', fontSize: 10, letterSpacing: 4, fontWeight: 700, textTransform: 'uppercase' }}>
+              <div style={{ background: '#f08232', padding: '5px 0', textAlign: 'center', marginBottom: 0 }}>
+                <div style={{ color: '#fff', fontSize: 9, letterSpacing: 3, fontWeight: 700, textTransform: 'uppercase' }}>
                   Customs Brokers &amp; Agents Association of Ghana
                 </div>
               </div>
-              <div style={{ background: '#333', height: 3, marginBottom: 0 }} />
-              <div style={{ background: '#f08232', height: 1.5, marginBottom: 16 }} />
+              <div style={{ background: '#333', height: 2.5, marginBottom: 0 }} />
+              <div style={{ background: '#f08232', height: 1.5, marginBottom: 10 }} />
 
               {/* ══ Accreditation line ══════════════════════════════════════ */}
-              <div style={{ textAlign: 'center', fontSize: 8.5, color: '#777', letterSpacing: 2, marginBottom: 18, textTransform: 'uppercase' }}>
+              <div style={{ textAlign: 'center', fontSize: 8, color: '#777', letterSpacing: 1.5, marginBottom: 12, textTransform: 'uppercase' }}>
                 Accredited by the Ghana Revenue Authority (GRA) &bull; Licensed under Customs Act 2015 (Act 891)
               </div>
 
               {/* ══ CERTIFICATE OF title ════════════════════════════════════ */}
-              <div style={{ textAlign: 'center', marginBottom: 6 }}>
-                <div style={{ fontSize: 12, letterSpacing: 8, color: '#888', textTransform: 'uppercase', marginBottom: 4 }}>Certificate of</div>
-                <div style={{ fontSize: 34, fontWeight: 700, color: '#f08232', letterSpacing: 1, lineHeight: 1.1 }}>
+              <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 11, letterSpacing: 6, color: '#888', textTransform: 'uppercase', marginBottom: 2 }}>Certificate of</div>
+                <div style={{ fontSize: 30, fontWeight: 700, color: '#f08232', letterSpacing: 1, lineHeight: 1.1 }}>
                   Active Membership
                 </div>
-                <div style={{ width: 120, height: 2, background: '#333', margin: '10px auto 6px' }} />
-                <div style={{ fontSize: 11, color: '#111', fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase' }}>
+                <div style={{ width: 100, height: 2, background: '#333', margin: '8px auto 4px' }} />
+                <div style={{ fontSize: 10, color: '#111', fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase' }}>
                   &amp; Licensed Customs Broker
                 </div>
               </div>
 
               {/* ══ "This is to certify…" ═══════════════════════════════════ */}
-              <div style={{ textAlign: 'center', fontSize: 13, color: '#555', margin: '20px 0 10px', fontStyle: 'italic' }}>
+              <div style={{ textAlign: 'center', fontSize: 12, color: '#555', margin: '12px 0 6px', fontStyle: 'italic' }}>
                 This is to certify that
               </div>
 
               {/* ══ Company name ═════════════════════════════════════════════ */}
-              <div style={{ textAlign: 'center', marginBottom: 6 }}>
+              <div style={{ textAlign: 'center', marginBottom: 4 }}>
                 <div style={{
-                  fontSize: 28, fontWeight: 700, color: '#111',
-                  borderBottom: '2.5px solid #f08232', display: 'inline-block',
-                  paddingBottom: 6, minWidth: 320, letterSpacing: 0.5
+                  fontSize: 24, fontWeight: 700, color: '#111',
+                  borderBottom: '2px solid #f08232', display: 'inline-block',
+                  paddingBottom: 4, minWidth: 280, letterSpacing: 0.5
                 }}>
                   {user.company || viewCert.company || 'Company Name'}
                 </div>
               </div>
-              <div style={{ textAlign: 'center', fontSize: 13, color: '#555', marginBottom: 20, fontStyle: 'italic' }}>
+              <div style={{ textAlign: 'center', fontSize: 12, color: '#555', marginBottom: 12, fontStyle: 'italic' }}>
                 represented by <strong style={{ fontStyle: 'normal', color: '#222' }}>{user.name || viewCert.name || 'Member Name'}</strong>
               </div>
 
               {/* ══ Body paragraph ══════════════════════════════════════════ */}
-              <div style={{ textAlign: 'center', fontSize: 12, color: '#444', lineHeight: 2, marginBottom: 24, maxWidth: 540, margin: '0 auto 24px', padding: '0 8px' }}>
-
+              <div style={{ textAlign: 'center', fontSize: 11.5, color: '#444', lineHeight: 1.8, marginBottom: 16, maxWidth: 520, margin: '0 auto 16px', padding: '0 8px' }}>
                 is hereby recognised as an <strong>Active Member and Licensed Customs Broker</strong> of the
                 Customs Brokers &amp; Agents Association of Ghana (CUBAG), duly authorised to operate as a
                 customs clearing agent within the jurisdiction of Ghana, in accordance with the
@@ -234,9 +233,9 @@ export default function LicenseRenewal() {
 
               {/* ══ Details table ═══════════════════════════════════════════ */}
               <div style={{
-                background: '#fafafa', border: '1.5px solid #eee', borderRadius: 6,
-                padding: '16px 24px', marginBottom: 24,
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 32px'
+                background: '#fafafa', border: '1px solid #eee', borderRadius: 4,
+                padding: '12px 18px', marginBottom: 12,
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px'
               }}>
                 {[
                   ['License Number', user.license_number || `CUBAG-${yr}-${String(user.id || '001').padStart(4, '0')}`],
@@ -245,8 +244,8 @@ export default function LicenseRenewal() {
                   ['Valid Period', `January ${yr} – December ${yr}`],
                 ].map(([label, val]) => (
                   <div key={label}>
-                    <div style={{ fontSize: 8.5, color: '#f08232', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 3 }}>{label}</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{val}</div>
+                    <div style={{ fontSize: 7.5, color: '#f08232', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#111' }}>{val}</div>
                   </div>
                 ))}
               </div>
@@ -255,21 +254,21 @@ export default function LicenseRenewal() {
               <div style={{ flex: 1 }} />
 
               {/* ══ Signatures & Stamps ═════════════════════════════════════ */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, padding: '0 8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10, padding: '0 12px' }}>
 
                 {/* Signature left — Executive Secretary */}
-                <div style={{ textAlign: 'center', width: 170 }}>
-                  <div style={{ fontSize: 18, fontFamily: "'Brush Script MT', cursive", color: '#333', marginBottom: 4 }}>E. Kwame</div>
-                  <div style={{ borderTop: '1.5px solid #222', paddingTop: 6 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700 }}>Executive Secretary</div>
-                    <div style={{ fontSize: 9, color: '#777', fontStyle: 'italic' }}>CUBAG Secretariat</div>
+                <div style={{ textAlign: 'center', width: 150 }}>
+                  <div style={{ fontSize: 16, fontFamily: "'Brush Script MT', cursive", color: '#333', marginBottom: 2 }}>E. Kwame</div>
+                  <div style={{ borderTop: '1px solid #222', paddingTop: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700 }}>Executive Secretary</div>
+                    <div style={{ fontSize: 8, color: '#777', fontStyle: 'italic' }}>CUBAG Secretariat</div>
                   </div>
                 </div>
 
                 {/* Centre stamps */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                   {/* CUBAG Official Stamp */}
-                  <svg viewBox="0 0 200 200" width="100" height="100" style={{ opacity: 0.85 }}>
+                  <svg viewBox="0 0 200 200" width="80" height="80" style={{ opacity: 0.85 }}>
                     <circle cx="100" cy="100" r="92" fill="none" stroke="#f08232" strokeWidth="5" strokeDasharray="8 3"/>
                     <circle cx="100" cy="100" r="78" fill="none" stroke="#f08232" strokeWidth="2"/>
                     <circle cx="100" cy="100" r="46" fill="rgba(240,130,50,0.06)" stroke="#f08232" strokeWidth="1.5"/>
@@ -279,25 +278,25 @@ export default function LicenseRenewal() {
                     <text textAnchor="middle" x="100" y="164" fontSize="10" fontWeight="700" fill="#f08232" fontFamily="serif" letterSpacing="1">GHANA</text>
                   </svg>
                   {/* GRA Approved stamp */}
-                  <svg viewBox="0 0 160 60" width="120" height="40" style={{ opacity: 0.75 }}>
+                  <svg viewBox="0 0 160 60" width="100" height="34" style={{ opacity: 0.75 }}>
                     <rect x="2" y="2" width="156" height="56" rx="6" fill="none" stroke="#333" strokeWidth="3" strokeDasharray="5 2"/>
-                    <text textAnchor="middle" x="80" y="26" fontSize="14" fontWeight="900" fill="#333" fontFamily="serif" letterSpacing="3">GRA APPROVED</text>
+                    <text textAnchor="middle" x="80" y="26" fontSize="14" fontWeight="900" fill="#333" fontFamily="serif" letterSpacing="2">GRA APPROVED</text>
                     <text textAnchor="middle" x="80" y="44" fontSize="9" fontWeight="600" fill="#333" fontFamily="serif" letterSpacing="1">Customs Act 2015</text>
                   </svg>
                 </div>
 
                 {/* Signature right — President */}
-                <div style={{ textAlign: 'center', width: 170 }}>
-                  <div style={{ fontSize: 18, fontFamily: "'Brush Script MT', cursive", color: '#333', marginBottom: 4 }}>A. Mensah</div>
-                  <div style={{ borderTop: '1.5px solid #222', paddingTop: 6 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700 }}>National President</div>
-                    <div style={{ fontSize: 9, color: '#777', fontStyle: 'italic' }}>CUBAG National Executive</div>
+                <div style={{ textAlign: 'center', width: 150 }}>
+                  <div style={{ fontSize: 16, fontFamily: "'Brush Script MT', cursive", color: '#333', marginBottom: 2 }}>A. Mensah</div>
+                  <div style={{ borderTop: '1px solid #222', paddingTop: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700 }}>National President</div>
+                    <div style={{ fontSize: 8, color: '#777', fontStyle: 'italic' }}>CUBAG National Executive</div>
                   </div>
                 </div>
               </div>
 
               {/* ══ Issue date ══════════════════════════════════════════════ */}
-              <div style={{ textAlign: 'center', fontSize: 10, color: '#999', marginBottom: 14, letterSpacing: 0.5 }}>
+              <div style={{ textAlign: 'center', fontSize: 9, color: '#999', marginBottom: 12, letterSpacing: 0.5 }}>
                 Issued on <strong style={{ color: '#222' }}>{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
                 &nbsp;&nbsp;&bull;&nbsp;&nbsp;
                 Certificate No. <strong style={{ color: '#222' }}>CUBAG/{yr}/{String(user.id || '001').padStart(4, '0')}</strong>
