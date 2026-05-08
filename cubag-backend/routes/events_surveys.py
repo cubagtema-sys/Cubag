@@ -74,6 +74,7 @@ def delete_event(event_id):
         conn.close()
 
 @events_bp.route('/admin/all', methods=['GET'])
+@jwt_required()
 def get_all_events_admin():
     conn = get_db()
     try:
@@ -147,6 +148,7 @@ def delete_survey(survey_id):
         conn.close()
 
 @surveys_bp.route('/admin/all', methods=['GET'])
+@jwt_required()
 def get_all_surveys_admin():
     conn = get_db()
     try:

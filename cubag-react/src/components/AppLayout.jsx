@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 
@@ -8,6 +8,8 @@ export default function AppLayout({ children, title, hideSearch }) {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('cubag_theme') === 'dark')
   const [notifCount, setNotifCount] = useState(0)
   const [taskCount, setTaskCount] = useState(0)
+  const [isOffline, setIsOffline] = useState(false)
+  const failCount = useRef(0)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -38,11 +40,18 @@ export default function AppLayout({ children, title, hideSearch }) {
           const data = await taskRes.json()
           if (Array.isArray(data)) setTaskCount(data.filter(t => !t.done).length)
         }
+
+        // Connection restored
+        failCount.current = 0
+        setIsOffline(false)
       } catch (e) {
-        // Silent fail
+        failCount.current += 1
+        if (failCount.current >= 2) setIsOffline(true)
       }
     }
     getCounts()
+    const id = setInterval(getCounts, 60000)
+    return () => clearInterval(id)
   }, [])
 
   useEffect(() => {
@@ -206,6 +215,18 @@ export default function AppLayout({ children, title, hideSearch }) {
             </div>
           </div>
         </header>
+
+        {/* Connection lost banner */}
+        {isOffline && (
+          <div style={{
+            background: '#ef4444', color: 'white',
+            padding: '8px 20px', textAlign: 'center', fontSize: '0.85rem',
+            fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>wifi_off</span>
+            Connection lost — trying to reconnect…
+          </div>
+        )}
 
         {/* Page content */}
         <div className="page-body">
