@@ -1,5 +1,10 @@
 export function showToast(message, type = 'info') {
   let container = document.getElementById('toast-container');
+  // Force re-create if old container has stale bottom positioning
+  if (container && container.style.bottom) {
+    container.remove();
+    container = null;
+  }
   if (!container) {
     container = document.createElement('div');
     container.id = 'toast-container';
