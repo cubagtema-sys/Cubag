@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
 import useAutoRefresh from '../hooks/useAutoRefresh'
@@ -15,11 +15,12 @@ export default function AdminSurveys() {
   const [submitting, setSubmitting] = useState(false)
   const [viewingResults, setViewingResults] = useState(null)
   const [resultsData, setResultsData] = useState(null)
+  const firstLoad = useRef(true)
 
   const token = localStorage.getItem('cubag_token')
 
   const fetchSurveys = async () => {
-    setLoading(true)
+    if (firstLoad.current) setLoading(true)
     try {
       const res = await fetch(`${API_URL}/surveys/admin/all`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -29,7 +30,10 @@ export default function AdminSurveys() {
         setSurveys(data)
       }
     } catch {}
-    finally { setLoading(false) }
+    finally {
+      setLoading(false)
+      firstLoad.current = false
+    }
   }
 
   useAutoRefresh(fetchSurveys, 30000)

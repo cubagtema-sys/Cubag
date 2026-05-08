@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import AppLayout from '../components/AppLayout'
 import useAutoRefresh from '../hooks/useAutoRefresh'
 
@@ -17,6 +17,7 @@ export default function Surveys() {
   const [toast, setToast] = useState(null) // { message: '', type: 'success' | 'error' }
 
   const token = localStorage.getItem('cubag_token')
+  const firstLoad = useRef(true)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -24,14 +25,17 @@ export default function Surveys() {
   }
 
   const fetchSurveys = async () => {
-    setLoading(true)
+    if (firstLoad.current) setLoading(true)
     try {
       const res = await fetch(`${API_URL}/surveys`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) setSurveys(await res.json())
     } catch {}
-    finally { setLoading(false) }
+    finally {
+      setLoading(false)
+      firstLoad.current = false
+    }
   }
 
   useAutoRefresh(fetchSurveys, 30000)

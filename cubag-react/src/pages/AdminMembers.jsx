@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
 import useAutoRefresh from '../hooks/useAutoRefresh'
@@ -32,8 +32,10 @@ export default function AdminMembers() {
 
   const token = localStorage.getItem('cubag_token')
 
+  const firstLoad = useRef(true)
+
   const fetchMembers = async () => {
-    setLoading(true)
+    if (firstLoad.current) setLoading(true)
     try {
       const res = await fetch(`${API_URL}/members/admin/all`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -44,6 +46,7 @@ export default function AdminMembers() {
       setMembers([])
     } finally {
       setLoading(false)
+      firstLoad.current = false
     }
   }
 
