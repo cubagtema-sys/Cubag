@@ -11,7 +11,7 @@ export default function LicenseRenewal() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [memberInfo, setMemberInfo] = useState(null)
   const [viewCert, setViewCert] = useState(null)
-  const [generating, setGenerating] = useState(false)
+  const [generating, setGenerating] = useState(null) // ID of record being generated
   const certRef = useRef()
 
   const fetchHistory = async () => {
@@ -30,19 +30,19 @@ export default function LicenseRenewal() {
   useEffect(() => { fetchHistory() }, [])
 
   const generatePDF = async (action = 'download', rec) => {
-    setGenerating(true)
+    setGenerating(rec.id || rec.payment_ref)
     setViewCert(rec)
-    await new Promise(r => setTimeout(r, 500))
+    await new Promise(r => setTimeout(r, 600))
     try {
       const el = certRef.current
-      const canvas = await html2canvas(el, { scale: 2.5, useCORS: true, backgroundColor: '#ffffff' })
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       const pdfW = pdf.internal.pageSize.getWidth()
       const pdfH = (canvas.height * pdfW) / canvas.width
       pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH)
       const u = memberInfo || rec
-      const filename = `CUBAG_License_${(u.name || 'Member').replace(/\s+/g, '_')}_${new Date().getFullYear()}.pdf`
+      const filename = `CUBAG_License_${(u.company || 'Company').replace(/\s+/g, '_')}_${new Date().getFullYear()}.pdf`
       if (action === 'download') {
         pdf.save(filename)
         setViewCert(null)
@@ -52,7 +52,7 @@ export default function LicenseRenewal() {
         setViewCert(null)
       }
     } catch (e) { console.error(e) }
-    finally { setGenerating(false) }
+    finally { setGenerating(null) }
   }
 
   const user = memberInfo || {}
@@ -102,14 +102,14 @@ export default function LicenseRenewal() {
               {rec.approved ? (
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
-                    onClick={() => generatePDF('view', rec)} disabled={generating}>
+                    onClick={() => generatePDF('view', rec)} disabled={generating === (rec.id || rec.payment_ref)}>
                     <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>visibility</span>
-                    {generating ? 'Generating...' : 'View Certificate'}
+                    {generating === (rec.id || rec.payment_ref) ? 'Generating...' : 'View Certificate'}
                   </button>
                   <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
-                    onClick={() => generatePDF('download', rec)} disabled={generating}>
+                    onClick={() => generatePDF('download', rec)} disabled={generating === (rec.id || rec.payment_ref)}>
                     <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>download</span>
-                    {generating ? 'Generating...' : 'Download Certificate'}
+                    {generating === (rec.id || rec.payment_ref) ? 'Generating...' : 'Download Certificate'}
                   </button>
                 </div>
               ) : (
@@ -138,18 +138,18 @@ export default function LicenseRenewal() {
           }}>
 
             {/* ── Decorative borders ───────────────────────────────────────── */}
-            <div style={{ position: 'absolute', inset: 12, border: '5px solid #006B3F', zIndex: 0 }} />
-            <div style={{ position: 'absolute', inset: 18, border: '2px solid #C8A400', zIndex: 0 }} />
-            <div style={{ position: 'absolute', inset: 24, border: '1px solid #006B3F', zIndex: 0 }} />
+            <div style={{ position: 'absolute', inset: 12, border: '5px solid #f08232', zIndex: 0 }} />
+            <div style={{ position: 'absolute', inset: 18, border: '2px solid #333', zIndex: 0 }} />
+            <div style={{ position: 'absolute', inset: 24, border: '1px solid #f08232', zIndex: 0 }} />
 
             {/* ── Diagonal watermark ───────────────────────────────────────── */}
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0, pointerEvents: 'none' }}>
-              <span style={{ fontSize: 130, fontWeight: 900, color: '#006B3F', opacity: 0.035, transform: 'rotate(-38deg)', letterSpacing: -6 }}>CUBAG</span>
+              <span style={{ fontSize: 130, fontWeight: 900, color: '#f08232', opacity: 0.05, transform: 'rotate(-38deg)', letterSpacing: -6 }}>CUBAG</span>
             </div>
 
             {/* ── Corner ornaments ──────────────────────────────────────────── */}
             {['top:28px;left:28px', 'top:28px;right:28px;transform:scaleX(-1)', 'bottom:28px;left:28px;transform:scaleY(-1)', 'bottom:28px;right:28px;transform:scale(-1)'].map((s, i) => (
-              <div key={i} style={{ position: 'absolute', cssText: s, width: 40, height: 40, borderTop: '3px solid #C8A400', borderLeft: '3px solid #C8A400', zIndex: 1 }} />
+              <div key={i} style={{ position: 'absolute', cssText: s, width: 40, height: 40, borderTop: '3px solid #333', borderLeft: '3px solid #333', zIndex: 1 }} />
             ))}
 
             <div style={{ position: 'relative', zIndex: 2, padding: '44px 56px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
@@ -159,9 +159,9 @@ export default function LicenseRenewal() {
                 {/* Left — CUBAG Logo + Name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <img src="/logo.jpeg" alt="CUBAG" crossOrigin="anonymous"
-                    style={{ width: 68, height: 68, borderRadius: 10, objectFit: 'cover', border: '2.5px solid #006B3F', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }} />
+                    style={{ width: 68, height: 68, borderRadius: 10, objectFit: 'cover', border: '2.5px solid #f08232', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }} />
                   <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: '#006B3F', letterSpacing: 0.5, lineHeight: 1.2 }}>CUBAG</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#f08232', letterSpacing: 0.5, lineHeight: 1.2 }}>CUBAG</div>
                     <div style={{ fontSize: 8.5, color: '#555', letterSpacing: 0.8, lineHeight: 1.3, maxWidth: 180 }}>
                       Customs Brokers &amp; Agents<br/>Association of Ghana
                     </div>
@@ -179,52 +179,53 @@ export default function LicenseRenewal() {
               </div>
 
               {/* ══ Green & Gold bands ══════════════════════════════════════ */}
-              <div style={{ background: '#006B3F', padding: '7px 0', textAlign: 'center', marginBottom: 0 }}>
-                <div style={{ color: '#FCD116', fontSize: 10, letterSpacing: 4, fontWeight: 700, textTransform: 'uppercase' }}>
+              <div style={{ background: '#f08232', padding: '7px 0', textAlign: 'center', marginBottom: 0 }}>
+                <div style={{ color: '#fff', fontSize: 10, letterSpacing: 4, fontWeight: 700, textTransform: 'uppercase' }}>
                   Customs Brokers &amp; Agents Association of Ghana
                 </div>
               </div>
-              <div style={{ background: '#C8A400', height: 3, marginBottom: 0 }} />
-              <div style={{ background: '#006B3F', height: 1.5, marginBottom: 20 }} />
+              <div style={{ background: '#333', height: 3, marginBottom: 0 }} />
+              <div style={{ background: '#f08232', height: 1.5, marginBottom: 16 }} />
 
               {/* ══ Accreditation line ══════════════════════════════════════ */}
-              <div style={{ textAlign: 'center', fontSize: 8.5, color: '#777', letterSpacing: 2, marginBottom: 22, textTransform: 'uppercase' }}>
+              <div style={{ textAlign: 'center', fontSize: 8.5, color: '#777', letterSpacing: 2, marginBottom: 18, textTransform: 'uppercase' }}>
                 Accredited by the Ghana Revenue Authority (GRA) &bull; Licensed under Customs Act 2015 (Act 891)
               </div>
 
               {/* ══ CERTIFICATE OF title ════════════════════════════════════ */}
               <div style={{ textAlign: 'center', marginBottom: 6 }}>
                 <div style={{ fontSize: 12, letterSpacing: 8, color: '#888', textTransform: 'uppercase', marginBottom: 4 }}>Certificate of</div>
-                <div style={{ fontSize: 34, fontWeight: 700, color: '#006B3F', letterSpacing: 1, lineHeight: 1.1 }}>
+                <div style={{ fontSize: 34, fontWeight: 700, color: '#f08232', letterSpacing: 1, lineHeight: 1.1 }}>
                   Active Membership
                 </div>
-                <div style={{ width: 120, height: 2, background: '#C8A400', margin: '10px auto 6px' }} />
-                <div style={{ fontSize: 11, color: '#CE1126', fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase' }}>
+                <div style={{ width: 120, height: 2, background: '#333', margin: '10px auto 6px' }} />
+                <div style={{ fontSize: 11, color: '#111', fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase' }}>
                   &amp; Licensed Customs Broker
                 </div>
               </div>
 
               {/* ══ "This is to certify…" ═══════════════════════════════════ */}
-              <div style={{ textAlign: 'center', fontSize: 13, color: '#555', margin: '24px 0 12px', fontStyle: 'italic' }}>
+              <div style={{ textAlign: 'center', fontSize: 13, color: '#555', margin: '20px 0 10px', fontStyle: 'italic' }}>
                 This is to certify that
               </div>
 
-              {/* ══ Member name ═════════════════════════════════════════════ */}
+              {/* ══ Company name ═════════════════════════════════════════════ */}
               <div style={{ textAlign: 'center', marginBottom: 6 }}>
                 <div style={{
-                  fontSize: 30, fontWeight: 700, color: '#111',
-                  borderBottom: '2.5px solid #006B3F', display: 'inline-block',
+                  fontSize: 28, fontWeight: 700, color: '#111',
+                  borderBottom: '2.5px solid #f08232', display: 'inline-block',
                   paddingBottom: 6, minWidth: 320, letterSpacing: 0.5
                 }}>
-                  {user.name || viewCert.name || 'Member Name'}
+                  {user.company || viewCert.company || 'Company Name'}
                 </div>
               </div>
               <div style={{ textAlign: 'center', fontSize: 13, color: '#555', marginBottom: 20, fontStyle: 'italic' }}>
-                representing <strong style={{ fontStyle: 'normal', color: '#222' }}>{user.company || viewCert.company || 'Company Name'}</strong>
+                represented by <strong style={{ fontStyle: 'normal', color: '#222' }}>{user.name || viewCert.name || 'Member Name'}</strong>
               </div>
 
               {/* ══ Body paragraph ══════════════════════════════════════════ */}
-              <div style={{ textAlign: 'center', fontSize: 12, color: '#444', lineHeight: 2, marginBottom: 28, maxWidth: 540, margin: '0 auto 28px', padding: '0 8px' }}>
+              <div style={{ textAlign: 'center', fontSize: 12, color: '#444', lineHeight: 2, marginBottom: 24, maxWidth: 540, margin: '0 auto 24px', padding: '0 8px' }}>
+
                 is hereby recognised as an <strong>Active Member and Licensed Customs Broker</strong> of the
                 Customs Brokers &amp; Agents Association of Ghana (CUBAG), duly authorised to operate as a
                 customs clearing agent within the jurisdiction of Ghana, in accordance with the
@@ -233,8 +234,8 @@ export default function LicenseRenewal() {
 
               {/* ══ Details table ═══════════════════════════════════════════ */}
               <div style={{
-                background: '#f6f9f6', border: '1.5px solid #c0d8c0', borderRadius: 6,
-                padding: '16px 24px', marginBottom: 28,
+                background: '#fafafa', border: '1.5px solid #eee', borderRadius: 6,
+                padding: '16px 24px', marginBottom: 24,
                 display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 32px'
               }}>
                 {[
@@ -244,7 +245,7 @@ export default function LicenseRenewal() {
                   ['Valid Period', `January ${yr} – December ${yr}`],
                 ].map(([label, val]) => (
                   <div key={label}>
-                    <div style={{ fontSize: 8.5, color: '#006B3F', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 3 }}>{label}</div>
+                    <div style={{ fontSize: 8.5, color: '#f08232', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 3 }}>{label}</div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{val}</div>
                   </div>
                 ))}
@@ -269,19 +270,19 @@ export default function LicenseRenewal() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                   {/* CUBAG Official Stamp */}
                   <svg viewBox="0 0 200 200" width="100" height="100" style={{ opacity: 0.85 }}>
-                    <circle cx="100" cy="100" r="92" fill="none" stroke="#006B3F" strokeWidth="5" strokeDasharray="8 3"/>
-                    <circle cx="100" cy="100" r="78" fill="none" stroke="#006B3F" strokeWidth="2"/>
-                    <circle cx="100" cy="100" r="46" fill="rgba(0,107,63,0.06)" stroke="#006B3F" strokeWidth="1.5"/>
-                    <text textAnchor="middle" x="100" y="44" fontSize="11" fontWeight="800" fill="#006B3F" fontFamily="serif" letterSpacing="2">✦ CUBAG ✦</text>
-                    <text textAnchor="middle" x="100" y="98" fontSize="16" fontWeight="900" fill="#006B3F" fontFamily="serif">OFFICIAL</text>
-                    <text textAnchor="middle" x="100" y="114" fontSize="9" fontWeight="600" fill="#006B3F" fontFamily="serif">SEAL</text>
-                    <text textAnchor="middle" x="100" y="164" fontSize="10" fontWeight="700" fill="#006B3F" fontFamily="serif" letterSpacing="1">GHANA</text>
+                    <circle cx="100" cy="100" r="92" fill="none" stroke="#f08232" strokeWidth="5" strokeDasharray="8 3"/>
+                    <circle cx="100" cy="100" r="78" fill="none" stroke="#f08232" strokeWidth="2"/>
+                    <circle cx="100" cy="100" r="46" fill="rgba(240,130,50,0.06)" stroke="#f08232" strokeWidth="1.5"/>
+                    <text textAnchor="middle" x="100" y="44" fontSize="11" fontWeight="800" fill="#f08232" fontFamily="serif" letterSpacing="2">✦ CUBAG ✦</text>
+                    <text textAnchor="middle" x="100" y="98" fontSize="16" fontWeight="900" fill="#f08232" fontFamily="serif">OFFICIAL</text>
+                    <text textAnchor="middle" x="100" y="114" fontSize="9" fontWeight="600" fill="#f08232" fontFamily="serif">SEAL</text>
+                    <text textAnchor="middle" x="100" y="164" fontSize="10" fontWeight="700" fill="#f08232" fontFamily="serif" letterSpacing="1">GHANA</text>
                   </svg>
                   {/* GRA Approved stamp */}
                   <svg viewBox="0 0 160 60" width="120" height="40" style={{ opacity: 0.75 }}>
-                    <rect x="2" y="2" width="156" height="56" rx="6" fill="none" stroke="#CE1126" strokeWidth="3" strokeDasharray="5 2"/>
-                    <text textAnchor="middle" x="80" y="26" fontSize="14" fontWeight="900" fill="#CE1126" fontFamily="serif" letterSpacing="3">GRA APPROVED</text>
-                    <text textAnchor="middle" x="80" y="44" fontSize="9" fontWeight="600" fill="#CE1126" fontFamily="serif" letterSpacing="1">Customs Act 2015</text>
+                    <rect x="2" y="2" width="156" height="56" rx="6" fill="none" stroke="#333" strokeWidth="3" strokeDasharray="5 2"/>
+                    <text textAnchor="middle" x="80" y="26" fontSize="14" fontWeight="900" fill="#333" fontFamily="serif" letterSpacing="3">GRA APPROVED</text>
+                    <text textAnchor="middle" x="80" y="44" fontSize="9" fontWeight="600" fill="#333" fontFamily="serif" letterSpacing="1">Customs Act 2015</text>
                   </svg>
                 </div>
 
@@ -303,8 +304,8 @@ export default function LicenseRenewal() {
               </div>
 
               {/* ══ Footer band ═════════════════════════════════════════════ */}
-              <div style={{ background: '#006B3F', padding: '6px 0', textAlign: 'center' }}>
-                <div style={{ color: '#FCD116', fontSize: 8, letterSpacing: 2, fontWeight: 600 }}>
+              <div style={{ background: '#f08232', padding: '6px 0', textAlign: 'center' }}>
+                <div style={{ color: '#fff', fontSize: 8, letterSpacing: 2, fontWeight: 600 }}>
                   FREEDOM AND JUSTICE &bull; REPUBLIC OF GHANA &bull; P.O. BOX TEMA &bull; WWW.CUBAG.GH
                 </div>
               </div>
