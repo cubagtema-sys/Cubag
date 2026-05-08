@@ -187,11 +187,14 @@ def init_db():
                 ADD COLUMN IF NOT EXISTS progress INT DEFAULT 0;
             """)
 
-            # Add soft-delete to support tickets
-            cursor.execute("""
-                ALTER TABLE support_tickets
-                ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;
-            """)
+            # Add soft-delete to support tickets (table may not exist yet)
+            try:
+                cursor.execute("""
+                    ALTER TABLE support_tickets
+                    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;
+                """)
+            except Exception:
+                conn.rollback()  # rollback just this failed ALTER
 
             # Task submission tracking
             cursor.execute("""

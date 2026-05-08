@@ -189,11 +189,20 @@ def me():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT id, name, email, phone, company, license_number,
-                       member_type, port_of_operation, status, profile_photo
-                FROM members WHERE id = %s
-            """, (member_id,))
+            try:
+                cursor.execute("""
+                    SELECT id, name, email, phone, company, license_number,
+                           member_type, port_of_operation, status, profile_photo
+                    FROM members WHERE id = %s
+                """, (member_id,))
+            except Exception:
+                # profile_photo column may not exist yet — fallback
+                conn.rollback()
+                cursor.execute("""
+                    SELECT id, name, email, phone, company, license_number,
+                           member_type, port_of_operation, status
+                    FROM members WHERE id = %s
+                """, (member_id,))
             member = cursor.fetchone()
             if not member:
                 return jsonify({'message': 'Member not found'}), 404
