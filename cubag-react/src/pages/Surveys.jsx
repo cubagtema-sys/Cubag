@@ -232,12 +232,12 @@ export default function Surveys() {
 
       {toast && (
         <div style={{
-          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', top: 32, left: '50%', transform: 'translateX(-50%)',
           background: toast.type === 'success' ? '#10b981' : 'var(--brand-danger)',
           color: 'white', padding: '12px 24px', borderRadius: 8, fontWeight: 600,
           boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 9999,
           display: 'flex', alignItems: 'center', gap: 8,
-          animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          animation: 'slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
         }}>
           <span className="material-symbols-outlined">
             {toast.type === 'success' ? 'check_circle' : 'error'}
@@ -246,8 +246,8 @@ export default function Surveys() {
         </div>
       )}
       <style>{`
-        @keyframes slideUp {
-          from { transform: translate(-50%, 100%); opacity: 0; }
+        @keyframes slideDown {
+          from { transform: translate(-50%, -100%); opacity: 0; }
           to { transform: translate(-50%, 0); opacity: 1; }
         }
       `}</style>
