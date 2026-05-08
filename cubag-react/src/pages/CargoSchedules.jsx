@@ -87,14 +87,14 @@ export default function CargoSchedules() {
                     </div>
                     <div style={{ position: 'relative', height: 6, background: '#e2e8f0', borderRadius: 6 }}>
                       {/* Active Progress Bar */}
-                      <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${s.progress || 50}%`, background: 'var(--brand-primary)', borderRadius: 6 }}></div>
+                      <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${s.status === 'Completed' ? 100 : s.status === 'In Progress' ? 50 : 0}%`, background: 'var(--brand-primary)', borderRadius: 6, transition: 'width 1s ease-in-out' }}></div>
                       
                       {/* Origin Dot */}
                       <div style={{ position: 'absolute', top: -3, left: 0, width: 12, height: 12, background: 'var(--brand-primary)', borderRadius: '50%', transform: 'translateX(-50%)', border: '2px solid #fff' }}></div>
                       <div style={{ position: 'absolute', top: 16, left: 0, fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-primary)', transform: 'translateX(-10%)' }}>{s.origin}</div>
                       
                       {/* Ship Indicator */}
-                      <div style={{ position: 'absolute', top: -16, left: `${s.progress || 50}%`, fontSize: '1.4rem', transform: 'translateX(-50%)', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>🚢</div>
+                      <div style={{ position: 'absolute', top: -16, left: `${s.status === 'Completed' ? 100 : s.status === 'In Progress' ? 50 : 0}%`, fontSize: '1.4rem', transform: 'translateX(-50%)', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))', transition: 'left 1s ease-in-out' }}>🚢</div>
                       
                       {/* Destination Dot */}
                       <div style={{ position: 'absolute', top: -3, right: 0, width: 12, height: 12, background: '#cbd5e1', borderRadius: '50%', transform: 'translateX(50%)', border: '2px solid #fff' }}></div>

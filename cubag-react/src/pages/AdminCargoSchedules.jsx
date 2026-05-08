@@ -183,16 +183,15 @@ export default function AdminCargoSchedules() {
                       </div>
                     </div>
                     <div className="form-group">
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Current Route Progress — {formData.progress}%</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <input type="range" name="progress" min="0" max="100" value={formData.progress} onChange={handleChange}
-                          style={{ flex: 1, accentColor: 'var(--brand-primary)' }} />
-                        <span style={{ fontWeight: 800, color: 'var(--brand-primary)', minWidth: 40, textAlign: 'right' }}>{formData.progress}%</span>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Current Route Progress</span>
+                        <span style={{ color: 'var(--brand-primary)' }}>Automatic</span>
+                      </label>
+                      <div style={{ padding: '12px 16px', background: 'var(--bg-base)', borderRadius: 8, border: '1px solid var(--border-subtle)', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '1.3rem', color: 'var(--brand-primary)' }}>auto_mode</span>
+                        <span>Route progress will automatically update based on the shipment's <strong>Status</strong>.</span>
                       </div>
-                      <div style={{ marginTop: 8, height: 8, background: 'var(--border-subtle)', borderRadius: 8, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${formData.progress}%`, background: 'var(--brand-primary)', borderRadius: 8, transition: 'width 0.2s' }} />
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 12 }}>
                         <span>🚢 {formData.origin || 'Origin'}</span>
                         <span>{formData.destination || 'Destination'} ⚓</span>
                       </div>
