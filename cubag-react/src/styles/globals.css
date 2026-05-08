@@ -444,7 +444,7 @@ p  { color: var(--text-secondary); line-height: 1.7; }
     gap: 4px !important;
   }
 
-  .responsive-table td > *:not(::before) {
+  .responsive-table td > * {
     text-align: right;
   }
 
