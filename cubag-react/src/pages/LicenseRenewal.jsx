@@ -120,7 +120,7 @@ export default function LicenseRenewal() {
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 16 }}>
                 {[['Company', rec.company], ['Member Type', rec.member_type], ['Port', rec.port_of_operation], ['Submitted', rec.submitted_at?.split('T')[0]]].map(([label, val]) => (
                   <div key={label} style={{ padding: '10px 12px', background: 'var(--bg-base)', borderRadius: 10 }}>
                     <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 2 }}>{label}</div>
@@ -130,13 +130,13 @@ export default function LicenseRenewal() {
               </div>
 
               {rec.approved ? (
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button className="btn btn-outline" style={{ flex: '1 1 200px', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
                     onClick={() => generatePDF('view', rec)} disabled={generating === (rec.id || rec.payment_ref)}>
                     <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>visibility</span>
                     {generating === (rec.id || rec.payment_ref) ? 'Generating...' : 'View Certificate'}
                   </button>
-                  <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+                  <button className="btn btn-primary" style={{ flex: '1 1 200px', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
                     onClick={() => generatePDF('download', rec)} disabled={generating === (rec.id || rec.payment_ref)}>
                     <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>download</span>
                     {generating === (rec.id || rec.payment_ref) ? 'Generating...' : 'Download Certificate'}
