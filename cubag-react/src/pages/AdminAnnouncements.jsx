@@ -163,40 +163,25 @@ export default function AdminAnnouncements() {
             {/* Active announcements */}
             {active.map(ann => (
               <div key={ann.id} className="feed-card" style={{ padding: '14px 16px', borderRadius: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 10 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span className={`badge ${ann.category === 'Urgent Alert' ? 'badge-danger' : 'badge-info'}`} style={{ fontSize: '0.6rem' }}>
+                {/* Header row — only badge, date, and delete icon */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
+                    <span className={`badge ${ann.category === 'Urgent Alert' ? 'badge-danger' : 'badge-info'}`} style={{ fontSize: '0.6rem', flexShrink: 0 }}>
                       {ann.category}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(ann.created_at).toLocaleDateString()}
                     </span>
                   </div>
 
-                  {/* Delete — inline confirm */}
-                  {deletingId === ann.id ? (
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      <button
-                        onClick={() => handleDelete(ann.id)}
-                        style={{ padding: '5px 12px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>delete_forever</span>
-                        Confirm Delete
-                      </button>
-                      <button
-                        onClick={() => setDeletingId(null)}
-                        style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', color: 'var(--text-muted)' }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
+                  {/* Always show small delete icon in header */}
+                  {deletingId !== ann.id && (
                     <button
                       onClick={() => setDeletingId(ann.id)}
                       title="Archive this announcement"
-                      style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                      style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>delete</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>delete</span>
                     </button>
                   )}
                 </div>
@@ -208,6 +193,37 @@ export default function AdminAnnouncements() {
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                   Posted by: <strong>{ann.posted_by}</strong>
                 </div>
+
+                {/* Confirm strip — full width, appears below card body */}
+                {deletingId === ann.id && (
+                  <div style={{
+                    marginTop: 12, padding: '10px 12px',
+                    background: 'rgba(239,68,68,0.06)',
+                    border: '1px solid rgba(239,68,68,0.2)',
+                    borderRadius: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>warning</span>
+                      Archive this announcement?
+                    </span>
+                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      <button
+                        onClick={() => setDeletingId(null)}
+                        style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', color: 'var(--text-secondary)' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleDelete(ann.id)}
+                        style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>delete_forever</span>
+                        Confirm
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
 
