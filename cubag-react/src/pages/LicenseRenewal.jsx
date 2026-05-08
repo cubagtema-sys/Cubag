@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -28,7 +29,7 @@ export default function LicenseRenewal() {
     finally { setHistoryLoading(false) }
   }
 
-  useEffect(() => { fetchHistory() }, [])
+  useAutoRefresh(fetchHistory, 60000)
 
   const generatePDF = async (action = 'download', rec) => {
     setGenerating(rec.id || rec.payment_ref)

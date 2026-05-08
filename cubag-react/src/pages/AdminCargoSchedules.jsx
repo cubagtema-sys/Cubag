@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 const STATUSES = ['Scheduled', 'In Progress', 'Completed', 'Cancelled']
@@ -36,7 +37,7 @@ export default function AdminCargoSchedules() {
     } catch (e) { console.error(e) }
   }
 
-  useEffect(() => { fetchSchedules() }, [])
+  useAutoRefresh(fetchSchedules, 20000)
 
   const handleChange = (e) => {
     const val = e.target.type === 'range' ? parseInt(e.target.value, 10) : e.target.value

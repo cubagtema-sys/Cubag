@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 const EMPTY_FORM = { title: '', description: '', date: '', time: '', location: '', capacity: '' }
@@ -111,7 +112,7 @@ export default function AdminEvents() {
     }
   }
 
-  useEffect(() => { fetchEvents() }, [])
+  useAutoRefresh(fetchEvents, 30000)
 
   const handleCreate = async (e) => {
     e.preventDefault()

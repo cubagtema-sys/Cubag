@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 const EMPTY_OPTION = { name: '', photo: '' }
@@ -31,7 +32,7 @@ export default function AdminSurveys() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchSurveys() }, [])
+  useAutoRefresh(fetchSurveys, 30000)
 
   const handlePhotoUpload = (index, e) => {
     const file = e.target.files[0]

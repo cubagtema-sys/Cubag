@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout.jsx'
 import CustomSelect from '../components/CustomSelect.jsx'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 const AUTH = () => ({
@@ -33,7 +34,7 @@ export default function AdminTasks() {
     } catch (e) { console.error(e) }
   }
 
-  useEffect(() => { fetchData() }, [])
+  useAutoRefresh(fetchData, 30000)
 
   const handleSubmit = async (e) => {
     e.preventDefault()

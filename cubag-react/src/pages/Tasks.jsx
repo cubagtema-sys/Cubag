@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import AppLayout from '../components/AppLayout'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 const AUTH = () => ({ 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` })
@@ -28,7 +29,7 @@ export default function Tasks() {
     }
   }
 
-  useEffect(() => { fetchTasks() }, [])
+  useAutoRefresh(fetchTasks, 30000)
 
   const openModal = (task) => {
     setModal(task)

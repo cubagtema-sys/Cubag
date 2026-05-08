@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -46,7 +47,7 @@ export default function AdminMembers() {
     }
   }
 
-  useEffect(() => { fetchMembers() }, [])
+  useAutoRefresh(fetchMembers, 30000)
 
   const updateStatus = async (id, newStatus) => {
     setUpdating(true)

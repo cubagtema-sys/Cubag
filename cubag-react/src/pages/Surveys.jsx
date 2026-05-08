@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -33,7 +34,7 @@ export default function Surveys() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchSurveys() }, [])
+  useAutoRefresh(fetchSurveys, 30000)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
