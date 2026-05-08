@@ -17,9 +17,8 @@ setTimeout(() => {
   document.body.classList.add('loaded')
 }, 2000)
 
-// ─── Capacitor: check JWT on app resume from background ──────────────────────
-// When user brings the app back from background, validate token expiry.
-// If expired, clear session and reload to /login.
+// ─── Check JWT validity when app returns to foreground ───────────────────────
+// The Page Visibility API works in both web browsers AND Capacitor WebViews.
 function checkTokenOnResume() {
   const token = localStorage.getItem('cubag_token')
   if (!token) return
@@ -38,12 +37,6 @@ function checkTokenOnResume() {
   }
 }
 
-// Capacitor App plugin resume event (works on Android & iOS)
-import('@capacitor/app').then(({ App: CapApp }) => {
-  CapApp.addListener('resume', checkTokenOnResume)
-}).catch(() => {
-  // Not running in Capacitor (web browser) — use Page Visibility API as fallback
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') checkTokenOnResume()
-  })
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkTokenOnResume()
 })
