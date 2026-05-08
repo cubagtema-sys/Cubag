@@ -65,7 +65,14 @@ export default function AppLayout({ children, title, hideSearch }) {
   let user = { name: 'Member', role: 'Member' }
   try {
     const stored = localStorage.getItem('cubag_user')
-    if (stored) user = JSON.parse(stored)
+    if (stored) {
+      user = JSON.parse(stored)
+      // Check for persistent photo if not in the object
+      if (!user.photo && user.email) {
+        const savedPhoto = localStorage.getItem(`cubag_photo_${user.email}`)
+        if (savedPhoto) user.photo = savedPhoto
+      }
+    }
   } catch (e) {
     console.error("Error parsing user from localStorage", e)
   }
@@ -86,7 +93,10 @@ export default function AppLayout({ children, title, hideSearch }) {
     { to: '/payments',        icon: 'payments',       label: 'Payments' },
     { to: '/payment-history', icon: 'receipt_long',   label: 'History' },
     { to: '/profile',         icon: 'account_circle', label: 'Profile' }
-  ]
+  ].filter(item => {
+    if (user.status !== 'active' && item.to === '/networking') return false
+    return true
+  })
 
   const ADMIN_BOTTOM_NAV = [
     { to: '/admin',                  icon: 'admin_panel_settings', label: 'Hub' },

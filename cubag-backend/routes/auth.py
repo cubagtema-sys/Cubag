@@ -118,7 +118,7 @@ def register():
             cursor.execute("""
                 INSERT INTO members (name, email, phone, company, license_number, agency_code,
                                      port_of_operation, member_type, password_hash, email_verified, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE, 'active')
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE, 'pending')
             """, (
                 data['name'], data['email'], data['phone'], data['company'],
                 data.get('licenseNumber', ''), data.get('agencyCode', ''),

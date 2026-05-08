@@ -88,46 +88,46 @@ export default function PaymentHistory() {
         </div>
 
         {/* ── KPI Cards — stacked vertically so values never truncate ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
           {/* Total Paid */}
-          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(16,185,129,0.25)', borderRadius: 14, padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(16,185,129,0.25)', borderRadius: 14, padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: -12, right: -12, width: 60, height: 60, background: 'rgba(16,185,129,0.08)', borderRadius: '50%' }} />
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(16,185,129,0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>check_circle</span>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(16,185,129,0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.6rem' }}>check_circle</span>
             </div>
-            <div>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>Total Paid</div>
-              <div style={{ fontSize: 'clamp(0.9rem, 3vw, 1.1rem)', fontWeight: 900, color: '#10b981', lineHeight: 1.1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Total Paid</div>
+              <div style={{ fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 900, color: '#10b981', lineHeight: 1.1, wordBreak: 'break-all' }}>
                 GH₵ {fmt(totals.paid)}
               </div>
             </div>
           </div>
 
           {/* Pending */}
-          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(245,158,11,0.25)', borderRadius: 14, padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(245,158,11,0.25)', borderRadius: 14, padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: -12, right: -12, width: 60, height: 60, background: 'rgba(245,158,11,0.08)', borderRadius: '50%' }} />
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(245,158,11,0.12)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>pending_actions</span>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(245,158,11,0.12)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.6rem' }}>pending_actions</span>
             </div>
-            <div>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>Pending</div>
-              <div style={{ fontSize: 'clamp(0.9rem, 3vw, 1.1rem)', fontWeight: 900, color: '#f59e0b', lineHeight: 1.1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Pending</div>
+              <div style={{ fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 900, color: '#f59e0b', lineHeight: 1.1, wordBreak: 'break-all' }}>
                 GH₵ {fmt(totals.pending)}
               </div>
             </div>
           </div>
 
           {/* Total Transactions */}
-          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(240,130,50,0.25)', borderRadius: 14, padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(240,130,50,0.25)', borderRadius: 14, padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: -12, right: -12, width: 60, height: 60, background: 'rgba(240,130,50,0.08)', borderRadius: '50%' }} />
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(240,130,50,0.12)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>receipt_long</span>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(240,130,50,0.12)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.6rem' }}>receipt_long</span>
             </div>
-            <div>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>Total</div>
-              <div style={{ fontSize: 'clamp(0.9rem, 3vw, 1.4rem)', fontWeight: 900, color: 'var(--brand-primary)', lineHeight: 1.1 }}>
-                {payments.length} <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>txns</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Total Transactions</div>
+              <div style={{ fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 900, color: 'var(--brand-primary)', lineHeight: 1.1 }}>
+                {payments.length} <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>txns</span>
               </div>
             </div>
           </div>

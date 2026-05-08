@@ -201,10 +201,12 @@ export default function Dashboard() {
                   <span className="material-symbols-outlined" style={{ fontSize: '1.5rem', color: 'var(--brand-primary)' }}>monitoring</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Live Data</span>
                 </Link>
-                <Link to="/networking" className="quick-action" style={{ padding: '12px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '1.5rem', color: 'var(--brand-primary)' }}>group</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Networking</span>
-                </Link>
+                {user.status === 'active' && (
+                  <Link to="/networking" className="quick-action" style={{ padding: '12px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '1.5rem', color: 'var(--brand-primary)' }}>group</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Networking</span>
+                  </Link>
+                )}
                 <Link to="/engagement" className="quick-action" style={{ padding: '12px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '1.5rem', color: 'var(--brand-primary)' }}>support_agent</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Support</span>

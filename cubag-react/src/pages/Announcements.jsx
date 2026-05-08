@@ -64,39 +64,9 @@ export default function Announcements() {
       <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Redesigned Header Area */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 4 }}>
-          <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Announcements</h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Latest updates from the association secretariat.</p>
-          </div>
-          {unreadCount > 0 && (
-            <button
-              onClick={() => {
-                alerts.forEach(a => markRead(a.id))
-                setReadIds(getReadIds())
-              }}
-              style={{
-                background: 'rgba(240,130,50,0.1)',
-                border: 'none',
-                color: 'var(--brand-primary)',
-                padding: '6px 12px',
-                borderRadius: 20,
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                marginBottom: 6
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,130,50,0.2)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(240,130,50,0.1)'}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>done_all</span>
-              Mark Read
-            </button>
-          )}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Announcements</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Latest updates from the association secretariat.</p>
         </div>
 
         {/* Category Filter - Integrated Dropdown */}
@@ -122,10 +92,32 @@ export default function Announcements() {
         </div>
 
         <div className="feed-card">
-          <div className="card-header" style={{ padding: '12px 16px', borderBottom: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="card-title" style={{ fontSize: '1rem' }}>Latest Circulars</span>
-            </div>
+          <div className="card-header" style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="card-title" style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Latest Circulars</span>
+
+            {unreadCount > 0 && (
+              <button
+                onClick={() => {
+                  alerts.forEach(a => markRead(a.id))
+                  setReadIds(getReadIds())
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--brand-primary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  cursor: 'pointer',
+                  textTransform: 'uppercase'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>done_all</span>
+                Mark All Read
+              </button>
+            )}
           </div>
 
           <div className="card-body" style={{ padding: 0 }}>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
 import ConfirmModal from '../components/ConfirmModal'
+import { Browser } from '@capacitor/browser'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -83,6 +84,14 @@ export default function AdminPublicMaterials() {
       fetchMaterials()
     } catch (e) {}
     finally { setPendingDelete(null) }
+  }
+
+  const handleViewFile = async (url) => {
+    try {
+      await Browser.open({ url })
+    } catch (e) {
+      window.open(url, '_blank')
+    }
   }
 
   return (
@@ -193,7 +202,15 @@ export default function AdminPublicMaterials() {
             </div>
           ) : materials.map(m => {
             const color = fileColor(m.file_type)
-            return (
+            const handleViewFile = async (url) => {
+    try {
+      await Browser.open({ url })
+    } catch (e) {
+      window.open(url, '_blank')
+    }
+  }
+
+  return (
               <div key={m.id} className="feed-card" style={{ padding: '14px 16px', borderRadius: 14 }}>
                 {/* ── Vertical layout: category / file name / source ── */}
                 <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
@@ -222,13 +239,13 @@ export default function AdminPublicMaterials() {
 
                   {/* Actions */}
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <a
-                      href={m.file_url} target="_blank" rel="noreferrer"
-                      style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(240,130,50,0.08)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
+                    <button
+                      onClick={() => handleViewFile(m.file_url)}
+                      style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(240,130,50,0.08)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}
                       title="View file"
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>open_in_new</span>
-                    </a>
+                    </button>
                     <button
                       onClick={() => setPendingDelete(m.id)}
                       style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}

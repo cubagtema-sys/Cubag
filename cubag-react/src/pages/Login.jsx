@@ -46,7 +46,12 @@ export default function Login() {
         }
 
         localStorage.setItem('cubag_token', data.token)
-        localStorage.setItem('cubag_user', JSON.stringify(data.user))
+
+        // Attach saved photo if exists
+        const savedPhoto = localStorage.getItem(`cubag_photo_${data.user?.email}`)
+        const userToSave = { ...data.user, photo: savedPhoto || data.user.photo || null }
+        localStorage.setItem('cubag_user', JSON.stringify(userToSave))
+
         // Redirect based on role — admin → /admin, everyone else → /dashboard
         navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard')
       } else {

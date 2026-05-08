@@ -33,7 +33,11 @@ export default function Networking() {
   const [selected, setSelected] = useState(null) // member detail modal
   const navigate = useNavigate()
 
+  const user = JSON.parse(localStorage.getItem('cubag_user') || '{}')
+  const isActive = user.status === 'active'
+
   useEffect(() => {
+    if (!isActive) return
     async function fetchMembers() {
       try {
         setLoading(true)
@@ -66,7 +70,22 @@ export default function Networking() {
 
   return (
     <AppLayout title="Network">
-      <div style={{ maxWidth: 1060, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {!isActive ? (
+        <div style={{ maxWidth: 600, margin: '40px auto', textAlign: 'center', padding: '60px 24px', background: 'var(--bg-surface)', borderRadius: 20, border: '1px solid var(--border-subtle)' }}>
+          <div style={{ width: 80, height: 80, background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '3rem' }}>lock</span>
+          </div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 12 }}>Access Restricted</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: 24 }}>
+            The Member Directory is only available to active members. Please settle your annual license dues to unlock networking features and connect with other brokers.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button className="btn btn-primary" onClick={() => navigate('/payments')} style={{ height: 48, padding: '0 24px' }}>Pay Dues Now</button>
+            <button className="btn btn-outline" onClick={() => navigate('/dashboard')} style={{ height: 48, padding: '0 24px' }}>Back to Dashboard</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ maxWidth: 1060, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Page Title for Content */}
         <div style={{ marginBottom: 4 }}>
@@ -160,6 +179,7 @@ export default function Networking() {
           </div>
         )}
       </div>
+    )}
 
       {/* Member Detail Bottom Sheet Modal */}
       {selected && (() => {

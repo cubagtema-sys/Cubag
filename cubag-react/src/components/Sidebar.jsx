@@ -119,16 +119,29 @@ export default function Sidebar({ isOpen, onClose, badgeCount, taskCount }) {
     setOpenSection(prev => prev === section ? null : section)
   }
 
-  // Inject dynamic badge counts
+  // Inject dynamic badge counts and filter based on status
   const baseNavItems = isAdminRoute ? ADMIN_NAV_ITEMS : ALL_NAV_ITEMS
-  const navItems = baseNavItems.map(section => ({
-    ...section,
-    items: section.items.map(item => {
+
+  let user = {}
+  try {
+    user = JSON.parse(localStorage.getItem('cubag_user') || '{}')
+  } catch (e) {}
+  const isActive = user.status === 'active'
+
+  const navItems = baseNavItems.map(section => {
+    let items = section.items.map(item => {
       if (item.to === '/announcements') return { ...item, badge: badgeCount > 0 ? badgeCount : null }
       if (item.to === '/tasks') return { ...item, badge: taskCount > 0 ? taskCount : null, badgeColor: 'var(--brand-warning)' }
       return item
     })
-  }))
+
+    // Restriction: Hide Networking and License Renewal if not paid/active
+    if (!isAdminRoute && !isActive) {
+      items = items.filter(item => item.to !== '/networking' && item.to !== '/license-renewal')
+    }
+
+    return { ...section, items }
+  })
 
   // On mobile the bottom nav already covers primary items — but keep all in sidebar for discoverability
   const displayNavGroups = navItems.filter(group => group.items.length > 0)

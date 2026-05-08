@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout'
 export default function Settings() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
+  const [showPasswords, setShowPasswords] = useState({ current: false, next: false, confirm: false })
   const [message, setMessage] = useState('')
 
   const handlePasswordChange = (e) => {
@@ -66,33 +67,60 @@ export default function Settings() {
               <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 6 }}>Current Password</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={passwords.current}
-                    onChange={e => setPasswords({...passwords, current: e.target.value})}
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }} 
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPasswords.current ? "text" : "password"}
+                      required
+                      value={passwords.current}
+                      onChange={e => setPasswords({...passwords, current: e.target.value})}
+                      style={{ width: '100%', padding: '10px 40px 10px 10px', border: '1px solid var(--border-subtle)', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                    />
+                    <span
+                      className="material-symbols-outlined"
+                      onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem', userSelect: 'none' }}
+                    >
+                      {showPasswords.current ? 'visibility' : 'visibility_off'}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 6 }}>New Password</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={passwords.next}
-                    onChange={e => setPasswords({...passwords, next: e.target.value})}
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }} 
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPasswords.next ? "text" : "password"}
+                      required
+                      value={passwords.next}
+                      onChange={e => setPasswords({...passwords, next: e.target.value})}
+                      style={{ width: '100%', padding: '10px 40px 10px 10px', border: '1px solid var(--border-subtle)', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                    />
+                    <span
+                      className="material-symbols-outlined"
+                      onClick={() => setShowPasswords({...showPasswords, next: !showPasswords.next})}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem', userSelect: 'none' }}
+                    >
+                      {showPasswords.next ? 'visibility' : 'visibility_off'}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 6 }}>Confirm New Password</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={passwords.confirm}
-                    onChange={e => setPasswords({...passwords, confirm: e.target.value})}
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }} 
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPasswords.confirm ? "text" : "password"}
+                      required
+                      value={passwords.confirm}
+                      onChange={e => setPasswords({...passwords, confirm: e.target.value})}
+                      style={{ width: '100%', padding: '10px 40px 10px 10px', border: '1px solid var(--border-subtle)', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                    />
+                    <span
+                      className="material-symbols-outlined"
+                      onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem', userSelect: 'none' }}
+                    >
+                      {showPasswords.confirm ? 'visibility' : 'visibility_off'}
+                    </span>
+                  </div>
                 </div>
                 
                 {message && <div style={{ color: message.includes('success') ? 'var(--brand-success)' : 'var(--brand-danger)', fontSize: '0.9rem' }}>{message}</div>}

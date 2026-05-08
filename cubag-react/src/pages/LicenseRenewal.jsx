@@ -79,12 +79,28 @@ export default function LicenseRenewal() {
     }
   }
 
-  const user = memberInfo || {}
+  const user = memberInfo || JSON.parse(localStorage.getItem('cubag_user') || '{}')
   const yr = new Date().getFullYear()
+  const isActive = user.status === 'active'
 
   return (
     <AppLayout title="Certificates">
-      <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {(!isActive && !historyLoading && history.length === 0) ? (
+        <div style={{ maxWidth: 600, margin: '40px auto', textAlign: 'center', padding: '60px 24px', background: 'var(--bg-surface)', borderRadius: 20, border: '1px solid var(--border-subtle)' }}>
+          <div style={{ width: 80, height: 80, background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '3rem' }}>lock</span>
+          </div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 12 }}>Records Restricted</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: 24 }}>
+            Your official receipts and membership licenses will appear here once your annual dues are settled and approved by the secretariat.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button className="btn btn-primary" onClick={() => (window.location.href = '/payments')} style={{ height: 48, padding: '0 24px' }}>Make Payment</button>
+            <button className="btn btn-outline" onClick={() => (window.location.href = '/dashboard')} style={{ height: 48, padding: '0 24px' }}>Back to Dashboard</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Page Title for Content */}
         <div style={{ marginBottom: 4 }}>
@@ -103,28 +119,40 @@ export default function LicenseRenewal() {
               <Link to="/payments" className="btn btn-primary" style={{ height: 48, fontSize: '0.9rem' }}>Make Payment</Link>
             </div>
           ) : history.map((rec, i) => (
-            <div key={i} className="feed-card" style={{ padding: '16px 20px', borderRadius: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Membership Record</div>
-                  {rec.payment_ref && rec.payment_ref !== 'N/A' && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ref: <span style={{ fontFamily: 'monospace' }}>{rec.payment_ref}</span></div>
-                  )}
+            <div key={i} className="feed-card" style={{ padding: '20px', borderRadius: 16, border: '1.5px solid var(--border-subtle)', background: 'var(--bg-surface)', transition: 'all 0.2s ease' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--gradient-brand)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '1.4rem' }}>badge</span>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--text-primary)' }}>Membership Record</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>ID: {rec.payment_ref && rec.payment_ref !== 'N/A' ? rec.payment_ref : 'Pending Ref'}</div>
+                  </div>
                 </div>
                 <span style={{
-                  padding: '3px 10px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 800, flexShrink: 0, textTransform: 'uppercase',
-                  background: rec.approved ? 'rgba(16,185,129,0.1)' : rec.status === 'suspended' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
-                  color: rec.approved ? '#10b981' : rec.status === 'suspended' ? '#ef4444' : '#f59e0b'
+                  padding: '5px 12px', borderRadius: 8, fontSize: '0.65rem', fontWeight: 900, flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.05em',
+                  background: rec.approved ? 'rgba(16,185,129,0.12)' : rec.status === 'suspended' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
+                  color: rec.approved ? '#10b981' : rec.status === 'suspended' ? '#ef4444' : '#f59e0b',
+                  border: `1px solid ${rec.approved ? '#10b98133' : rec.status === 'suspended' ? '#ef444433' : '#f59e0b33'}`
                 }}>
-                  {rec.approved ? 'Active' : rec.status === 'suspended' ? 'Suspended' : 'Pending'}
+                  {rec.approved ? 'Active' : rec.status === 'suspended' ? 'Suspended' : 'In Approval'}
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
-                {[['Company', rec.company], ['Port', rec.port_of_operation]].map(([label, val]) => (
-                  <div key={label} style={{ padding: '8px 10px', background: 'var(--bg-base)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 1 }}>{label}</div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{val || '—'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                {[
+                  { label: 'Organization', val: rec.company, icon: 'business' },
+                  { label: 'Port of Operation', val: rec.port_of_operation, icon: 'location_on' }
+                ].map(({ label, val, icon }) => (
+                  <div key={label} style={{ padding: '12px 14px', background: 'var(--bg-base)', borderRadius: 10, border: '1.5px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(240,130,50,0.1)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{icon}</span>
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.02em' }}>{label}</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{val || '—'}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -167,6 +195,7 @@ export default function LicenseRenewal() {
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Need help? <Link to="/engagement" style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}>Contact Support</Link></p>
         </div>
       </div>
+    )}
 
       {/* ── Inline Viewer Modal ────────────────────────────────────────── */}
       {pdfPreviewUrl && (

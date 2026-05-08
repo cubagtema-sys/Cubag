@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import CustomSelect from '../components/CustomSelect'
+import { Browser } from '@capacitor/browser'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -63,6 +64,14 @@ export default function PublicServices() {
     png: '#f59e0b', jpeg: '#f59e0b'
   }
   const fileColor = (type) => FILE_COLORS[type] || 'var(--brand-primary)'
+
+  const handleDownload = async (url) => {
+    try {
+      await Browser.open({ url })
+    } catch (e) {
+      window.open(url, '_blank')
+    }
+  }
 
   return (
     <div style={{
@@ -155,7 +164,15 @@ export default function PublicServices() {
             </div>
           ) : filteredMaterials.map(m => {
             const color = fileColor(m.file_type)
-            return (
+            const handleDownload = async (url) => {
+    try {
+      await Browser.open({ url })
+    } catch (e) {
+      window.open(url, '_blank')
+    }
+  }
+
+  return (
               <div
                 key={m.id}
                 className="feed-card"
@@ -201,22 +218,19 @@ export default function PublicServices() {
                 </div>
 
                 {/* Download / View */}
-                <a
-                  href={m.file_url}
-                  download
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  onClick={() => handleDownload(m.file_url)}
                   style={{
                     display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2,
-                    flexShrink:0, padding:'8px 10px', borderRadius:10,
-                    background:'rgba(240,130,50,0.09)', textDecoration:'none', color:'var(--brand-primary)',
-                    fontSize:'0.6rem', fontWeight:800, textTransform:'uppercase', letterSpacing:'0.03em',
+                    flexShrink:0, padding:'8px 10px', borderRadius:10, border: 'none', cursor: 'pointer',
+                    background:'rgba(240,130,50,0.09)', color:'var(--brand-primary)',
+                    fontSize:'0.6rem', fontWeight: 800, textTransform:'uppercase', letterSpacing:'0.03em',
                     minWidth:54, textAlign:'center'
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize:'1.2rem', lineHeight:1 }}>download</span>
                   Get
-                </a>
+                </button>
               </div>
             )
           })}

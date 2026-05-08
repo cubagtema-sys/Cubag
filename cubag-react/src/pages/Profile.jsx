@@ -21,7 +21,7 @@ export default function Profile() {
         if (res.ok) {
           const data = await res.json()
           // Map backend fields to frontend expected fields
-          const existingUser = JSON.parse(localStorage.getItem('cubag_user') || '{}')
+          const savedPhoto = localStorage.getItem(`cubag_photo_${data.email}`)
           const mappedUser = {
             name: data.name,
             email: data.email,
@@ -31,7 +31,7 @@ export default function Profile() {
             role: data.member_type,
             licenseExpiry: data.license_number || 'No Active License',
             status: data.status,
-            photo: existingUser.photo || null // Preserve existing local photo
+            photo: savedPhoto || null
           }
           setUser(mappedUser)
           localStorage.setItem('cubag_user', JSON.stringify(mappedUser))
@@ -61,7 +61,10 @@ export default function Profile() {
         const updatedUser = { ...user, photo: base64String }
         setUser(updatedUser)
         localStorage.setItem('cubag_user', JSON.stringify(updatedUser))
-        
+        if (user.email) {
+          localStorage.setItem(`cubag_photo_${user.email}`, base64String)
+        }
+
         // Auto-show ID card after successful upload
         setShowIdCard(true)
       }

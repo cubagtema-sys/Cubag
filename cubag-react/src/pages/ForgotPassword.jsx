@@ -12,20 +12,32 @@ export default function ForgotPassword() {
     setIsLoading(true)
     setError('')
 
+    const API_URL = import.meta.env.VITE_API_URL
+    if (!API_URL) {
+      setError('System configuration error. Please contact support.')
+      setIsLoading(false)
+      return
+    }
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/forgot-password`, {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ email: email.trim() })
       })
       
       if (res.ok) {
         setIsSent(true)
       } else {
-        setError('We couldn’t find an account with that email.')
+        const data = await res.json().catch(() => ({}))
+        setError(data.message || data.error || 'We couldn’t find an account with that email.')
       }
     } catch (err) {
-      setError('Connection error. Please try again later.')
+      console.error('Password Reset Fetch Error:', err)
+      setError('Connection failed. Please check your network or try again later.')
     } finally {
       setIsLoading(false)
     }

@@ -18,6 +18,7 @@ export default function Payments() {
   const [method, setMethod] = useState('momo')
   const [paystackCode, setPaystackCode] = useState('')
   const [paymentId, setPaymentId] = useState(null)
+  const [serverRef, setServerRef] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
   const [platformFees, setPlatformFees] = useState({ renewalFee: '1500.00', monthlyDues: '100.00', latePenaltyFee: '50.00', otherFee: '0.00' })
   const [paymentSettings, setPaymentSettings] = useState({
@@ -105,6 +106,7 @@ export default function Payments() {
       if (res.ok) {
         if (method === 'momo' && result.payment_id) {
           setPaymentId(result.payment_id)
+          setServerRef(result.paystack_ref || paymentRef)
           setPayStep(4) // Move to Code Verification
         } else {
           setSuccessMsg('✅ ' + (result.message || 'Payment submitted!'))
@@ -133,7 +135,11 @@ export default function Payments() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
         },
-        body: JSON.stringify({ payment_id: paymentId, code: paystackCode })
+        body: JSON.stringify({
+          payment_id: paymentId,
+          paystack_ref: serverRef,
+          code: paystackCode
+        })
       })
       const result = await res.json()
       if (res.ok) {
@@ -169,15 +175,12 @@ export default function Payments() {
         </div>
 
         {/* Balance Banner */}
-        <div className="welcome-banner" style={{ background: 'var(--gradient-brand)', marginBottom: 0, padding: '16px 20px', borderRadius: 12 }}>
-          <div className="welcome-copy">
-            <h2 style={{ fontSize: '1rem', marginBottom: 2 }}>Balance</h2>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', fontFamily: 'var(--font-display)' }}>
+        <div className="welcome-banner" style={{ background: 'var(--gradient-brand)', marginBottom: 0, padding: '24px 20px', borderRadius: 12, textAlign: 'center', justifyContent: 'center' }}>
+          <div className="welcome-copy" style={{ textAlign: 'center' }}>
+            <h2 style={{ fontSize: '0.85rem', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>Outstanding Balance</h2>
+            <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#fff', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
               GH₵ {parseFloat(balance.total_pending || 0).toFixed(2)}
             </div>
-          </div>
-          <div className="welcome-action">
-            <button className="btn btn-white btn-sm" onClick={() => setPayStep(1)} style={{ fontSize: '0.75rem', padding: '6px 12px' }}>Pay Now</button>
           </div>
         </div>
 
@@ -315,11 +318,11 @@ export default function Payments() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button className="btn btn-outline" onClick={() => setPayStep(2)} disabled={loading} style={{ flex: 1, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                  <button className="btn btn-outline" onClick={() => setPayStep(2)} disabled={loading} style={{ flex: 1, height: 48, justifyContent: 'center', fontSize: '0.85rem' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>arrow_back</span> Back
                   </button>
-                  <button className="btn btn-primary btn-lg" onClick={handlePayment} disabled={loading} style={{ flex: 2, justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
+                  <button className="btn btn-primary" onClick={handlePayment} disabled={loading} style={{ flex: 1.5, height: 48, justifyContent: 'center', fontSize: '0.85rem', opacity: loading ? 0.6 : 1 }}>
                     {loading ? 'Processing...' : method === 'momo' ? 'Send Code' : 'Confirm'}
                   </button>
                 </div>
@@ -350,7 +353,7 @@ export default function Payments() {
                 </div>
 
                 <button className="btn btn-primary btn-lg" onClick={handleVerifyCode} disabled={isVerifying || !paystackCode.trim()} style={{ width: '100%', height: 48, fontSize: '0.95rem' }}>
-                  {isVerifying ? 'Verifying...' : 'Done / Confirm'}
+                  {isVerifying ? 'Verifying...' : 'Confirm'}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setPayStep(3)} style={{ width: '100%' }}>Back to Review</button>
               </div>
