@@ -2,15 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { showToast } from '../utils/toast'
-import { NativeBiometric } from '@capgo/capacitor-native-biometric'
 
 export default function Profile() {
   const [user, setUser] = useState({})
-  const [biometricEnabled, setBiometricEnabled] = useState(false)
-  const [biometricAvailable, setBiometricAvailable] = useState(false)
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false)
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [isEnabling, setIsEnabling] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -54,70 +48,9 @@ export default function Profile() {
       }
     }
     fetchUser()
-
-    // Check biometric availability and state
-    async function initBiometrics() {
-      try {
-        const result = await NativeBiometric.isAvailable()
-        if (result.isAvailable) {
-          setBiometricAvailable(true)
-          const enabled = localStorage.getItem('cubag_biometric_enabled') === 'true'
-          setBiometricEnabled(enabled)
-        }
-      } catch (e) {}
-    }
-    initBiometrics()
   }, [navigate])
 
-  const handleToggleBiometric = async () => {
-    if (biometricEnabled) {
-      // Disable
-      try {
-        await NativeBiometric.deleteCredentials({ server: "cubag.org.gh" })
-        localStorage.setItem('cubag_biometric_enabled', 'false')
-        setBiometricEnabled(false)
-        showToast("Biometric login disabled.", "info")
-      } catch (e) {
-        showToast("Failed to disable biometrics.", "error")
-      }
-    } else {
-      // Enable - Step 1: Show password prompt
-      setShowPasswordPrompt(true)
-    }
-  }
 
-  const handleConfirmBiometric = async (e) => {
-    e.preventDefault()
-    if (!confirmPassword) return
-
-    setIsEnabling(true)
-    try {
-      // 1. Verify with Biometrics first
-      await NativeBiometric.verifyIdentity({
-        reason: "Confirm to enable biometric login",
-        title: "Secure Setup",
-        subtitle: "Verify your identity",
-        description: "Verify your fingerprint or face to proceed"
-      })
-
-      // 2. Store Credentials
-      await NativeBiometric.setCredentials({
-        username: user.email,
-        password: confirmPassword,
-        server: "cubag.org.gh"
-      })
-
-      localStorage.setItem('cubag_biometric_enabled', 'true')
-      setBiometricEnabled(true)
-      setShowPasswordPrompt(false)
-      setConfirmPassword('')
-      showToast("Biometric login enabled successfully!", "success")
-    } catch (e) {
-      showToast("Verification failed. Please try again.", "error")
-    } finally {
-      setIsEnabling(false)
-    }
-  }
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0]
@@ -318,70 +251,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Security Settings Card */}
-        {biometricAvailable && (
-          <div className="feed-card">
-            <div className="card-header">
-              <span className="card-title">Security & Preferences</span>
-            </div>
-            <div className="card-body" style={{ padding: '16px 20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Biometric Login</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Use fingerprint or face recognition to sign in.</div>
-                </div>
-                <div
-                  onClick={handleToggleBiometric}
-                  style={{
-                    width: 50, height: 26, borderRadius: 20,
-                    background: biometricEnabled ? 'var(--brand-primary)' : 'var(--border-default)',
-                    position: 'relative', cursor: 'pointer', transition: 'all 0.3s'
-                  }}
-                >
-                  <div style={{
-                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
-                    position: 'absolute', top: 3, left: biometricEnabled ? 27 : 3,
-                    transition: 'all 0.3s', boxShadow: 'var(--shadow-sm)'
-                  }} />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
-
-      {/* Password Confirmation Modal for Biometrics */}
-      {showPasswordPrompt && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 24, width: '100%', maxWidth: 400, animation: 'fadeInUp 0.3s' }}>
-            <h3 style={{ margin: '0 0 10px', fontSize: '1.2rem' }}>Enable Biometric Login</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Please enter your current password to securely link your biometrics to this device.</p>
-
-            <form onSubmit={handleConfirmBiometric}>
-              <div className="form-group">
-                <label>Current Password</label>
-                <input
-                  type="password"
-                  required
-                  autoFocus
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  style={{ border: '2px solid var(--border-default)' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-                <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setShowPasswordPrompt(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={isEnabling}>
-                  {isEnabling ? 'Verifying...' : 'Enable Now'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </AppLayout>
   )
 }
