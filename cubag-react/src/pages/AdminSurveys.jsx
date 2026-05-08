@@ -161,14 +161,15 @@ export default function AdminSurveys() {
           <div className="card">
             <h3 style={{ margin: '0 0 20px' }}>Create New Poll / Election</h3>
             <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="form-row">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div className="form-group">
                   <label>Title</label>
-                  <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. 2026 Presidential Election" />
+                  <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. 2026 Presidential Election" style={{ width: '100%' }} />
                 </div>
-                <div className="form-group" style={{ zIndex: 10 }}>
-                  <label>Type & Method</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group">
+                    <label>Poll Type</label>
                     <CustomSelect 
                       value={form.type} 
                       onChange={val => setForm({ ...form, type: val })}
@@ -177,7 +178,10 @@ export default function AdminSurveys() {
                         { value: 'Election', label: 'Election' },
                       ]}
                     />
-                    <CustomSelect 
+                  </div>
+                  <div className="form-group">
+                    <label>Response Method</label>
+                    <CustomSelect
                       value={form.method} 
                       onChange={val => {
                         if (val === 'Yes/No') {
@@ -234,8 +238,8 @@ export default function AdminSurveys() {
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {form.options.map((opt, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'var(--bg-surface)', padding: 12, borderRadius: 12, border: '1px solid var(--border-subtle)' }}>
-                        <div style={{ width: 60, height: 60, borderRadius: 8, background: 'var(--bg-base)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                      <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'var(--bg-surface)', padding: 12, borderRadius: 12, border: '1px solid var(--border-subtle)', width: '100%', boxSizing: 'border-box' }}>
+                        <div style={{ width: 50, height: 50, borderRadius: 8, background: 'var(--bg-base)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
                           {opt.photo ? (
                             <img src={opt.photo} alt="Candidate" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
@@ -243,13 +247,13 @@ export default function AdminSurveys() {
                           )}
                           <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(i, e)} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
                         </div>
-                        <input required style={{ flex: 1 }} placeholder="Option or Candidate Name..." value={opt.name} onChange={e => {
+                        <input required style={{ flex: 1, minWidth: 0, fontSize: '0.85rem' }} placeholder="Name..." value={opt.name} onChange={e => {
                           const newOpts = [...form.options];
                           newOpts[i].name = e.target.value;
                           setForm({ ...form, options: newOpts });
                         }} />
                         {form.options.length > 1 && (
-                          <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--brand-danger)' }} onClick={() => {
+                          <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--brand-danger)', padding: 4, minWidth: 'auto' }} onClick={() => {
                             setForm({ ...form, options: form.options.filter((_, idx) => idx !== i) })
                           }}>
                             <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>delete</span>

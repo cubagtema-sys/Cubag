@@ -46,6 +46,7 @@ import AdminEvents from './pages/AdminEvents.jsx'
 import AdminSurveys from './pages/AdminSurveys.jsx'
 import AdminMembers from './pages/AdminMembers.jsx'
 import AdminPayments from './pages/AdminPayments.jsx'
+import AdminPublicMaterials from './pages/AdminPublicMaterials.jsx'
 import AdminIntelligence from './pages/AdminIntelligence.jsx'
 
 const P = ({ children }) => <ProtectedRoute>{children}</ProtectedRoute>
@@ -76,9 +77,10 @@ export default function App() {
         <Route path="/admin/settings"      element={<A><AdminSettings /></A>} />
         <Route path="/admin/announcements" element={<A><AdminAnnouncements /></A>} />
         <Route path="/admin/tasks"         element={<A><AdminTasks /></A>} />
-        <Route path="/admin/license-renewal" element={<A><AdminPayments /></A>} />
+        <Route path="/admin/license-renewal" element={<A><AdminLicenseRenewal /></A>} />
         <Route path="/admin/payment-settings" element={<A><AdminPaymentSettings /></A>} />
         <Route path="/admin/fees"          element={<A><AdminFees /></A>} />
+        <Route path="/admin/public-materials" element={<A><AdminPublicMaterials /></A>} />
         <Route path="/admin/events"        element={<A><AdminEvents /></A>} />
         <Route path="/admin/surveys"       element={<A><AdminSurveys /></A>} />
         <Route path="/admin/members"       element={<A><AdminMembers /></A>} />

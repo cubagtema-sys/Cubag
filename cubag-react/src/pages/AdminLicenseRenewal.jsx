@@ -8,7 +8,11 @@ export default function AdminLicenseRenewal() {
 
   const fetchMembers = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/members/admin/all`)
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/members/admin/all`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
+        }
+      })
       if (res.ok) {
         setMembers(await res.json())
       }

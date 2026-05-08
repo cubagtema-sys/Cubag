@@ -23,19 +23,13 @@ export default function AdminPublicMaterials() {
 
   const fetchMaterials = async () => {
     try {
-      const res = await fetch(`${API_URL}/public-materials`, {
+      setLoading(true)
+      const res = await fetch(`${API_URL}/public-materials/public`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) {
         const data = await res.json()
         setMaterials(data)
-      } else {
-        // Mock data for demo
-        setMaterials([
-          { id: 1, title: 'CUBAG Membership Policy 2026', category: 'Policy', file_type: 'pdf', file_url: '#', created_at: '2026-01-10' },
-          { id: 2, title: 'License Renewal Form', category: 'Forms', file_type: 'xlsx', file_url: '#', created_at: '2026-02-15' },
-          { id: 3, title: 'Association Photo Gallery', category: 'Images', file_type: 'jpg', file_url: '#', created_at: '2026-03-01' }
-        ])
       }
     } catch (e) {
       console.error(e)

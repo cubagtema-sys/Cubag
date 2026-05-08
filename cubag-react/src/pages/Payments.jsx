@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
+import useAutoRefresh from '../hooks/useAutoRefresh'
 
 const REASON_OPTIONS = [
   { value: '', label: '— Select payment type —', icon: 'payments', disabled: true },
@@ -30,22 +31,37 @@ export default function Payments() {
   const [successMsg, setSuccessMsg] = useState('')
   const [balance, setBalance] = useState({ total_pending: 0 })
 
-  useEffect(() => {
+  const fetchSummary = useCallback(async () => {
     const token = localStorage.getItem('cubag_token')
+    if (!token) return
     const authHeader = { 'Authorization': `Bearer ${token}` }
-    Promise.all([
-      fetch(`${import.meta.env.VITE_API_URL}/settings/cubag_fees`),
-      fetch(`${import.meta.env.VITE_API_URL}/settings/cubag_payment_settings_v2`),
-      fetch(`${import.meta.env.VITE_API_URL}/payments/summary`, { headers: authHeader })
-    ])
-      .then(responses => Promise.all(responses.map(r => r.json())))
-      .then(([feesData, payData, summaryData]) => {
+    try {
+      const [feesRes, payRes, summaryRes] = await Promise.all([
+        fetch(`${import.meta.env.VITE_API_URL}/settings/cubag_fees`),
+        fetch(`${import.meta.env.VITE_API_URL}/settings/cubag_payment_settings_v2`),
+        fetch(`${import.meta.env.VITE_API_URL}/payments/summary`, { headers: authHeader })
+      ])
+
+      if (feesRes.ok) {
+        const feesData = await feesRes.json()
         if (feesData && feesData.renewalFee) setPlatformFees(feesData)
+      }
+
+      if (payRes.ok) {
+        const payData = await payRes.json()
         if (payData && payData.momoAccounts) setPaymentSettings(payData)
+      }
+
+      if (summaryRes.ok) {
+        const summaryData = await summaryRes.json()
         if (summaryData && summaryData.total_pending !== undefined) setBalance(summaryData)
-      })
-      .catch(e => console.error(e))
-  }, []) // eslint-disable-line
+      }
+    } catch (e) {
+      console.error("Payment Data Sync Error:", e)
+    }
+  }, [])
+
+  useAutoRefresh(fetchSummary, 60000)
 
   const handleReasonChange = (val) => {
     setReason(val)
@@ -135,7 +151,7 @@ export default function Payments() {
   }
 
   const STEPS = [
-    { n: 1, label: 'What' },
+    { n: 1, label: 'Type' },
     { n: 2, label: 'Method' },
     { n: 3, label: 'Review' },
     { n: 4, label: 'Verify' }
@@ -144,7 +160,7 @@ export default function Payments() {
 
   return (
     <AppLayout title="Payments">
-      <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 80 }}>
 
         {/* Page Title for Content */}
         <div style={{ marginBottom: 2 }}>
@@ -168,17 +184,29 @@ export default function Payments() {
         {/* Payment Card */}
         <div className="feed-card" style={{ maxWidth: 600, margin: '0 auto', width: '100%', borderRadius: 12 }}>
 
-          {/* Step Progress */}
-          <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {STEPS.map((s, idx) => (
-              <div key={s.n} style={{ display: 'flex', alignItems: 'center', flex: idx < 2 ? 1 : 'none' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', transition: 'all 0.3s', background: payStep >= s.n ? 'var(--brand-primary)' : 'var(--border-subtle)', color: payStep >= s.n ? '#fff' : 'var(--text-muted)' }}>
-                    {payStep > s.n ? <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>check</span> : s.n}
+              <div key={s.n} style={{ display: 'flex', alignItems: 'center', flex: idx < STEPS.length - 1 ? 1 : 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 800, fontSize: '0.8rem', transition: 'all 0.3s',
+                    background: payStep >= s.n ? 'var(--brand-primary)' : 'var(--bg-base)',
+                    color: payStep >= s.n ? '#fff' : 'var(--text-muted)',
+                    border: payStep >= s.n ? 'none' : '2px solid var(--border-subtle)'
+                  }}>
+                    {payStep > s.n ? <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>check</span> : s.n}
                   </div>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 600, color: payStep === s.n ? 'var(--brand-primary)' : 'var(--text-muted)' }}>{s.label.split(' ')[0]}</span>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: payStep === s.n ? 'var(--brand-primary)' : 'var(--text-muted)' }}>{s.label}</span>
                 </div>
-                {idx < 2 && <div style={{ flex: 1, height: 2, margin: '0 4px', marginBottom: 14, transition: 'all 0.3s', background: payStep > s.n ? 'var(--brand-primary)' : 'var(--border-subtle)' }} />}
+                {idx < STEPS.length - 1 && (
+                  <div style={{
+                    flex: 1, height: 2, margin: '0 8px', marginBottom: 18,
+                    transition: 'all 0.3s',
+                    background: payStep > s.n ? 'var(--brand-primary)' : 'var(--border-subtle)'
+                  }} />
+                )}
               </div>
             ))}
           </div>

@@ -101,7 +101,13 @@ export default function Dashboard() {
         <div className="welcome-overlay"></div>
         <div className="welcome-copy">
           <h2 style={{ fontSize: '1.15rem' }}>Good day, <span>{firstName}</span>!</h2>
-          <p style={{ marginBottom: 10, fontSize: '0.8rem' }}>Your license expires in <strong>{user.licenseExpiry || 'Dec 31, 2026'}</strong>. You have <strong>{Array.isArray(tasks) ? tasks.filter(t => !t.done).length : 0} pending</strong> items.</p>
+          <p style={{ marginBottom: 10, fontSize: '0.8rem' }}>
+            {user.status === 'active'
+              ? <>Your license expires in <strong>{user.licenseExpiry || 'Dec 31, 2026'}</strong>.</>
+              : <strong>License Inactive: Payment or Validation Required</strong>
+            }
+            &nbsp;You have <strong>{Array.isArray(tasks) ? tasks.filter(t => !t.done).length : 0} pending</strong> items.
+          </p>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ background: 'rgba(255,255,255,0.15)', padding: '3px 8px', borderRadius: '20px', fontSize: '0.65rem', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>
               USD: <strong>{forex.USD}</strong>

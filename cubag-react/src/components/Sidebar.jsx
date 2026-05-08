@@ -46,6 +46,7 @@ const ADMIN_NAV_ITEMS = [
       { to: '/admin',                  icon: 'admin_panel_settings', label: 'Admin Hub', isPrimary: true },
       { to: '/admin/members',          icon: 'group',                label: 'Members' },
       { to: '/admin/announcements',    icon: 'campaign',             label: 'Announcements' },
+      { to: '/admin/public-materials', icon: 'file_download',        label: 'Public Materials' },
     ],
   },
   {

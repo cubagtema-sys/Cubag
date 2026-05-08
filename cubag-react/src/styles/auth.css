@@ -9,6 +9,7 @@
   background: var(--bg-surface);
   width: 100%;
   overflow-x: hidden;
+  padding-top: env(safe-area-inset-top, 24px); /* Ensure content doesn't overlap status bar */
 }
 
 .auth-sidebar {

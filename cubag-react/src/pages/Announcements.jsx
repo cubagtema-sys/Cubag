@@ -20,6 +20,7 @@ export default function Announcements() {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(new Set())
   const [readIds, setReadIds] = useState(getReadIds())
+  const [filter, setFilter] = useState('All')
 
   useEffect(() => {
     async function fetchAlerts() {
@@ -54,40 +55,77 @@ export default function Announcements() {
     })
   }
 
+  const filteredAlerts = alerts.filter(a => filter === 'All' || a.category === filter || a.type === filter)
   const unreadCount = alerts.filter(a => !readIds.has(a.id)).length
+  const categories = ['All', ...new Set(alerts.map(a => a.category || a.type).filter(Boolean))]
 
   return (
     <AppLayout title="Announcements">
       <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Announcements</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Latest updates from the association secretariat.</p>
+        {/* Redesigned Header Area */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 4 }}>
+          <div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Announcements</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Latest updates from the association secretariat.</p>
+          </div>
+          {unreadCount > 0 && (
+            <button
+              onClick={() => {
+                alerts.forEach(a => markRead(a.id))
+                setReadIds(getReadIds())
+              }}
+              style={{
+                background: 'rgba(240,130,50,0.1)',
+                border: 'none',
+                color: 'var(--brand-primary)',
+                padding: '6px 12px',
+                borderRadius: 20,
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                marginBottom: 6
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,130,50,0.2)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(240,130,50,0.1)'}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>done_all</span>
+              Mark Read
+            </button>
+          )}
+        </div>
+
+        {/* Category Filter - Integrated Dropdown */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ position: 'relative' }}>
+            <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--brand-primary)', fontSize: '1.1rem', zIndex: 1 }}>filter_alt</span>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 12px 10px 38px', borderRadius: 10,
+                border: '1.5px solid var(--border-default)', fontSize: '0.9rem', outline: 'none',
+                background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 700,
+                appearance: 'none', cursor: 'pointer', position: 'relative'
+              }}
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat === 'All' ? 'All Updates' : cat}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '1.1rem', pointerEvents: 'none' }}>expand_more</span>
+          </div>
         </div>
 
         <div className="feed-card">
-          <div className="card-header" style={{ padding: '12px 16px' }}>
+          <div className="card-header" style={{ padding: '12px 16px', borderBottom: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="card-title" style={{ fontSize: '1rem' }}>Association Circulars</span>
-              {unreadCount > 0 && (
-                <span style={{ background: 'var(--brand-primary)', color: '#fff', borderRadius: 20, padding: '1px 8px', fontSize: '0.65rem', fontWeight: 800 }}>
-                  {unreadCount} NEW
-                </span>
-              )}
+              <span className="card-title" style={{ fontSize: '1rem' }}>Latest Circulars</span>
             </div>
-            {unreadCount > 0 && (
-              <button
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-                onClick={() => {
-                  alerts.forEach(a => markRead(a.id))
-                  setReadIds(getReadIds())
-                }}
-              >
-                Mark all read
-              </button>
-            )}
           </div>
 
           <div className="card-body" style={{ padding: 0 }}>
@@ -106,45 +144,49 @@ export default function Announcements() {
                   </div>
                 ))}
               </div>
-            ) : alerts.length > 0 ? (
-              alerts.map((alert, i) => {
+            ) : filteredAlerts.length > 0 ? (
+              filteredAlerts.map((alert, i) => {
                 const isExpanded = expanded.has(alert.id)
                 const isRead = readIds.has(alert.id)
                 return (
                   <div
                     key={alert.id}
+                    onClick={() => toggleExpand(alert.id)}
                     style={{
                       display: 'flex', gap: 12, alignItems: 'flex-start', padding: '16px',
-                      borderBottom: i === alerts.length - 1 ? 'none' : '1px solid var(--border-subtle)',
+                      borderBottom: i === filteredAlerts.length - 1 ? 'none' : '1px solid var(--border-subtle)',
                       transition: 'background 0.2s',
                       background: isRead ? 'transparent' : 'rgba(240,130,50,0.03)',
-                      borderLeft: isRead ? 'none' : '3px solid var(--brand-primary)'
+                      borderLeft: isRead ? 'none' : '3px solid var(--brand-primary)',
+                      cursor: 'pointer'
                     }}
                   >
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(240,130,50,0.1)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>{alert.icon || 'campaign'}</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{alert.icon || 'campaign'}</span>
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
-                        <h3 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', margin: 0, fontWeight: isRead ? 600 : 800 }}>
+                      <div style={{ marginBottom: 4 }}>
+                        <h3 style={{ fontSize: '0.92rem', color: 'var(--text-primary)', margin: 0, fontWeight: isRead ? 600 : 800, lineHeight: 1.3 }}>
                           {!isRead && <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-primary)', marginRight: 6, verticalAlign: 'middle' }} />}
                           {alert.title}
                         </h3>
-                        <span className={`badge badge-${alert.color || 'info'}`} style={{ flexShrink: 0, marginLeft: 10, fontSize: '0.6rem' }}>{alert.category || alert.type}</span>
                       </div>
 
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 6 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 8 }}>
                         {alert.body}
                       </p>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          <span style={{ marginRight: 8 }}>
-                            By {['System Administrator', 'Admin', '', null, undefined].includes(alert.posted_by) ? 'CUBAG Unit' : alert.posted_by} ·
-                          </span>
-                          {alert.time || (alert.created_at && new Date(alert.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))}
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--brand-primary)', textTransform: 'uppercase', background: 'rgba(240,130,50,0.08)', padding: '2px 8px', borderRadius: 4 }}>
+                          {alert.category || alert.type || 'GENERAL'}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                          • {alert.time || (alert.created_at && new Date(alert.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                          • By {['System Administrator', 'Admin', '', null, undefined].includes(alert.posted_by) ? 'CUBAG Unit' : alert.posted_by}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -152,8 +194,8 @@ export default function Announcements() {
               })
             ) : (
               <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '3rem', marginBottom: 12, display: 'block' }}>notifications_off</span>
-                <p>No new announcements at this time.</p>
+                <span className="material-symbols-outlined" style={{ fontSize: '3rem', marginBottom: 12, display: 'block' }}>filter_list_off</span>
+                <p>No circulars found in this category.</p>
               </div>
             )}
           </div>

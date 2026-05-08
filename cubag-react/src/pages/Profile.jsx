@@ -2,9 +2,15 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { showToast } from '../utils/toast'
+import { NativeBiometric } from '@capgo/capacitor-native-biometric'
 
 export default function Profile() {
   const [user, setUser] = useState({})
+  const [biometricEnabled, setBiometricEnabled] = useState(false)
+  const [biometricAvailable, setBiometricAvailable] = useState(false)
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false)
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isEnabling, setIsEnabling] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -29,7 +35,7 @@ export default function Profile() {
             company: data.company,
             memberId: data.id,
             role: data.member_type,
-            licenseExpiry: data.license_number || 'Pending Validation',
+            licenseExpiry: data.license_number || 'No Active License',
             status: data.status,
             photo: existingUser.photo || null // Preserve existing local photo
           }
@@ -48,7 +54,70 @@ export default function Profile() {
       }
     }
     fetchUser()
+
+    // Check biometric availability and state
+    async function initBiometrics() {
+      try {
+        const result = await NativeBiometric.isAvailable()
+        if (result.isAvailable) {
+          setBiometricAvailable(true)
+          const enabled = localStorage.getItem('cubag_biometric_enabled') === 'true'
+          setBiometricEnabled(enabled)
+        }
+      } catch (e) {}
+    }
+    initBiometrics()
   }, [navigate])
+
+  const handleToggleBiometric = async () => {
+    if (biometricEnabled) {
+      // Disable
+      try {
+        await NativeBiometric.deleteCredentials({ server: "cubag.org.gh" })
+        localStorage.setItem('cubag_biometric_enabled', 'false')
+        setBiometricEnabled(false)
+        showToast("Biometric login disabled.", "info")
+      } catch (e) {
+        showToast("Failed to disable biometrics.", "error")
+      }
+    } else {
+      // Enable - Step 1: Show password prompt
+      setShowPasswordPrompt(true)
+    }
+  }
+
+  const handleConfirmBiometric = async (e) => {
+    e.preventDefault()
+    if (!confirmPassword) return
+
+    setIsEnabling(true)
+    try {
+      // 1. Verify with Biometrics first
+      await NativeBiometric.verifyIdentity({
+        reason: "Confirm to enable biometric login",
+        title: "Secure Setup",
+        subtitle: "Verify your identity",
+        description: "Verify your fingerprint or face to proceed"
+      })
+
+      // 2. Store Credentials
+      await NativeBiometric.setCredentials({
+        username: user.email,
+        password: confirmPassword,
+        server: "cubag.org.gh"
+      })
+
+      localStorage.setItem('cubag_biometric_enabled', 'true')
+      setBiometricEnabled(true)
+      setShowPasswordPrompt(false)
+      setConfirmPassword('')
+      showToast("Biometric login enabled successfully!", "success")
+    } catch (e) {
+      showToast("Verification failed. Please try again.", "error")
+    } finally {
+      setIsEnabling(false)
+    }
+  }
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0]
@@ -75,11 +144,15 @@ export default function Profile() {
   
   // Generate unique member ID based on last name + id
   const lastName = user.name ? user.name.split(' ').pop().toUpperCase() : 'MEMBER'
-  const uniqueMemberId = `CUBAG-${lastName}-00${user.memberId || '1'}`
+  const uniqueMemberId = user.status === 'active' ? `CUBAG-${lastName}-00${user.memberId || '1'}` : 'VALIDATION REQUIRED'
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MEMBER:${uniqueMemberId}`
   
   const handleViewIdCard = () => {
+    if (user.status !== 'active') {
+      showToast("Access Restricted: Please settle your dues to activate your Digital ID.", "error")
+      return
+    }
     if (!user.photo) {
       showToast("Please upload a selfie profile photo first to generate your Digital Identity Card.", "warning")
       document.getElementById('profile-upload-input').click()
@@ -131,22 +204,30 @@ export default function Profile() {
 
         {/* Digital ID Card Modal */}
         {showIdCard && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
             <div style={{ position: 'relative', width: '100%', maxWidth: 360, animation: 'fadeInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
-              <button 
-                onClick={() => setShowIdCard(false)}
-                style={{ position: 'absolute', top: -50, right: 0, background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '2rem' }}>close</span>
-              </button>
+
+              {/* Modern Close Button - Positioned clearly inside the modal area or floating above */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                <button
+                  onClick={() => setShowIdCard(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)', border: '1.5px solid #fff', color: '#fff',
+                    width: 36, height: 36, borderRadius: '50%', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.4rem' }}>close</span>
+                </button>
+              </div>
               
               <div style={{ 
                 background: '#ffffff', 
                 borderRadius: 24, 
-                padding: '30px 24px', 
+                padding: '24px',
                 color: '#0f172a', 
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)',
-                border: '1px solid var(--border-subtle)',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                border: '1px solid #e2e8f0',
                 overflow: 'hidden',
                 position: 'relative'
               }}>
@@ -222,18 +303,85 @@ export default function Profile() {
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Phone Number</div>
                 <div style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 600 }}>{user.phone || 'Not provided'}</div>
               </div>
-              <div style={{ padding: '20px', background: 'rgba(240,130,50,0.05)' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>License Expiry</div>
+              <div style={{ padding: '20px', background: user.status === 'active' ? 'rgba(240,130,50,0.05)' : 'rgba(239,68,68,0.05)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>License Number</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                  <div style={{ fontSize: '1.1rem', color: 'var(--text-primary)', fontWeight: 700 }}>{user.licenseExpiry}</div>
-                  <button className="btn btn-outline btn-sm" onClick={() => navigate('/license-renewal')} style={{ whiteSpace: 'nowrap' }}>Renew Now</button>
+                  <div style={{ fontSize: '1.1rem', color: user.status === 'active' ? 'var(--text-primary)' : 'var(--brand-danger)', fontWeight: 700 }}>
+                    {user.status === 'active' ? user.licenseExpiry : 'PAYMENT REQUIRED'}
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => navigate('/license-renewal')} style={{ whiteSpace: 'nowrap' }}>
+                    {user.status === 'active' ? 'Renew Now' : 'Pay to Activate'}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Security Settings Card */}
+        {biometricAvailable && (
+          <div className="feed-card">
+            <div className="card-header">
+              <span className="card-title">Security & Preferences</span>
+            </div>
+            <div className="card-body" style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Biometric Login</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Use fingerprint or face recognition to sign in.</div>
+                </div>
+                <div
+                  onClick={handleToggleBiometric}
+                  style={{
+                    width: 50, height: 26, borderRadius: 20,
+                    background: biometricEnabled ? 'var(--brand-primary)' : 'var(--border-default)',
+                    position: 'relative', cursor: 'pointer', transition: 'all 0.3s'
+                  }}
+                >
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 3, left: biometricEnabled ? 27 : 3,
+                    transition: 'all 0.3s', boxShadow: 'var(--shadow-sm)'
+                  }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* Password Confirmation Modal for Biometrics */}
+      {showPasswordPrompt && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 24, width: '100%', maxWidth: 400, animation: 'fadeInUp 0.3s' }}>
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.2rem' }}>Enable Biometric Login</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Please enter your current password to securely link your biometrics to this device.</p>
+
+            <form onSubmit={handleConfirmBiometric}>
+              <div className="form-group">
+                <label>Current Password</label>
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  style={{ border: '2px solid var(--border-default)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+                <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setShowPasswordPrompt(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={isEnabling}>
+                  {isEnabling ? 'Verifying...' : 'Enable Now'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AppLayout>
   )
 }

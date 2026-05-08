@@ -12,7 +12,9 @@ export default function AdminAnnouncements() {
 
   const fetchAnnouncements = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/announcements/admin/all`)
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/announcements/admin/all`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
+      })
       if (res.ok) {
         setAnnouncements(await res.json())
       }

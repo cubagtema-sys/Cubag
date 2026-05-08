@@ -13,8 +13,7 @@ export default function AdminPayments() {
   const [filterType, setFilterType] = useState('all')
   const [actionLoading, setActionLoading] = useState(null)
   const [selectedTx, setSelectedTx] = useState(null)
-  const [pendingPaid, setPendingPaid] = useState(null)       // { txId }
-  const [pendingLicense, setPendingLicense] = useState(null) // { txId, memberId }
+  const [pendingPaid, setPendingPaid] = useState(null)
   const [toast, setToast] = useState(null)
 
   const showToast = (msg, type = 'success') => {
@@ -43,38 +42,14 @@ export default function AdminPayments() {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
       })
-      if (res.ok) { await fetchPayments(); showToast('Payment marked as paid.') }
-      else showToast('Failed to update payment status.', 'error')
+      if (res.ok) {
+        await fetchPayments()
+        showToast('Payment confirmed successfully.')
+        setPendingPaid(null)
+      }
+      else showToast('Failed to update payment.', 'error')
     } catch { showToast('Network error.', 'error') }
     finally { setActionLoading(null) }
-  }
-
-  const approveLicense = async (txId, memberId) => {
-    setActionLoading(txId)
-    try {
-      const res = await fetch(`${API_URL}/payments/admin/approve-license/${txId}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
-      })
-      if (res.ok) { await fetchPayments(); showToast('License approved successfully!') }
-      else showToast('Failed to approve license.', 'error')
-    } catch { showToast('Network error.', 'error') }
-    finally { setActionLoading(null) }
-  }
-
-  const exportCSV = () => {
-    const rows = [['TX ID', 'Member', 'Description', 'Amount (GHS)', 'Status', 'Date']]
-    filtered.forEach(tx => rows.push([
-      tx.tx_id, tx.member_name, tx.description,
-      parseFloat(tx.amount).toFixed(2), tx.status,
-      new Date(tx.date).toLocaleDateString()
-    ]))
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url
-    a.download = `cubag_payments_${new Date().toISOString().slice(0,10)}.csv`
-    a.click(); URL.revokeObjectURL(url)
   }
 
   useEffect(() => {
@@ -107,54 +82,43 @@ export default function AdminPayments() {
   ]
 
   const TYPE_OPTIONS = [
-    { value: 'all', label: 'All Payments', icon: 'payments' },
-    { value: 'dues', label: 'Association Dues', icon: 'group' },
-    { value: 'license', label: 'License Renewal', icon: 'badge' },
-    { value: 'penalty', label: 'Late Penalty Fees', icon: 'gavel' }
+    { value: 'all', label: 'All Types', icon: 'category' },
+    { value: 'license', label: 'License Renewal', icon: 'fact_check' },
+    { value: 'dues', label: 'Association Dues', icon: 'payments' },
+    { value: 'penalty', label: 'Penalty/Late', icon: 'gavel' },
+    { value: 'other', label: 'Other', icon: 'more_horiz' }
   ]
 
   return (
     <>
-    <AppLayout title="Financials">
-      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <AppLayout title="Payments">
+      <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
         {/* Header Section */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--text-primary)', fontWeight: 800 }}>Financial Center</h2>
-            <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Management of dues and revenue streams.</p>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--text-primary)', fontWeight: 800 }}>Revenue Control</h2>
+          <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Monitor association dues and platform transactions.</p>
+        </div>
+
+        {/* Financial KPIs - High Density */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="feed-card" style={{ padding: '16px', borderRadius: 12, background: 'var(--gradient-brand)', color: '#fff', border: 'none' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', opacity: 0.8, marginBottom: 4 }}>Total Revenue</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 900, fontFamily: 'monospace' }}>₵{parseFloat(data.kpis.revenue || 0).toLocaleString()}</div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-outline btn-sm" onClick={fetchPayments} style={{ height: 36, padding: '0 12px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>refresh</span> Refresh
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={exportCSV} style={{ height: 36, padding: '0 12px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>download</span> CSV
-            </button>
+          <div className="feed-card" style={{ padding: '16px', borderRadius: 12, border: '1.5px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>Pending Collection</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#f59e0b', fontFamily: 'monospace' }}>₵{parseFloat(data.kpis.pending || 0).toLocaleString()}</div>
           </div>
         </div>
 
-        {/* Financial KPI Cards - Mobile Tighter */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
-          {[
-            { label: 'Revenue', value: `GH₵ ${parseFloat(data.kpis.revenue || 0).toLocaleString()}`, color: '#10b981' },
-            { label: 'Pending', value: `GH₵ ${parseFloat(data.kpis.pending || 0).toLocaleString()}`, color: '#f59e0b' },
-            { label: 'Overdue', value: data.kpis.failed, color: '#ef4444' }
-          ].map(kpi => (
-            <div key={kpi.label} className="feed-card" style={{ padding: '12px 16px', borderRadius: 12, textAlign: 'center' }}>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>{kpi.label}</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: kpi.color, fontFamily: 'monospace' }}>{kpi.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Search & Filter Toolbar - Mobile Vertical Stack */}
+        {/* Toolbar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ position: 'relative' }}>
             <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '1.1rem' }}>search</span>
             <input 
               type="text" 
-              placeholder="Search TX ID or Member..."
+              placeholder="Search by name or ID..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{ width: '100%', padding: '10px 12px 10px 38px', borderRadius: 10, border: '1.5px solid var(--border-default)', background: 'var(--bg-base)', color: 'var(--text-primary)', outline: 'none', fontSize: '0.9rem' }}
@@ -162,12 +126,14 @@ export default function AdminPayments() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <CustomSelect
+              label="Type"
               value={filterType}
               onChange={setFilterType}
               options={TYPE_OPTIONS}
               icon="category"
             />
             <CustomSelect
+              label="Status"
               value={filterStatus}
               onChange={setFilterStatus}
               options={STATUS_OPTIONS}
@@ -176,79 +142,92 @@ export default function AdminPayments() {
           </div>
         </div>
 
-        {/* Main List - Replaced Table with Cards for Mobile */}
+        {/* Transaction Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading financials...</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Syncing transactions...</div>
           ) : filtered.length === 0 ? (
             <div className="card" style={{ padding: 40, textAlign: 'center', borderRadius: 12 }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No records found.</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No payment records found.</p>
             </div>
           ) : (
-            filtered.map((tx, i) => {
-              const type = getPaymentType(tx.description)
-              return (
-                <div key={tx.tx_id} className="feed-card" style={{ padding: '12px 16px', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: type === 'license' ? '#3b82f622' : type === 'dues' ? '#10b98122' : '#f59e0b22', color: type === 'license' ? '#3b82f6' : type === 'dues' ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>{type === 'license' ? 'badge' : type === 'dues' ? 'group' : 'payments'}</span>
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{tx.member_name}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>ID: {tx.tx_id.toString().slice(-6)}</div>
-                      </div>
+            filtered.map((tx) => (
+              <div key={tx.tx_id} className="feed-card" style={{ padding: '14px 16px', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)' }}>account_balance_wallet</span>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'monospace' }}>₵{parseFloat(tx.amount).toLocaleString()}</div>
-                      <span style={{ fontSize: '0.6rem', fontWeight: 800, color: tx.status === 'paid' ? '#10b981' : '#f59e0b', textTransform: 'uppercase' }}>{tx.status}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.member_name}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(tx.date).toLocaleDateString()} &bull; ID: {tx.tx_id.toString().slice(-5)}</div>
                     </div>
                   </div>
-
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {tx.status === 'pending' && (
-                      <button className="btn btn-primary btn-sm" style={{ flex: 1, height: 32, fontSize: '0.7rem', padding: 0 }}
-                        onClick={() => type === 'license' ? setPendingLicense({ txId: tx.tx_id }) : setPendingPaid(tx.tx_id)}>
-                        Approve
-                      </button>
-                    )}
-                    <button className="btn btn-ghost btn-sm" style={{ flex: 1, height: 32, fontSize: '0.7rem', padding: 0 }} onClick={() => setSelectedTx(tx)}>Details</button>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '1.1rem' }}>₵{parseFloat(tx.amount).toLocaleString()}</div>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 900, color: tx.status === 'paid' ? '#10b981' : '#f59e0b', textTransform: 'uppercase', padding: '2px 6px', background: tx.status === 'paid' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', borderRadius: 4 }}>{tx.status}</span>
                   </div>
                 </div>
-              )
-            })
+
+                <div style={{ padding: '8px 10px', background: 'var(--bg-base)', borderRadius: 8, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {tx.description}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {tx.status === 'pending' && (
+                    <button className="btn btn-primary btn-sm" style={{ flex: 1, height: 36, fontSize: '0.75rem' }}
+                      onClick={() => setPendingPaid(tx.tx_id)}>
+                      Approve Payment
+                    </button>
+                  )}
+                  <button className="btn btn-outline btn-sm" style={{ flex: 1, height: 36, fontSize: '0.75rem' }} onClick={() => setSelectedTx(tx)}>View Details</button>
+                </div>
+              </div>
+            ))
           )}
         </div>
-
       </div>
     </AppLayout>
 
     <ConfirmModal
       open={!!pendingPaid}
-      message="Mark this payment as PAID? This cannot be undone."
+      message="Confirm this payment as RECEIVED? This will update the member's balance."
       onConfirm={() => markAsPaid(pendingPaid)}
       onCancel={() => setPendingPaid(null)}
-    />
-    <ConfirmModal
-      open={!!pendingLicense}
-      message="Approve this license renewal? This will mark the member as licensed."
-      onConfirm={() => approveLicense(pendingLicense?.txId, pendingLicense?.memberId)}
-      onCancel={() => setPendingLicense(null)}
       danger={false}
     />
+
+    {selectedTx && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setSelectedTx(null)}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', width: '100%', maxWidth: 500, animation: 'fadeInUp 0.2s' }} onClick={e => e.stopPropagation()}>
+          <div style={{ width: 40, height: 4, background: 'var(--border-default)', borderRadius: 2, margin: '0 auto 20px' }} />
+          <h3 style={{ margin: '0 0 16px', fontSize: '1.2rem' }}>Transaction Details</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { label: 'Transaction ID', val: selectedTx.tx_id },
+              { label: 'Member Name', val: selectedTx.member_name },
+              { label: 'Amount', val: `₵ ${parseFloat(selectedTx.amount).toLocaleString()}` },
+              { label: 'Status', val: selectedTx.status.toUpperCase() },
+              { label: 'Date', val: new Date(selectedTx.date).toLocaleString() },
+              { label: 'Reference', val: selectedTx.payment_ref || 'N/A' },
+              { label: 'Description', val: selectedTx.description }
+            ].map(row => (
+              <div key={row.label} style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>{row.label}</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>{row.val}</div>
+              </div>
+            ))}
+          </div>
+          <button className="btn btn-primary" style={{ width: '100%', marginTop: 24, height: 48 }} onClick={() => setSelectedTx(null)}>Close Window</button>
+        </div>
+      </div>
+    )}
+
     {toast && (
-      <div style={{
-        position: 'fixed', top: 32, left: '50%', transform: 'translateX(-50%)',
-        background: toast.type === 'success' ? '#10b981' : '#ef4444',
-        color: '#fff', padding: '12px 24px', borderRadius: 8, fontWeight: 600,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 9999,
-        display: 'flex', alignItems: 'center', gap: 8
-      }}>
-        <span className="material-symbols-outlined">{toast.type === 'success' ? 'check_circle' : 'error'}</span>
+      <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#10b981', color: '#fff', padding: '10px 20px', borderRadius: 8, zIndex: 10000, fontWeight: 700 }}>
         {toast.msg}
       </div>
     )}
   </>
   )
 }
-
