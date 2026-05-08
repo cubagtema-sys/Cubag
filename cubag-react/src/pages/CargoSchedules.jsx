@@ -53,7 +53,7 @@ export default function CargoSchedules() {
           <span className="material-symbols-outlined" style={{ position: 'absolute', left: 16, top: 16, color: 'var(--text-muted)' }}>search</span>
           <input 
             type="text" 
-            placeholder="Search Container Number or Vessel Name..." 
+            placeholder="Search Container Number or Vessel Name..." autoComplete="off" 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{ width: '100%', padding: '16px 16px 16px 48px', border: '2px solid var(--border-subtle)', borderRadius: 12, background: 'var(--bg-base)', fontSize: '1rem', color: 'var(--text-primary)' }}

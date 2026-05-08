@@ -58,17 +58,18 @@ export default function AdminSurveys() {
   const handlePhotoUpload = async (index, e) => {
     const file = e.target.files[0]
     if (!file) return
-    // Show local preview instantly
-    const preview = URL.createObjectURL(file)
-    const newOptions = [...form.options]
-    newOptions[index].photo = preview
-    setForm({ ...form, options: newOptions })
+    // Show local preview instantly (functional update avoids stale closure)
+    setForm(prev => {
+      const opts = prev.options.map((o, i) => i === index ? { ...o, photo: URL.createObjectURL(file) } : o)
+      return { ...prev, options: opts }
+    })
     try {
       const url = await uploadImage(file)
-      // Replace preview with the real server URL
-      const updated = [...form.options]
-      updated[index].photo = url
-      setForm(prev => ({ ...prev, options: updated }))
+      // Replace preview with the real server URL (functional update again)
+      setForm(prev => {
+        const opts = prev.options.map((o, i) => i === index ? { ...o, photo: url } : o)
+        return { ...prev, options: opts }
+      })
     } catch { /* keep preview on error */ }
   }
 

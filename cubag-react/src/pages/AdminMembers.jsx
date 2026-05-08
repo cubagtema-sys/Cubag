@@ -132,7 +132,7 @@ export default function AdminMembers() {
             <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>search</span>
             <input
               type="text"
-              placeholder="Search by name, email, company or license..."
+              placeholder="Search by name, email, company or license..." autoComplete="off"
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{ width: '100%', padding: '14px 14px 14px 44px', borderRadius: 12, border: '1.5px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none', fontSize: '0.95rem', boxSizing: 'border-box' }}

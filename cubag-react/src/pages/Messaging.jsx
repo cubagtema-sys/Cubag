@@ -102,7 +102,7 @@ export default function Messaging() {
             <div style={{ padding: '20px', borderBottom: '1px solid var(--border-subtle)' }}>
               <input
                 type="text"
-                placeholder="Search messages..."
+                placeholder="Search messages..." autoComplete="off"
                 style={{ width: '100%', padding: '12px 16px', border: '1.5px solid var(--border-default)', borderRadius: 12, background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '0.95rem' }}
               />
             </div>

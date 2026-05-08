@@ -112,7 +112,7 @@ export default function PublicServices() {
             <span className="material-symbols-outlined" style={{ position: 'absolute', left: 16, top: 14, color: 'var(--text-muted)' }}>search</span>
             <input 
               type="text" 
-              placeholder="Search companies by name or location..." 
+              placeholder="Search companies by name or location..." autoComplete="off" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ width: '100%', padding: '14px 16px 14px 48px', borderRadius: 12, border: '1.5px solid var(--border-default)', fontSize: '1rem', outline: 'none' }}

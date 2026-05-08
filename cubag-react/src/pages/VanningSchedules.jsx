@@ -47,7 +47,7 @@ export default function VanningSchedules() {
           <span className="material-symbols-outlined" style={{ position: 'absolute', left: 16, top: 14, color: 'var(--text-muted)' }}>search</span>
           <input 
             type="text" 
-            placeholder="Search schedules by terminal or cargo..." 
+            placeholder="Search schedules by terminal or cargo..." autoComplete="off" 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: 12, border: '1px solid var(--border-subtle)', outline: 'none', fontSize: '1rem' }}

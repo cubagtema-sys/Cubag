@@ -84,7 +84,7 @@ export default function Networking() {
             <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '1.2rem' }}>search</span>
             <input
               type="text"
-              placeholder="Search by name, company or specialization..."
+              placeholder="Search by name, company or specialization..." autoComplete="off"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{ width: '100%', padding: '13px 14px 13px 44px', borderRadius: 12, border: '1.5px solid var(--border-default)', background: 'var(--bg-base)', color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
