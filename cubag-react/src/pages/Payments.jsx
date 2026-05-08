@@ -416,7 +416,7 @@ export default function Payments() {
                   </div>
                 )}
 
-                <button className="btn btn-ghost btn-sm" onClick={() => { stopPolling(); setPayStep(3); }} style={{ width: '100%', color: 'var(--text-muted)' }}>Cancel & Change Method</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { stopPolling(); setPayStep(2); }} style={{ width: '100%', color: 'var(--text-muted)' }}>Cancel & Change Method</button>
               </div>
             )}
           </div>
