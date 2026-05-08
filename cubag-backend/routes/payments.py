@@ -129,6 +129,59 @@ def poll_payment_status(payment_id):
         conn.close()
 
 
+# ─── POST /payments/verify-code — Submit OTP to Paystack ─────────────────────
+@payments_bp.route('/verify-code', methods=['POST'])
+@jwt_required()
+def verify_payment_code():
+    data = request.get_json()
+    payment_id  = data.get('payment_id')
+    otp         = data.get('code', '').strip()
+    paystack_ref = data.get('paystack_ref', '').strip()
+
+    if not payment_id or not otp:
+        return jsonify({'message': 'payment_id and code are required'}), 400
+
+    # Submit OTP to Paystack
+    try:
+        ps_res = requests.post(
+            'https://api.paystack.co/charge/submit_otp',
+            json={'otp': otp, 'reference': paystack_ref},
+            headers=_paystack_headers(),
+            timeout=15
+        )
+        ps_data = ps_res.json()
+        ps_status = ps_data.get('data', {}).get('status', '')
+
+        if ps_status == 'success':
+            # Mark payment as paid in DB
+            conn = get_db()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
+                        (payment_id,)
+                    )
+                    conn.commit()
+                    # Fetch for receipt email
+                    cursor.execute("""
+                        SELECT m.email, m.name, p.amount, p.description
+                        FROM payments p JOIN members m ON p.member_id = m.id
+                        WHERE p.id = %s
+                    """, (payment_id,))
+                    row = cursor.fetchone()
+                if row:
+                    _send_receipt_email(row['email'], row['name'], row['amount'], row['description'], payment_id)
+            finally:
+                conn.close()
+            return jsonify({'message': 'Payment confirmed! 🎉', 'status': 'success'}), 200
+        else:
+            msg = ps_data.get('message') or ps_data.get('data', {}).get('message') or 'OTP verification failed.'
+            return jsonify({'message': msg, 'status': ps_status}), 400
+
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+
 # ─── POST /payments/webhook — Paystack fires this when payment completes ───────
 @payments_bp.route('/webhook', methods=['POST'])
 def paystack_webhook():
