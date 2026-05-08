@@ -13,14 +13,11 @@ export default function Login() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Only restore remembered email (not password — let browser handle password autofill)
     const savedId = localStorage.getItem('cubag_remember_id')
-    const savedPass = localStorage.getItem('cubag_remember_pass')
     if (savedId) {
       setMemberId(savedId)
       setRememberMe(true)
-    }
-    if (savedPass) {
-      setPassword(savedPass)
     }
 
     // Check if biometric is available
@@ -29,7 +26,7 @@ export default function Login() {
         const result = await NativeBiometric.isAvailable()
         if (result.isAvailable) setBiometricAvailable(true)
       } catch (e) {
-        console.log("Biometrics not available", e)
+        console.log('Biometrics not available', e)
       }
     }
     checkBiometrics()
@@ -74,39 +71,47 @@ export default function Login() {
 
   const handleBiometricLogin = async () => {
     try {
-      // 1. Verify Identity
-      await NativeBiometric.verifyIdentity({
-        reason: "Sign in to CUBAG",
-        title: "Biometric Login",
-        subtitle: "Use your fingerprint or face to sign in",
-        description: "Verify your identity to proceed"
-      })
+      setLoading(true)
+      setError('')
 
-      // 2. Retrieve Credentials
+      // 1. Hardware Verification & Secure Retrieval
+      // This MUST match the 'server' string used in Profile.jsx exactly.
       const creds = await NativeBiometric.getCredentials({
-        server: "cubag.org.gh"
+        server: "cubag.org.gh",
+        reason: "Sign in to your CUBAG account",
+        title: "Biometric Login",
+        subtitle: "Verify your identity"
       })
 
       if (creds && creds.username && creds.password) {
-        // Perform login with retrieved credentials
-        setLoading(true)
+        // 2. Perform Backend Authentication
         const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: creds.username, password: creds.password })
+          body: JSON.stringify({ email: creds.username.trim(), password: creds.password })
         })
+
         const data = await res.json()
+
         if (res.ok) {
           localStorage.setItem('cubag_token', data.token)
           localStorage.setItem('cubag_user', JSON.stringify(data.user))
           navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard')
         } else {
-          setError("Biometric login failed. Please use your password.")
+          setError(data.error || data.message || "Biometric login failed. Your password may have changed.")
         }
+      } else {
+        setError("Setup Required: Please log in once and enable Biometrics in your Profile.")
       }
     } catch (e) {
-      console.log("Biometric Auth Failed", e)
-      // Usually means user cancelled or no credentials stored
+      console.error("Biometric Auth Error:", e)
+      // Check if it's a real error vs a simple user cancellation
+      const errorMsg = e.message?.toLowerCase() || ""
+      if (errorMsg.includes('cancel') || errorMsg.includes('user back')) {
+        // User just closed the fingerprint dialog, don't show an error
+        return
+      }
+      setError("Security verification failed. Please use your password.")
     } finally {
       setLoading(false)
     }
@@ -149,11 +154,12 @@ export default function Login() {
             <div className="form-group">
               <label htmlFor="memberId">Member ID or Email</label>
               <input
-                type="text"
+                type="email"
                 id="memberId"
-                name="username"
-                autoComplete="username"
-                placeholder="e.g. CUBAG-2024-0421"
+                name="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="e.g. member@cubag.org.gh"
                 value={memberId}
                 onChange={e => setMemberId(e.target.value)}
                 required
@@ -206,20 +212,28 @@ export default function Login() {
               <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ flex: 1, justifyContent: 'center' }}>
                 {loading ? 'Authenticating...' : 'Sign In'}
               </button>
-
-              {biometricAvailable && (
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={handleBiometricLogin}
-                  style={{ width: 48, height: 48, padding: 0, justifyContent: 'center', borderRadius: 12 }}
-                  title="Login with Biometrics"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '1.6rem' }}>fingerprint</span>
-                </button>
-              )}
             </div>
           </form>
+
+          {/* Biometric login — separate from main form so it never blocks autofill */}
+          {biometricAvailable && (
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>or use biometrics</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={handleBiometricLogin}
+                style={{ width: '100%', height: 48, justifyContent: 'center', borderRadius: 12, gap: 8 }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '1.4rem' }}>fingerprint</span>
+                Sign in with Biometrics
+              </button>
+            </div>
+          )}
 
           <div className="auth-footer">
             Don't have an account? <Link to="/register">Join CUBAG</Link>
