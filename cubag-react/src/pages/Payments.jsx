@@ -493,7 +493,8 @@ export default function Payments() {
               style={{
                 width: '100%', height: 52, fontSize: '1rem', fontWeight: 800,
                 borderRadius: 14, background: 'linear-gradient(135deg, #10b981, #059669)',
-                border: 'none', color: '#fff'
+                border: 'none', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>done_all</span>
