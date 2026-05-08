@@ -30,10 +30,13 @@ def create_payment():
     data = request.get_json()
     amount      = data.get('amount')
     description = data.get('description')
-    payment_ref = data.get('payment_ref', '')
+    payment_ref = data.get('payment_ref', '') # Internal ref from client
     method      = data.get('method', 'momo')   # 'momo' | 'bank'
     network     = data.get('network', 'MTN')   # MTN | Vodafone | AirtelTigo
     phone       = data.get('phone', '')
+
+    if not amount or not description:
+        return jsonify({'message': 'Amount and description are required'}), 400
 
     conn = get_db()
     try:
@@ -43,28 +46,41 @@ def create_payment():
             if not member:
                 return jsonify({'message': 'Member not found'}), 404
 
-            full_desc = f"{description} (Ref: {payment_ref})" if payment_ref else description
-
+            # ── Duplicate Prevention Logic ──
+            # If they are paying for "License Renewal" or "Association Dues",
+            # check if they already have a 'pending' transaction for that exact thing.
+            # If so, we'll "re-use" that record ID rather than making a duplicate.
             cursor.execute("""
-                INSERT INTO payments (member_id, amount, description, status, payment_ref)
-                VALUES (%s, %s, %s, 'pending', %s)
-                RETURNING id
-            """, (member_id, amount, full_desc, payment_ref))
-            payment_id = cursor.fetchone()['id']
+                SELECT id FROM payments
+                WHERE member_id = %s AND description = %s AND status = 'pending'
+                LIMIT 1
+            """, (member_id, description))
+            existing_pending = cursor.fetchone()
 
-            if description and 'Renewal' in description:
-                cursor.execute(
-                    "UPDATE members SET status = 'pending', payment_ref = %s WHERE id = %s",
-                    (payment_ref, member_id)
-                )
+            if existing_pending:
+                payment_id = existing_pending['id']
+                # Update the existing record with the new payment_ref and amount just in case
+                cursor.execute("""
+                    UPDATE payments SET amount = %s, payment_ref = %s
+                    WHERE id = %s
+                """, (amount, payment_ref, payment_id))
+            else:
+                # Initialize New Record
+                cursor.execute("""
+                    INSERT INTO payments (member_id, amount, description, status, payment_ref)
+                    VALUES (%s, %s, %s, 'pending', %s)
+                    RETURNING id
+                """, (member_id, amount, description, payment_ref))
+                payment_id = cursor.fetchone()['id']
+
             conn.commit()
 
-        # ── MoMo via Paystack ───────────────────────────────────────────────
+        # ── 2. Handle MoMo via Paystack ──
         if method == 'momo' and PAYSTACK_SECRET and 'REPLACE' not in PAYSTACK_SECRET:
             network_map = {'MTN': 'mtn', 'Vodafone': 'vod', 'AirtelTigo': 'atl'}
             payload = {
                 'email': member['email'],
-                'amount': int(float(amount) * 100),  # pesewas
+                'amount': int(float(amount) * 100),  # Paystack expects pesewas
                 'currency': 'GHS',
                 'mobile_money': {
                     'phone': phone,
@@ -84,23 +100,53 @@ def create_payment():
                     timeout=15
                 )
                 ps_data = ps_res.json()
-                ps_status = ps_data.get('data', {}).get('status', '')
+
+                if not ps_data.get('status'):
+                    return jsonify({
+                        'payment_id': payment_id,
+                        'message': ps_data.get('message', 'Paystack initialization failed'),
+                        'error': True
+                    }), 400
+
+                ps_payload = ps_data.get('data', {})
+                paystack_ref = ps_payload.get('reference')
+                ps_status = ps_payload.get('status')
+
+                # ── 3. Update Record with Paystack Reference Immediately ──
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE payments SET payment_ref = %s WHERE id = %s",
+                        (paystack_ref, payment_id)
+                    )
+                    # If it's a license renewal, link it to the member profile too
+                    if 'Renewal' in description:
+                        cursor.execute(
+                            "UPDATE members SET payment_ref = %s WHERE id = %s",
+                            (paystack_ref, member_id)
+                        )
+                    conn.commit()
 
                 return jsonify({
                     'payment_id': payment_id,
-                    'paystack_ref': ps_data.get('data', {}).get('reference'),
-                    'status': 'pending',
-                    'message': 'Prompt sent! Approve the payment on your phone.' if ps_status in ('send_otp', 'pay_offline', 'pending') else ps_data.get('message', 'Prompt sent')
+                    'paystack_ref': paystack_ref,
+                    'status': ps_status,
+                    'message': 'Payment request sent successfully. Please check your phone.',
+                    'display_text': 'Please check your phone for the MoMo prompt.' if ps_status in ('send_otp', 'pay_offline', 'pending') else 'Authorization required'
                 }), 200
-            except Exception as e:
-                # Paystack call failed but payment is saved — return gracefully
-                return jsonify({'payment_id': payment_id, 'status': 'pending', 'message': 'Payment recorded. MoMo prompt could not be sent.'}), 200
 
-        # ── Bank transfer ───────────────────────────────────────────────────
+            except Exception as e:
+                return jsonify({
+                    'payment_id': payment_id,
+                    'status': 'pending',
+                    'message': 'Payment record created, but MoMo prompt failed to send.',
+                    'error': str(e)
+                }), 200
+
+        # ── 4. Handle Bank Transfer ──
         return jsonify({
             'payment_id': payment_id,
             'status': 'pending',
-            'message': 'Bank transfer recorded successfully.'
+            'message': 'Bank transfer record saved. Awaiting verification.'
         }), 201
 
     except Exception as e:
@@ -130,56 +176,123 @@ def poll_payment_status(payment_id):
 
 
 # ─── POST /payments/verify-code — Submit OTP to Paystack ─────────────────────
-@payments_bp.route('/verify-code', methods=['POST'])
+@payments_bp.route('/verify-code', methods=['POST', 'OPTIONS'])
 @jwt_required()
 def verify_payment_code():
-    data = request.get_json()
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True}), 200
+
+    data = request.get_json() or {}
     payment_id  = data.get('payment_id')
-    otp         = data.get('code', '').strip()
-    paystack_ref = data.get('paystack_ref', '').strip()
+    otp         = str(data.get('code', '')).strip()
+    paystack_ref = str(data.get('paystack_ref', '')).strip()
 
-    if not payment_id or not otp:
-        return jsonify({'message': 'payment_id and code are required'}), 400
+    print(f"[DEBUG] verify-code called. payment_id: {payment_id}, otp: {otp}, ref: {paystack_ref}")
 
-    # Submit OTP to Paystack
+    if not paystack_ref or not otp:
+        return jsonify({'message': 'Paystack reference and OTP code are required', 'error': True}), 400
+
     try:
+        # 1. Submit OTP to Paystack
+        payload = {'otp': otp, 'reference': paystack_ref}
+        print(f"[DEBUG] Submitting to Paystack: {payload}")
+
         ps_res = requests.post(
             'https://api.paystack.co/charge/submit_otp',
-            json={'otp': otp, 'reference': paystack_ref},
+            json=payload,
             headers=_paystack_headers(),
             timeout=15
         )
         ps_data = ps_res.json()
-        ps_status = ps_data.get('data', {}).get('status', '')
+        print(f"[DEBUG] Paystack submit_otp response: {ps_data}")
+
+        if not ps_data.get('status'):
+            msg = ps_data.get('message', 'OTP verification failed')
+            if not msg and ps_data.get('data'):
+                msg = ps_data.get('data', {}).get('message')
+            return jsonify({'message': msg or 'Paystack rejected the code', 'error': True}), 400
+
+        # 2. Check the final status from the response
+        ps_payload = ps_data.get('data', {})
+        ps_status = ps_payload.get('status')
 
         if ps_status == 'success':
-            # Mark payment as paid in DB
-            conn = get_db()
-            try:
-                with conn.cursor() as cursor:
-                    cursor.execute(
-                        "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
-                        (payment_id,)
-                    )
-                    conn.commit()
-                    # Fetch for receipt email
-                    cursor.execute("""
-                        SELECT m.email, m.name, p.amount, p.description
-                        FROM payments p JOIN members m ON p.member_id = m.id
-                        WHERE p.id = %s
-                    """, (payment_id,))
-                    row = cursor.fetchone()
-                if row:
-                    _send_receipt_email(row['email'], row['name'], row['amount'], row['description'], payment_id)
-            finally:
-                conn.close()
+            _mark_payment_as_paid(payment_id or ps_payload.get('metadata', {}).get('payment_id'))
             return jsonify({'message': 'Payment confirmed! 🎉', 'status': 'success'}), 200
-        else:
-            msg = ps_data.get('message') or ps_data.get('data', {}).get('message') or 'OTP verification failed.'
-            return jsonify({'message': msg, 'status': ps_status}), 400
+
+        return jsonify({
+            'message': ps_data.get('message', 'Payment processing'),
+            'status': ps_status
+        }), 200
 
     except Exception as e:
+        print(f"[ERROR] verify_payment_code: {str(e)}")
         return jsonify({'message': str(e)}), 500
+
+
+# ─── GET /payments/verify/<reference> — Manual verification ─────────────────
+@payments_bp.route('/verify/<string:reference>', methods=['GET', 'OPTIONS'])
+def verify_payment_manually(reference):
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True}), 200
+
+    try:
+        ps_res = requests.get(
+            f'https://api.paystack.co/transaction/verify/{reference}',
+            headers=_paystack_headers(),
+            timeout=15
+        )
+        ps_data = ps_res.json()
+
+        if not ps_data.get('status'):
+            return jsonify({'message': 'Transaction not found or error', 'error': True}), 404
+
+        ps_payload = ps_data.get('data', {})
+        if ps_payload.get('status') == 'success':
+            payment_id = ps_payload.get('metadata', {}).get('payment_id')
+            _mark_payment_as_paid(payment_id)
+            return jsonify({'message': 'Payment verified', 'status': 'success'}), 200
+
+        return jsonify({'message': 'Payment still pending', 'status': ps_payload.get('status')}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+
+def _mark_payment_as_paid(payment_id):
+    if not payment_id: return
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            # Check if already paid to avoid double processing
+            cursor.execute("SELECT status FROM payments WHERE id = %s", (payment_id,))
+            p = cursor.fetchone()
+            if p and p['status'] == 'paid': return
+
+            cursor.execute(
+                "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
+                (payment_id,)
+            )
+            # If it was a license renewal, activate the member
+            cursor.execute("""
+                UPDATE members m
+                SET status = 'active'
+                FROM payments p
+                WHERE p.id = %s AND p.member_id = m.id AND p.description ILIKE '%%Renewal%%'
+            """, (payment_id,))
+
+            conn.commit()
+
+            # Fetch for receipt email
+            cursor.execute("""
+                SELECT m.email, m.name, p.amount, p.description
+                FROM payments p JOIN members m ON p.member_id = m.id
+                WHERE p.id = %s
+            """, (payment_id,))
+            row = cursor.fetchone()
+            if row:
+                _send_receipt_email(row['email'], row['name'], row['amount'], row['description'], payment_id)
+    finally:
+        conn.close()
 
 
 # ─── POST /payments/webhook — Paystack fires this when payment completes ───────
@@ -198,37 +311,10 @@ def paystack_webhook():
     event = request.get_json()
 
     if event.get('event') == 'charge.success':
-        meta = event.get('data', {}).get('metadata', {})
-        payment_id = meta.get('payment_id')
-
+        ps_payload = event.get('data', {})
+        payment_id = ps_payload.get('metadata', {}).get('payment_id')
         if payment_id:
-            conn = get_db()
-            try:
-                with conn.cursor() as cursor:
-                    cursor.execute(
-                        "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
-                        (payment_id,)
-                    )
-                    conn.commit()
-
-                    # Fetch member email and payment details for receipt
-                    cursor.execute("""
-                        SELECT m.email, m.name, p.amount, p.description, p.created_at
-                        FROM payments p JOIN members m ON p.member_id = m.id
-                        WHERE p.id = %s
-                    """, (payment_id,))
-                    row = cursor.fetchone()
-
-                if row:
-                    _send_receipt_email(
-                        to_email=row['email'],
-                        member_name=row['name'],
-                        amount=row['amount'],
-                        description=row['description'],
-                        payment_id=payment_id
-                    )
-            finally:
-                conn.close()
+            _mark_payment_as_paid(payment_id)
 
     return jsonify({'message': 'ok'}), 200
 
@@ -293,15 +379,29 @@ def payments_summary():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # Get Totals
             cursor.execute("""
                 SELECT 
                     SUM(CASE WHEN status='paid' THEN amount ELSE 0 END) as total_paid,
-                    SUM(CASE WHEN status='pending' THEN amount ELSE 0 END) as total_pending,
-                    SUM(CASE WHEN status='overdue' THEN amount ELSE 0 END) as total_overdue
+                    SUM(CASE WHEN status='pending' THEN amount ELSE 0 END) as total_pending
                 FROM payments WHERE member_id = %s
             """, (member_id,))
-            data = cursor.fetchone()
-        return jsonify(data), 200
+            totals = cursor.fetchone()
+
+            # Get breakdown of pending items
+            cursor.execute("""
+                SELECT description, amount, created_at
+                FROM payments
+                WHERE member_id = %s AND status = 'pending'
+                ORDER BY created_at DESC
+            """, (member_id,))
+            items = cursor.fetchall()
+
+        return jsonify({
+            'total_paid': float(totals['total_paid'] or 0),
+            'total_pending': float(totals['total_pending'] or 0),
+            'items': items
+        }), 200
     finally:
         conn.close()
 
