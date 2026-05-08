@@ -26,7 +26,7 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'cubag-jwt-secret')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 604800)))
 
 # Extensions
-CORS(app, origins=[os.getenv('CLIENT_URL', 'http://localhost:5173'), 'http://localhost:5174', 'capacitor://localhost', 'http://localhost'])
+CORS(app, origins=[os.getenv('CLIENT_URL', 'http://localhost:5173'), 'http://localhost:5174', 'capacitor://localhost', 'http://localhost', 'https://localhost'])
 JWTManager(app)
 
 # Register blueprints (all under /api)
