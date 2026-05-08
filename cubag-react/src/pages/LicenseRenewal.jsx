@@ -206,7 +206,7 @@ export default function LicenseRenewal() {
             <div style={{ 
               position: 'relative', 
               zIndex: 2, 
-              padding: '18mm 12mm', 
+              padding: '24mm 22mm', 
               minHeight: '297mm',
               boxSizing: 'border-box', 
               display: 'flex', 
@@ -335,12 +335,6 @@ export default function LicenseRenewal() {
                       <text textAnchor="middle" x="100" y="100" fontSize="14" fontWeight="900" fill="#f08232" fontFamily="serif">OFFICIAL</text>
                       <text textAnchor="middle" x="100" y="118" fontSize="8" fontWeight="600" fill="#f08232" fontFamily="serif">SEAL</text>
                       <text textAnchor="middle" x="100" y="165" fontSize="9" fontWeight="700" fill="#f08232" fontFamily="serif" letterSpacing="1">GHANA</text>
-                    </svg>
-                    {/* GRA Approved stamp */}
-                    <svg viewBox="0 0 160 60" width="80" height="28" style={{ opacity: 0.75 }}>
-                      <rect x="2" y="2" width="156" height="56" rx="4" fill="none" stroke="#333" strokeWidth="2.5" strokeDasharray="4 2"/>
-                      <text textAnchor="middle" x="80" y="26" fontSize="11" fontWeight="900" fill="#333" fontFamily="serif" letterSpacing="2">GRA APPROVED</text>
-                      <text textAnchor="middle" x="80" y="44" fontSize="7" fontWeight="600" fill="#333" fontFamily="serif" letterSpacing="1">Customs Act 2015</text>
                     </svg>
                   </div>
 
