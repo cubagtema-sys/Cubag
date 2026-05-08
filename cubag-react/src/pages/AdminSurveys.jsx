@@ -4,7 +4,7 @@ import CustomSelect from '../components/CustomSelect'
 
 const API_URL = import.meta.env.VITE_API_URL
 const EMPTY_OPTION = { name: '', photo: '' }
-const EMPTY_FORM = { title: '', description: '', type: 'Survey', method: 'Multiple Choice', deadline: '', options: [EMPTY_OPTION] }
+const EMPTY_FORM = { title: '', description: '', type: 'Survey', method: 'Multiple Choice', deadline: '', cover_image: '', options: [EMPTY_OPTION] }
 
 export default function AdminSurveys() {
   const [surveys, setSurveys] = useState([])
@@ -42,6 +42,14 @@ export default function AdminSurveys() {
       newOptions[index].photo = event.target.result
       setForm({ ...form, options: newOptions })
     }
+    reader.readAsDataURL(file)
+  }
+
+  const handleCoverUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => setForm({ ...form, cover_image: event.target.result })
     reader.readAsDataURL(file)
   }
 
@@ -158,6 +166,23 @@ export default function AdminSurveys() {
                   </div>
                 </div>
               </div>
+              <div className="form-group">
+                <label>Cover Photo</label>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <div style={{ width: 100, height: 100, borderRadius: 12, background: 'var(--bg-surface)', border: '2px dashed var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                    {form.cover_image ? (
+                      <img src={form.cover_image} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: 'var(--text-muted)' }}>image</span>
+                    )}
+                    <input type="file" accept="image/*" onChange={handleCoverUpload} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    Upload a main photo to represent this poll or election.<br />Click the box to upload.
+                  </div>
+                </div>
+              </div>
+
               <div className="form-group">
                 <label>Description</label>
                 <textarea required rows="3" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Instructions for the voters..." style={{ resize: 'vertical', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-default)', padding: '10px 14px', fontFamily: 'inherit', fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }} />

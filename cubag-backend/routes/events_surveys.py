@@ -113,10 +113,10 @@ def create_survey():
         options_json = json_lib.dumps(data.get('options', []))
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO surveys (title, description, type, deadline, options, active)
-                VALUES (%s, %s, %s, %s, %s, TRUE)
+                INSERT INTO surveys (title, description, type, deadline, options, cover_image, active)
+                VALUES (%s, %s, %s, %s, %s, %s, TRUE)
             """, (data.get('title'), data.get('description'), data.get('type', 'survey'),
-                  data.get('deadline') or None, options_json))
+                  data.get('deadline') or None, options_json, data.get('cover_image')))
             conn.commit()
         return jsonify({'message': 'Survey created'}), 201
     except Exception as e:

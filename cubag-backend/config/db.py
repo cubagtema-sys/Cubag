@@ -133,7 +133,8 @@ def init_db():
             cursor.execute("""
                 ALTER TABLE surveys
                 ADD COLUMN IF NOT EXISTS deadline DATE,
-                ADD COLUMN IF NOT EXISTS options TEXT;
+                ADD COLUMN IF NOT EXISTS options TEXT,
+                ADD COLUMN IF NOT EXISTS cover_image TEXT;
             """)
 
             # Survey Responses

@@ -67,6 +67,11 @@ export default function Surveys() {
             <button className="btn btn-ghost btn-sm" onClick={() => setAnswering(null)} style={{ marginBottom: 16 }}>
               <span className="material-symbols-outlined">arrow_back</span> Back
             </button>
+            {answering.cover_image && (
+              <div style={{ width: '100%', height: 200, borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
+                <img src={answering.cover_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            )}
             <span style={{ fontSize: '0.7rem', fontWeight: 800, color: answering.type === 'Election' ? '#8b5cf6' : 'var(--brand-primary)', textTransform: 'uppercase', padding: '4px 10px', background: answering.type === 'Election' ? 'rgba(139,92,246,0.1)' : 'rgba(240,130,50,0.1)', borderRadius: 20, display: 'inline-block', marginBottom: 12 }}>
               {answering.type}
             </span>
@@ -177,12 +182,17 @@ export default function Surveys() {
                 </div>
               ) : (activeTab === 'active' ? activeSurveys : pastSurveys).map(s => (
                 <div key={s.id} className="feed-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.type === 'Election' ? '#8b5cf6' : 'var(--brand-primary)', textTransform: 'uppercase', padding: '4px 10px', background: s.type === 'Election' ? 'rgba(139,92,246,0.1)' : 'rgba(240,130,50,0.1)', borderRadius: 20 }}>
-                      {s.type}
-                    </span>
-                    <h3 style={{ margin: '8px 0 6px', fontSize: '1.2rem' }}>{s.title}</h3>
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{s.description}</p>
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    {s.cover_image && (
+                      <img src={s.cover_image} alt="" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 12, flexShrink: 0 }} />
+                    )}
+                    <div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.type === 'Election' ? '#8b5cf6' : 'var(--brand-primary)', textTransform: 'uppercase', padding: '4px 10px', background: s.type === 'Election' ? 'rgba(139,92,246,0.1)' : 'rgba(240,130,50,0.1)', borderRadius: 20 }}>
+                        {s.type}
+                      </span>
+                      <h3 style={{ margin: '8px 0 6px', fontSize: '1.2rem' }}>{s.title}</h3>
+                      <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{s.description}</p>
+                    </div>
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
