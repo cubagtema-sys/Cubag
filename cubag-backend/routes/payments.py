@@ -6,6 +6,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import Blueprint, jsonify, request
+from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
 
@@ -230,13 +231,15 @@ def verify_payment_code():
         return jsonify({'message': str(e)}), 500
 
 
-# ─── GET /payments/verify/<reference> — Manual verification ─────────────────
+# ─── GET /payments/verify/<reference> — Poll Paystack for status ─────────────
 @payments_bp.route('/verify/<string:reference>', methods=['GET', 'OPTIONS'])
+@cross_origin()
 def verify_payment_manually(reference):
     if request.method == 'OPTIONS':
         return jsonify({'ok': True}), 200
 
     try:
+        # Paystack uses /transaction/verify for all charge references
         ps_res = requests.get(
             f'https://api.paystack.co/transaction/verify/{reference}',
             headers=_paystack_headers(),
@@ -245,17 +248,24 @@ def verify_payment_manually(reference):
         ps_data = ps_res.json()
 
         if not ps_data.get('status'):
-            return jsonify({'message': 'Transaction not found or error', 'error': True}), 404
+            # Transaction may not be finalized yet — return pending, not 404
+            return jsonify({'message': 'Transaction pending', 'status': 'pending'}), 200
 
         ps_payload = ps_data.get('data', {})
-        if ps_payload.get('status') == 'success':
+        ps_status = ps_payload.get('status', 'pending')
+
+        if ps_status == 'success':
             payment_id = ps_payload.get('metadata', {}).get('payment_id')
             _mark_payment_as_paid(payment_id)
             return jsonify({'message': 'Payment verified', 'status': 'success'}), 200
+        elif ps_status == 'failed':
+            return jsonify({'message': 'Payment failed or declined', 'status': 'failed'}), 200
 
-        return jsonify({'message': 'Payment still pending', 'status': ps_payload.get('status')}), 200
+        return jsonify({'message': 'Payment processing', 'status': ps_status}), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        print(f'[ERROR] verify_payment_manually: {e}')
+        # Return pending instead of 500 so frontend doesn't break
+        return jsonify({'message': 'Checking...', 'status': 'pending'}), 200
 
 
 def _mark_payment_as_paid(payment_id):
