@@ -114,6 +114,7 @@ export default function AdminPayments() {
   ]
 
   return (
+    <>
     <AppLayout title="Financial Control Center">
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
         
@@ -354,6 +355,7 @@ export default function AdminPayments() {
         {toast.msg}
       </div>
     )}
+  </>
   )
 }
 

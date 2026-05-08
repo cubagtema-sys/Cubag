@@ -126,6 +126,7 @@ export default function AdminSurveys() {
   const pastSurveys = surveys.filter(s => !s.active || (s.deadline && s.deadline < todayStr))
 
   return (
+    <>
     <AppLayout title="Surveys & Elections">
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
@@ -373,5 +374,6 @@ export default function AdminSurveys() {
       onConfirm={() => handleDelete(pendingDelete)}
       onCancel={() => setPendingDelete(null)}
     />
+  </>
   )
 }

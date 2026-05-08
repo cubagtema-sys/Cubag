@@ -99,6 +99,7 @@ export default function AdminCargoSchedules() {
   }
 
   return (
+    <>
     <AppLayout title="Cargo Management" hideSearch>
       <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div>
@@ -320,6 +321,7 @@ export default function AdminCargoSchedules() {
       onConfirm={() => handleDelete(pendingDelete)}
       onCancel={() => setPendingDelete(null)}
     />
+  </>
   )
 }
 

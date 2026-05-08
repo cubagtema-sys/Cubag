@@ -201,6 +201,7 @@ export default function AdminEvents() {
   ]
 
   return (
+    <>
     <AppLayout title="Events & Workshops">
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
@@ -301,5 +302,6 @@ export default function AdminEvents() {
       onConfirm={() => handleDelete(pendingDelete)}
       onCancel={() => setPendingDelete(null)}
     />
+  </>
   )
 }
