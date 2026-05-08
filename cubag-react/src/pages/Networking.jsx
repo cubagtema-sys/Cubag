@@ -121,8 +121,6 @@ export default function Networking() {
                   className="feed-card"
                   style={{ transition: 'transform 0.15s, box-shadow 0.15s', padding: 0, overflow: 'hidden', borderRadius: 12 }}
                 >
-                  <div style={{ height: 4, background: color }} />
-
                   <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                       <div style={{ width: 44, height: 44, borderRadius: '50%', background: `${color}22`, border: `2px solid ${color}`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 800, flexShrink: 0 }}>
