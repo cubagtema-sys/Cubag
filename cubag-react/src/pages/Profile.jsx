@@ -96,15 +96,11 @@ export default function Profile() {
   
   // Generate unique member ID based on last name + id
   const lastName = user.name ? user.name.split(' ').pop().toUpperCase() : 'MEMBER'
-  const uniqueMemberId = user.status === 'active' ? `CUBAG-${lastName}-00${user.memberId || '1'}` : 'VALIDATION REQUIRED'
+  const uniqueMemberId = `CUBAG-${lastName}-00${user.memberId || '1'}`
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MEMBER:${uniqueMemberId}`
   
   const handleViewIdCard = () => {
-    if (user.status !== 'active') {
-      showToast("Access Restricted: Please settle your dues to activate your Digital ID.", "error")
-      return
-    }
     if (!user.photo) {
       showToast("Please upload a selfie profile photo first to generate your Digital Identity Card.", "warning")
       document.getElementById('profile-upload-input').click()
