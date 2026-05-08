@@ -13,7 +13,14 @@ export default function Surveys() {
   // Single choice answer for elections/polls
   const [selectedOption, setSelectedOption] = useState('')
 
+  const [toast, setToast] = useState(null) // { message: '', type: 'success' | 'error' }
+
   const token = localStorage.getItem('cubag_token')
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   const fetchSurveys = async () => {
     setLoading(true)
@@ -30,7 +37,7 @@ export default function Surveys() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!selectedOption) return alert('Please select an option.')
+    if (!selectedOption) return showToast('Please select an option.', 'error')
     
     setSubmitting(true)
     try {
@@ -41,8 +48,10 @@ export default function Surveys() {
       })
       setAnswering(null)
       fetchSurveys() // Optional: refresh if we want to show it as completed
-      alert('Your response has been submitted successfully!')
-    } catch {}
+      showToast('Your response has been submitted successfully!', 'success')
+    } catch {
+      showToast('An error occurred while submitting.', 'error')
+    }
     finally { setSubmitting(false) }
   }
 
@@ -213,6 +222,28 @@ export default function Surveys() {
           </>
         )}
       </div>
+
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#10b981' : 'var(--brand-danger)',
+          color: 'white', padding: '12px 24px', borderRadius: 8, fontWeight: 600,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        }}>
+          <span className="material-symbols-outlined">
+            {toast.type === 'success' ? 'check_circle' : 'error'}
+          </span>
+          {toast.message}
+        </div>
+      )}
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translate(-50%, 100%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+      `}</style>
     </AppLayout>
   )
 }
