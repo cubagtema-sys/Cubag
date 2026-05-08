@@ -33,16 +33,18 @@ def send_verification_email(to_email, token):
 
     try:
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
             server.starttls()
             
         server.login(smtp_user, smtp_pass)
         server.send_message(msg)
         server.quit()
+        return True
     except Exception as e:
         print(f"Error sending email: {e}")
+        return False
 
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
