@@ -93,8 +93,13 @@ def init_db():
                     date DATE,
                     time VARCHAR(50),
                     location VARCHAR(255),
+                    capacity INT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
+            """)
+            
+            cursor.execute("""
+                ALTER TABLE events ADD COLUMN IF NOT EXISTS capacity INT;
             """)
 
             # Payments / Dues
