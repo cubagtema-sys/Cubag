@@ -185,19 +185,18 @@ export default function Networking() {
               </div>
 
               <div style={{ padding: '0 20px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {/* Avatar + name row — lifted over banner */}
-                <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', marginTop: -28 }}>
+                {/* Avatar + name row — below banner, not overlapping */}
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 16 }}>
                   <div style={{
-                    width: 64, height: 64, borderRadius: '50%',
-                    background: `${color}22`, border: `3px solid var(--bg-surface)`,
-                    outline: `2.5px solid ${color}`,
+                    width: 60, height: 60, borderRadius: '50%',
+                    background: `${color}20`,
+                    border: `2.5px solid ${color}`,
                     color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '1.5rem', fontWeight: 900, flexShrink: 0,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                    fontSize: '1.4rem', fontWeight: 900, flexShrink: 0
                   }}>
                     {initials}
                   </div>
-                  <div style={{ paddingBottom: 4, minWidth: 0 }}>
+                  <div style={{ minWidth: 0 }}>
                     <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.2 }}>{selected.name}</h2>
                     <span style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 800, color, background: `${color}18`, padding: '2px 10px', borderRadius: 20, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {selected.member_type}
@@ -262,7 +261,7 @@ export default function Networking() {
                   </a>
                 </div>
 
-                <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)} style={{ width: '100%', color: 'var(--text-muted)' }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)} style={{ width: '100%', color: 'var(--text-muted)', justifyContent: 'center', textAlign: 'center' }}>
                   Close
                 </button>
               </div>
