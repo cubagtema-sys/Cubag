@@ -74,11 +74,11 @@ export default function ResetPassword() {
         <div className="welcome-orb orb-2"></div>
       </div>
 
-      <div className="welcome-content" style={{ padding: '40px 24px', maxWidth: 450 }}>
-        <div className="welcome-header" style={{ marginBottom: 40 }}>
-          <img src="/logo.jpeg" alt="CUBAG" className="welcome-logo" style={{ width: 64, height: 64, borderRadius: 16 }} />
-          <h1 style={{ fontSize: '1.8rem', marginTop: 24 }}>Set New Password</h1>
-          <p style={{ opacity: 0.8, fontSize: '0.9rem', maxWidth: 300, margin: '12px auto 0' }}>
+      <div className="welcome-content" style={{ padding: '24px', maxWidth: 450, width: '100%' }}>
+        <div className="welcome-header" style={{ marginBottom: 32 }}>
+          <img src="/logo.jpeg" alt="CUBAG" className="welcome-logo" style={{ width: 60, height: 60, borderRadius: 16 }} />
+          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 1.8rem)', marginTop: 20 }}>Set New Password</h1>
+          <p style={{ opacity: 0.8, fontSize: '0.88rem', maxWidth: 300, margin: '10px auto 0' }}>
             Choose a new, secure password for your account.
           </p>
         </div>
@@ -95,35 +95,33 @@ export default function ResetPassword() {
             <Link to="/login" className="btn btn-primary btn-full btn-lg">Back to Login</Link>
           </div>
         ) : (
-          <form onSubmit={handleReset} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <form onSubmit={handleReset} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {error && (
-              <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '12px', borderRadius: 8, fontSize: '0.85rem', textAlign: 'center' }}>
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '12px', borderRadius: 8, fontSize: '0.82rem', textAlign: 'center' }}>
                 {error}
               </div>
             )}
 
-            <div className="input-group">
-              <label style={{ fontSize: '0.85rem', marginBottom: 8, display: 'block', fontWeight: 600 }}>New Password</label>
+            <div className="form-group">
+              <label style={{ fontSize: '0.82rem', marginBottom: 6, display: 'block', fontWeight: 600 }}>New Password</label>
               <input 
                 type="password" 
                 required 
                 placeholder="Enter new password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '14px', borderRadius: 10, border: '2px solid #000', background: '#fff', color: '#000', fontSize: '1rem', outline: 'none' }}
                 minLength={8}
               />
             </div>
 
-            <div className="input-group">
-              <label style={{ fontSize: '0.85rem', marginBottom: 8, display: 'block', fontWeight: 600 }}>Confirm Password</label>
+            <div className="form-group">
+              <label style={{ fontSize: '0.82rem', marginBottom: 6, display: 'block', fontWeight: 600 }}>Confirm Password</label>
               <input 
                 type="password" 
                 required 
                 placeholder="Confirm new password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                style={{ width: '100%', padding: '14px', borderRadius: 10, border: '2px solid #000', background: '#fff', color: '#000', fontSize: '1rem', outline: 'none' }}
                 minLength={8}
               />
             </div>

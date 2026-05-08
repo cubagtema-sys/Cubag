@@ -100,14 +100,14 @@ export default function Dashboard() {
       <div className="welcome-banner" style={{ marginBottom: 24 }}>
         <div className="welcome-overlay"></div>
         <div className="welcome-copy">
-          <h2 style={{ fontSize: '1.4rem' }}>Good day, <span>{firstName}</span>!</h2>
-          <p style={{ marginBottom: 12 }}>Your license expires in <strong>{user.licenseExpiry || 'Dec 31, 2026'}</strong>. You have <strong>{Array.isArray(tasks) ? tasks.filter(t => !t.done).length : 0} pending</strong> compliance items.</p>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-              USD/GHS: <strong>{forex.USD}</strong>
+          <h2 style={{ fontSize: '1.15rem' }}>Good day, <span>{firstName}</span>!</h2>
+          <p style={{ marginBottom: 10, fontSize: '0.8rem' }}>Your license expires in <strong>{user.licenseExpiry || 'Dec 31, 2026'}</strong>. You have <strong>{Array.isArray(tasks) ? tasks.filter(t => !t.done).length : 0} pending</strong> items.</p>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '3px 8px', borderRadius: '20px', fontSize: '0.65rem', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>
+              USD: <strong>{forex.USD}</strong>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-              EUR/GHS: <strong>{forex.EUR}</strong>
+            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '3px 8px', borderRadius: '20px', fontSize: '0.65rem', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>
+              EUR: <strong>{forex.EUR}</strong>
             </div>
           </div>
         </div>
@@ -121,10 +121,9 @@ export default function Dashboard() {
           <div className="feed-card">
             <div className="card-header">
               <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)' }}>task_alt</span>
+                <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)', fontSize: '1.2rem' }}>task_alt</span>
                 Priority Tasks
               </span>
-              <Link to="/tasks" className="card-action">View all</Link>
             </div>
             <div className="card-body">
               {tasks.length === 0 ? (
@@ -134,21 +133,21 @@ export default function Dashboard() {
                 </div>
               ) : (
                 tasks.filter(t => !t.done).map(task => (
-                  <div className="task-item" key={task.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <div className="task-item" key={task.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                     <div className={`task-check ${task.done ? 'done' : ''}`} onClick={() => toggleTask(task.id)}></div>
                     <div className="task-info">
-                      <div className="task-name" style={{ fontWeight: 600 }}>{task.name}</div>
-                      <div className={`task-due ${task.overdue ? 'overdue' : ''}`} style={{ fontSize: '0.8rem', color: task.overdue ? 'var(--brand-danger)' : 'var(--text-muted)' }}>
+                      <div className="task-name" style={{ fontWeight: 600, fontSize: '0.9rem' }}>{task.name}</div>
+                      <div className={`task-due ${task.overdue ? 'overdue' : ''}`} style={{ fontSize: '0.75rem', color: task.overdue ? 'var(--brand-danger)' : 'var(--text-muted)' }}>
                         {task.overdue ? '⚠ Overdue: ' : 'Due: '} {task.due}
                       </div>
                     </div>
-                    <span className={`task-priority priority-${task.priority.toLowerCase()}`} style={{ fontSize: '0.7rem' }}>
+                    <span className={`task-priority priority-${task.priority.toLowerCase()}`} style={{ fontSize: '0.65rem' }}>
                       {task.priority}
                     </span>
                   </div>
                 ))
               )}
-              <button className="btn btn-ghost btn-sm" style={{ width: '100%', marginTop: 12 }} onClick={() => navigate('/tasks')}>Manage all compliance tasks</button>
+              <Link to="/tasks" className="btn btn-ghost btn-sm" style={{ width: '100%', marginTop: 12, justifyContent: 'center', fontSize: '0.8rem' }}>View all tasks</Link>
             </div>
           </div>
 
@@ -156,25 +155,25 @@ export default function Dashboard() {
           <div className="feed-card">
             <div className="card-header">
               <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)' }}>campaign</span>
+                <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)', fontSize: '1.2rem' }}>campaign</span>
                 Announcements
               </span>
-              <Link to="/announcements" className="card-action">View all</Link>
             </div>
-            <div className="card-body" style={{ padding: 0 }}>
+            <div className="card-body" style={{ padding: '0 16px 16px' }}>
               {announcements.length === 0 ? (
                 <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <p style={{ fontSize: '0.85rem' }}>No new announcements from the secretariat.</p>
                 </div>
               ) : announcements.map(a => (
-                <div key={a.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', gap: 10 }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)', fontSize: '1.1rem', flexShrink: 0, marginTop: 2 }}>campaign</span>
+                <div key={a.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', display: 'flex', gap: 10 }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)', fontSize: '1rem', flexShrink: 0, marginTop: 2 }}>campaign</span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 2 }}>{a.title}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{a.content}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{a.content}</div>
                   </div>
                 </div>
               ))}
+              <Link to="/announcements" className="btn btn-ghost btn-sm" style={{ width: '100%', marginTop: 12, justifyContent: 'center', fontSize: '0.8rem' }}>View all announcements</Link>
             </div>
           </div>
         </div>
@@ -187,7 +186,7 @@ export default function Dashboard() {
               <span className="card-title">Quick Shortcuts</span>
             </div>
             <div className="card-body">
-              <div className="quick-actions" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+              <div className="quick-actions">
                 <Link to="/payments" className="quick-action" style={{ padding: '12px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '1.5rem', color: 'var(--brand-primary)' }}>payments</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Pay Dues</span>

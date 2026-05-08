@@ -42,29 +42,33 @@ export default function VerifyEmail() {
   }, [token])
 
   return (
-    <div className="auth-layout" style={{ justifyContent: 'center', alignItems: 'center', background: '#f8fafc', minHeight: '100vh', display: 'flex' }}>
-      <div className="auth-container" style={{ maxWidth: 460, textAlign: 'center', padding: '40px 30px', background: '#fff', borderRadius: 24, boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
+    <div className="auth-layout" style={{ justifyContent: 'center', alignItems: 'center', background: 'var(--bg-base)', minHeight: '100vh', display: 'flex', padding: 20 }}>
+      <div className="auth-container" style={{ maxWidth: 420, textAlign: 'center', padding: '32px 24px', background: 'var(--bg-card)', borderRadius: 24, boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-subtle)' }}>
         
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 20 }}>
           {status === 'verifying' && (
-            <div style={{ width: 80, height: 80, margin: '0 auto', border: '4px solid #f3f4f6', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            <div style={{ width: 60, height: 60, margin: '0 auto', border: '3.5px solid var(--border-subtle)', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
           )}
           {status === 'success' && (
-            <span className="material-symbols-outlined" style={{ fontSize: '5rem', color: 'var(--brand-success)' }}>check_circle</span>
+            <div style={{ width: 64, height: 64, background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '3rem' }}>check_circle</span>
+            </div>
           )}
           {status === 'error' && (
-            <span className="material-symbols-outlined" style={{ fontSize: '5rem', color: 'var(--brand-danger)' }}>error</span>
+            <div style={{ width: 64, height: 64, background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '3rem' }}>error</span>
+            </div>
           )}
         </div>
 
-        <h1 style={{ fontSize: '1.5rem', marginBottom: 12 }}>Email Verification</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.5 }}>
+        <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 8 }}>Email Verification</h1>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 28, fontSize: '0.9rem', lineHeight: 1.5 }}>
           {message}
         </p>
 
         {status !== 'verifying' && (
-          <button className="btn btn-primary btn-lg btn-full" onClick={() => navigate('/login')}>
-            Continue to Login
+          <button className="btn btn-primary btn-lg btn-full" style={{ height: 48, fontSize: '0.95rem' }} onClick={() => navigate('/login')}>
+            Go to Login
           </button>
         )}
       </div>

@@ -97,30 +97,28 @@ export default function AdminMembers() {
 
   return (
     <AppLayout title="Members">
-      <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Header */}
-        <div>
-          <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Registered Members</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-            View and manage all CUBAG registered members.
-          </p>
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Association Members</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage verified logistics personnel and agencies.</p>
         </div>
 
         {/* KPI Strip */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
           {[
-            { label: 'Total Members', value: stats.total,   icon: 'group',           color: '#3b82f6' },
-            { label: 'Active',        value: stats.active,  icon: 'verified_user',    color: '#10b981' },
-            { label: 'Pending',       value: stats.pending, icon: 'pending_actions',  color: '#f59e0b' },
+            { label: 'Total',  value: stats.total,   icon: 'group',           color: '#3b82f6' },
+            { label: 'Active', value: stats.active,  icon: 'verified_user',    color: '#10b981' },
+            { label: 'Pending',value: stats.pending, icon: 'pending_actions',  color: '#f59e0b' },
           ].map(k => (
-            <div key={k.label} className="card" style={{ padding: '16px 18px', display: 'flex', gap: 14, alignItems: 'center' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: `${k.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span className="material-symbols-outlined" style={{ color: k.color, fontSize: '1.3rem' }}>{k.icon}</span>
+            <div key={k.label} className="card" style={{ padding: '12px', display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${k.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ color: k.color, fontSize: '1rem' }}>{k.icon}</span>
               </div>
-              <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{loading ? '…' : k.value}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 3 }}>{k.label}</div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{loading ? '…' : k.value}</div>
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 2 }}>{k.label}</div>
               </div>
             </div>
           ))}
@@ -169,63 +167,48 @@ export default function AdminMembers() {
                   <div 
                     key={m.id} 
                     style={{ 
-                      background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 16, 
-                      padding: 20, display: 'flex', flexDirection: 'column', gap: 16, cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' 
+                      background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12,
+                      padding: 16, display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
                     }}
                     onClick={() => setSelected(m)}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = typeColor; e.currentTarget.style.transform = 'translateY(-2px)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.transform = 'none' }}
                   >
                     {/* Top Right Status Badge */}
-                    <div style={{ position: 'absolute', top: 16, right: 16 }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 800, color: statusStyle.color, background: statusStyle.bg, padding: '4px 10px', borderRadius: 20, textTransform: 'uppercase' }}>
+                    <div style={{ position: 'absolute', top: 12, right: 12 }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800, color: statusStyle.color, background: statusStyle.bg, padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase' }}>
                         {statusStyle.label}
                       </span>
                     </div>
 
                     {/* Member Details */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10, marginTop: 10 }}>
-                      <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${typeColor}15`, border: `2px solid ${typeColor}`, color: typeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: '50%', background: `${typeColor}15`, border: `2px solid ${typeColor}`, color: typeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem', flexShrink: 0 }}>
                         {getInitials(m.name)}
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1.05rem' }}>{m.name}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{m.email}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</div>
                       </div>
                     </div>
 
-                    <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />
-
                     {/* Meta Info */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Company</span>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600 }}>{m.company || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Type</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: typeColor }}>{m.member_type || 'Member'}</span>
-                      </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.02)', padding: '6px 10px', borderRadius: 8 }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: typeColor }}>{m.member_type || 'Member'}</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{m.company || 'N/A'}</span>
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 8 }} onClick={e => e.stopPropagation()}>
-                      <button className="btn btn-sm btn-ghost" style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }} onClick={() => setSelected(m)}>
-                        View Profile
+                    <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }} onClick={e => e.stopPropagation()}>
+                      <button className="btn btn-sm btn-ghost" style={{ flex: 1, padding: '6px', fontSize: '0.7rem' }} onClick={() => setSelected(m)}>
+                        Details
                       </button>
                       {m.status === 'pending' && (
-                        <button className="btn btn-sm btn-primary" disabled={updating} style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }} onClick={() => updateStatus(m.id, 'active')}>
+                        <button className="btn btn-sm btn-primary" disabled={updating} style={{ flex: 1, padding: '6px', fontSize: '0.7rem' }} onClick={() => updateStatus(m.id, 'active')}>
                           Approve
                         </button>
                       )}
                       {m.status === 'active' && (
-                        <button className="btn btn-sm btn-danger" disabled={updating} style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }} onClick={() => updateStatus(m.id, 'suspended')}>
+                        <button className="btn btn-sm btn-danger" disabled={updating} style={{ flex: 1, padding: '6px', fontSize: '0.7rem' }} onClick={() => updateStatus(m.id, 'suspended')}>
                           Suspend
-                        </button>
-                      )}
-                      {m.status === 'suspended' && (
-                        <button className="btn btn-sm btn-outline" disabled={updating} style={{ flex: 1, padding: '8px', fontSize: '0.75rem' }} onClick={() => updateStatus(m.id, 'active')}>
-                          Restore
                         </button>
                       )}
                     </div>
@@ -241,80 +224,68 @@ export default function AdminMembers() {
         </p>
       </div>
 
-      {/* Member Detail Modal */}
+      {/* Member Detail Modal - Bottom Sheet */}
       {selected && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
           onClick={() => setSelected(null)}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', animation: 'fadeInUp 0.25s ease' }}
+          <div style={{ background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', animation: 'fadeInUp 0.25s ease', boxShadow: '0 -8px 32px rgba(0,0,0,0.2)' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ width: 40, height: 4, background: 'var(--border-default)', borderRadius: 2, margin: '12px auto 0' }} />
-            <div style={{ height: 6, background: TYPE_COLORS[selected.member_type] || 'var(--brand-primary)', marginTop: 12 }} />
+            <div style={{ width: 36, height: 4, background: 'var(--border-default)', borderRadius: 2, margin: '12px auto 0' }} />
 
-            <div style={{ padding: '20px 24px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ padding: '20px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Avatar + name */}
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div style={{ width: 60, height: 60, borderRadius: '50%', background: `${TYPE_COLORS[selected.member_type] || 'var(--brand-primary)'}20`, border: `3px solid ${TYPE_COLORS[selected.member_type] || 'var(--brand-primary)'}`, color: TYPE_COLORS[selected.member_type] || 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.4rem', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: `${TYPE_COLORS[selected.member_type] || 'var(--brand-primary)'}15`, border: `2.5px solid ${TYPE_COLORS[selected.member_type] || 'var(--brand-primary)'}`, color: TYPE_COLORS[selected.member_type] || 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.2rem', flexShrink: 0 }}>
                   {getInitials(selected.name)}
                 </div>
                 <div>
-                  <h3 style={{ margin: 0 }}>{selected.name}</h3>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selected.email}</div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{selected.name}</h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selected.email}</div>
                 </div>
               </div>
 
               {/* Details grid */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[
                   { icon: 'business',    label: 'Organisation',      val: selected.company },
-                  { icon: 'work',        label: 'Member Type',       val: selected.member_type },
-                  { icon: 'location_on', label: 'Port of Operation', val: selected.port_of_operation },
-                  { icon: 'badge',       label: 'License No.',       val: selected.license_number || 'N/A' },
-                  { icon: 'call',        label: 'Phone',             val: selected.phone || 'Not provided' },
-                  { icon: 'calendar_month', label: 'Registered',    val: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : 'N/A' },
+                  { icon: 'work',        label: 'Type',              val: selected.member_type },
+                  { icon: 'location_on', label: 'Port',              val: selected.port_of_operation },
+                  { icon: 'badge',       label: 'License',           val: selected.license_number || 'N/A' },
+                  { icon: 'calendar_month', label: 'Registered',     val: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : 'N/A' },
                 ].map(({ icon, label, val }) => (
-                  <div key={label} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 12px', background: 'var(--bg-base)', borderRadius: 10 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: TYPE_COLORS[selected.member_type] || 'var(--brand-primary)', flexShrink: 0 }}>{icon}</span>
+                  <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px', background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: TYPE_COLORS[selected.member_type] || 'var(--brand-primary)', flexShrink: 0 }}>{icon}</span>
                     <div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{label}</div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>{val || '—'}</div>
+                      <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{label}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{val || '—'}</div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Status badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ padding: '4px 14px', borderRadius: 20, fontWeight: 800, fontSize: '0.8rem', background: (STATUS_STYLE[selected.status] || STATUS_STYLE.inactive).bg, color: (STATUS_STYLE[selected.status] || STATUS_STYLE.inactive).color }}>
-                  {(STATUS_STYLE[selected.status] || STATUS_STYLE.inactive).label}
-                </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Current account status</span>
+              {/* Status Section */}
+              <div style={{ background: 'var(--bg-elevated)', padding: 12, borderRadius: 12, marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <span style={{ padding: '3px 12px', borderRadius: 20, fontWeight: 800, fontSize: '0.7rem', background: (STATUS_STYLE[selected.status] || STATUS_STYLE.inactive).bg, color: (STATUS_STYLE[selected.status] || STATUS_STYLE.inactive).color, textTransform: 'uppercase' }}>
+                    {(STATUS_STYLE[selected.status] || STATUS_STYLE.inactive).label}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Update status:</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {selected.status !== 'active' && (
+                    <button className="btn btn-primary btn-sm" disabled={updating} style={{ flex: 1, height: 40, fontSize: '0.75rem' }} onClick={() => updateStatus(selected.id, 'active')}>Activate</button>
+                  )}
+                  {selected.status !== 'suspended' && (
+                    <button className="btn btn-danger btn-sm" disabled={updating} style={{ flex: 1, height: 40, fontSize: '0.75rem' }} onClick={() => updateStatus(selected.id, 'suspended')}>Suspend</button>
+                  )}
+                  {selected.status !== 'inactive' && (
+                    <button className="btn btn-outline btn-sm" disabled={updating} style={{ flex: 1, height: 40, fontSize: '0.75rem' }} onClick={() => updateStatus(selected.id, 'inactive')}>Disable</button>
+                  )}
+                </div>
               </div>
 
-              {/* Status Actions */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {selected.status !== 'active' && (
-                  <button className="btn btn-primary" disabled={updating} style={{ flex: 1 }}
-                    onClick={() => updateStatus(selected.id, 'active')}>
-                    {updating ? 'Updating…' : '✓ Activate'}
-                  </button>
-                )}
-                {selected.status !== 'suspended' && (
-                  <button className="btn btn-danger" disabled={updating} style={{ flex: 1 }}
-                    onClick={() => updateStatus(selected.id, 'suspended')}>
-                    {updating ? 'Updating…' : 'Suspend'}
-                  </button>
-                )}
-                {selected.status !== 'inactive' && (
-                  <button className="btn btn-outline" disabled={updating} style={{ flex: 1 }}
-                    onClick={() => updateStatus(selected.id, 'inactive')}>
-                    {updating ? 'Updating…' : 'Deactivate'}
-                  </button>
-                )}
-              </div>
-
-              <div style={{ textAlign: 'center', marginTop: 12 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)}>Close</button>
-              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)} style={{ marginTop: 4 }}>Close Profile</button>
             </div>
           </div>
         </div>

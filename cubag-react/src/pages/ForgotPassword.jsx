@@ -38,11 +38,11 @@ export default function ForgotPassword() {
         <div className="welcome-orb orb-2"></div>
       </div>
 
-      <div className="welcome-content" style={{ padding: '40px 24px', maxWidth: 450 }}>
-        <div className="welcome-header" style={{ marginBottom: 40 }}>
-          <img src="/logo.jpeg" alt="CUBAG" className="welcome-logo" style={{ width: 64, height: 64, borderRadius: 16 }} />
-          <h1 style={{ fontSize: '1.8rem', marginTop: 24 }}>Reset Password</h1>
-          <p style={{ opacity: 0.8, fontSize: '0.9rem', maxWidth: 300, margin: '12px auto 0' }}>
+      <div className="welcome-content" style={{ padding: '24px', maxWidth: 450, width: '100%' }}>
+        <div className="welcome-header" style={{ marginBottom: 32 }}>
+          <img src="/logo.jpeg" alt="CUBAG" className="welcome-logo" style={{ width: 60, height: 60, borderRadius: 16 }} />
+          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 1.8rem)', marginTop: 20 }}>Reset Password</h1>
+          <p style={{ opacity: 0.8, fontSize: '0.88rem', maxWidth: 300, margin: '10px auto 0' }}>
             Enter your email and we'll send you instructions to reset your password.
           </p>
         </div>
@@ -68,15 +68,14 @@ export default function ForgotPassword() {
               </div>
             )}
 
-            <div className="input-group">
-              <label style={{ fontSize: '0.85rem', marginBottom: 8, display: 'block', fontWeight: 600 }}>Recovery Email</label>
+            <div className="form-group">
+              <label style={{ fontSize: '0.82rem', marginBottom: 6, display: 'block', fontWeight: 600 }}>Recovery Email</label>
               <input 
                 type="email" 
                 required 
                 placeholder="broker@example.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                style={{ width: '100%', padding: '14px', borderRadius: 10, border: '2px solid #000', background: '#fff', color: '#000', fontSize: '1rem', outline: 'none' }}
               />
             </div>
 

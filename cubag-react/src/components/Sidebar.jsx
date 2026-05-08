@@ -144,23 +144,23 @@ export default function Sidebar({ isOpen, onClose, badgeCount, taskCount }) {
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         {/* Brand */}
-        <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+        <div style={{ padding: '16px 12px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
           <Link to={isAdminRoute ? '/admin' : '/'} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center' }} onClick={onClose}>
-            <img src="/logo.jpeg" alt="CUBAG" style={{ height: '48px', width: '48px', borderRadius: '12px', objectFit: 'cover', boxShadow: 'var(--shadow-sm)', marginBottom: '4px' }}
+            <img src="/logo.jpeg" alt="CUBAG" style={{ height: '40px', width: '40px', borderRadius: '10px', objectFit: 'cover', boxShadow: 'var(--shadow-sm)', marginBottom: '2px' }}
               onError={e => { e.target.style.display = 'none' }} />
-            <span style={{ fontSize: '1.05rem', color: 'var(--text-primary)', letterSpacing: '0.02em', fontWeight: 700 }}>CUBAG</span>
-            <span style={{ fontSize: '0.65rem', color: isAdminRoute ? '#ef4444' : 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 }}>
+            <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '0.01em', fontWeight: 700 }}>CUBAG</span>
+            <span style={{ fontSize: '0.6rem', color: isAdminRoute ? '#ef4444' : 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800 }}>
               {isAdminRoute ? 'Admin Control' : 'Enterprise Platform'}
             </span>
           </Link>
         </div>
 
         {/* Nav */}
-        <nav className="sidebar-nav" style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px' }}>
+        <nav className="sidebar-nav" style={{ flex: 1, overflowY: 'auto', paddingBottom: '60px', padding: '12px 8px' }}>
           {displayNavGroups.map(group => {
             const isExpanded = openSection === group.section
             return (
-              <div key={group.section} style={{ marginBottom: '4px' }}>
+              <div key={group.section} style={{ marginBottom: '2px' }}>
                 {/* Section Header — clickable toggle */}
                 <div
                   className="nav-section-label"
@@ -170,16 +170,18 @@ export default function Sidebar({ isOpen, onClose, badgeCount, taskCount }) {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '10px 20px',
+                    padding: '8px 12px',
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
+                    fontSize: '0.6rem',
+                    letterSpacing: '0.05em'
                   }}
                 >
                   <span>{group.section}</span>
                   <span
                     className="material-symbols-outlined"
                     style={{
-                      fontSize: '1.2rem',
+                      fontSize: '1rem',
                       transition: 'transform 0.25s ease',
                       transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                       color: 'var(--text-muted)',
@@ -204,7 +206,9 @@ export default function Sidebar({ isOpen, onClose, badgeCount, taskCount }) {
                         onClick={onClose}
                       >
                         <span className="nav-icon material-symbols-outlined">{item.icon}</span>
-                        {item.label}
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.label}
+                        </span>
                         {item.badge && (
                           <span className="nav-badge" style={item.badgeColor ? { background: item.badgeColor } : {}}>
                             {item.badge}

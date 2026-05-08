@@ -84,23 +84,29 @@ export default function Tasks() {
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
   return (
-    <AppLayout title="Tasks & Compliance">
-      <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <AppLayout title="Tasks">
+      <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Tasks & Compliance</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage your professional requirements and deadlines.</p>
+        </div>
 
         {/* Banner */}
         <div className="feed-card" style={{ background: 'var(--gradient-brand)', color: '#fff', border: 'none' }}>
-          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '24px' }}>
-            <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '2rem', animation: loading ? 'spin 1s linear infinite' : 'none' }}>
+          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px' }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', animation: loading ? 'spin 1s linear infinite' : 'none' }}>
                 {loading ? 'sync' : tasks.filter(t => !t.done).length > 0 ? 'assignment_late' : 'verified_user'}
               </span>
             </div>
             <div>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: 4 }}>Compliance Status</h2>
-              <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>
+              <h2 style={{ fontSize: '1.1rem', marginBottom: 2 }}>Compliance Status</h2>
+              <p style={{ opacity: 0.9, fontSize: '0.75rem' }}>
                 {tasks.length > 0
-                  ? `${tasks.filter(t => !t.done).length} pending · ${tasks.filter(t => t.admin_verified).length} verified by admin`
-                  : 'Checking your compliance records...'}
+                  ? `${tasks.filter(t => !t.done).length} pending · ${tasks.filter(t => t.admin_verified).length} verified`
+                  : 'Checking records...'}
               </p>
             </div>
           </div>
@@ -135,23 +141,22 @@ export default function Tasks() {
                 const submitted = !!task.submission_id
                 const verified = task.admin_verified
                 return (
-                  <div key={task.id} style={{ padding: '20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center', flex: 1, minWidth: 0 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                  <div key={task.id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, minWidth: 0 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                         background: verified ? 'rgba(16,185,129,0.1)' : submitted ? 'rgba(59,130,246,0.1)' : 'rgba(240,130,50,0.1)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: verified ? '#10b981' : submitted ? '#3b82f6' : 'var(--brand-primary)'
                       }}>
-                        <span className="material-symbols-outlined">{verified ? 'verified' : submitted ? 'hourglass_top' : 'description'}</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{verified ? 'verified' : submitted ? 'hourglass_top' : 'description'}</span>
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{task.title}</div>
-                        <div style={{ fontSize: '0.8rem', marginTop: 2,
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{task.title}</div>
+                        <div style={{ fontSize: '0.75rem', marginTop: 1,
                           color: verified ? '#10b981' : submitted ? '#3b82f6' : task.urgent ? 'var(--brand-danger)' : 'var(--text-muted)'
                         }}>
-                          {verified ? '✅ Verified by admin' : submitted ? '⏳ Awaiting admin review' : task.due_date ? `Due: ${task.due_date}` : 'No due date'}
+                          {verified ? '✅ Verified' : submitted ? '⏳ Reviewing' : task.due_date ? `Due: ${task.due_date}` : 'No due date'}
                         </div>
-                        {task.description && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>{task.description}</div>}
                       </div>
                     </div>
                     {!submitted && (

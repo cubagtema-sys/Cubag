@@ -11,17 +11,17 @@ export default function ConfirmModal({ open, message, onConfirm, onCancel, dange
       padding: 24, backdropFilter: 'blur(4px)'
     }}>
       <div style={{
-        background: 'var(--bg-elevated)', borderRadius: 16, padding: 28,
-        maxWidth: 380, width: '100%', boxShadow: 'var(--shadow-lg)',
+        background: 'var(--bg-elevated)', borderRadius: 16, padding: 24, /* Reduced from 28 */
+        maxWidth: 340, width: '100%', boxShadow: 'var(--shadow-lg)',
         border: '1px solid var(--border-subtle)', animation: 'fadeIn 0.2s ease'
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
           <span className="material-symbols-outlined" style={{
-            fontSize: '1.8rem', color: danger ? 'var(--brand-danger)' : 'var(--brand-primary)', flexShrink: 0
+            fontSize: '1.5rem', color: danger ? 'var(--brand-danger)' : 'var(--brand-primary)', flexShrink: 0
           }}>
             {danger ? 'warning' : 'help'}
           </span>
-          <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
             {message}
           </p>
         </div>

@@ -108,7 +108,7 @@ export default function OTPVerification() {
         </div>
       </div>
 
-      <div className="auth-main" style={{ background: '#f8fafc' }}>
+      <div className="auth-main">
         <div className="auth-container">
           <div className="auth-header">
             <img src="/logo.jpeg" alt="CUBAG Logo" className="auth-logo" />
@@ -116,13 +116,13 @@ export default function OTPVerification() {
             <p className="auth-subtitle">Code sent to <strong>{email}</strong></p>
           </div>
 
-          <div className="auth-form" style={{ padding: '40px' }}>
+          <div className="auth-form">
             {error && (
               <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', borderRadius: 8, fontSize: '0.85rem', marginBottom: 24, border: '1px solid rgba(239,68,68,0.2)' }}>{error}</div>
             )}
 
-            {/* OTP Inputs */}
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 32 }} onPaste={handlePaste}>
+            {/* OTP Inputs - Made Responsive */}
+            <div style={{ display: 'flex', gap: '2%', justifyContent: 'center', marginBottom: 32, width: '100%' }} onPaste={handlePaste}>
               {otp.map((digit, idx) => (
                 <input
                   key={idx}
@@ -134,11 +134,12 @@ export default function OTPVerification() {
                   onChange={e => handleChange(e.target.value, idx)}
                   onKeyDown={e => handleKeyDown(e, idx)}
                   style={{
-                    width: 56, height: 64, textAlign: 'center',
-                    fontSize: '1.8rem', fontWeight: 800,
-                    border: digit ? '2px solid var(--brand-primary)' : '2px solid #000',
+                    width: '15%', height: 'calc(15vw + 10px)', maxHeight: 64, minWidth: 40, textAlign: 'center',
+                    fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 800,
+                    border: digit ? '2.5px solid var(--brand-primary)' : '2.5px solid #000',
                     borderRadius: 12, background: '#fff', color: '#000',
-                    outline: 'none', transition: 'border-color 0.2s'
+                    outline: 'none', transition: 'border-color 0.2s',
+                    padding: 0
                   }}
                 />
               ))}
@@ -148,9 +149,9 @@ export default function OTPVerification() {
               onClick={handleVerify}
               disabled={isVerifying}
               className="btn btn-primary btn-lg btn-full"
-              style={{ height: 54, marginBottom: 20 }}
+              style={{ height: 50, marginBottom: 20 }}
             >
-              {isVerifying ? 'Verifying...' : 'Verify & Activate Account'}
+              {isVerifying ? 'Verifying...' : 'Verify & Activate'}
             </button>
 
             <div style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>

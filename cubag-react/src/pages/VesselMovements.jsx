@@ -39,22 +39,28 @@ export default function VesselMovements() {
   )
 
   return (
-    <AppLayout title="Vessel Movements">
+    <AppLayout title="Vessels">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Vessel Movements</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Real-time maritime tracking at Ghana's major ports.</p>
+        </div>
+
         <div style={{ position: 'relative' }}>
-          <span className="material-symbols-outlined" style={{ position: 'absolute', left: 16, top: 14, color: 'var(--text-muted)' }}>search</span>
+          <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: 12, color: 'var(--text-muted)', fontSize: '1.2rem' }}>search</span>
           <input 
             type="text" 
-            placeholder="Search vessels by name or status..." autoComplete="off" 
+            placeholder="Search vessels by name..." autoComplete="off"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: 12, border: '1px solid var(--border-subtle)', outline: 'none', fontSize: '1rem' }}
+            style={{ width: '100%', padding: '12px 16px 12px 42px', borderRadius: 10, border: '1.5px solid var(--border-subtle)', outline: 'none', fontSize: '0.9rem' }}
           />
         </div>
 
         {/* Live Map Area */}
-        <div style={{ height: 250, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-subtle)', position: 'relative' }}>
+        <div style={{ height: 200, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-subtle)', position: 'relative' }}>
           <iframe 
             width="100%" 
             height="100%" 

@@ -107,79 +107,76 @@ export default function AdminTasks() {
   const pendingVerify = submissions.filter(t => !t.admin_verified).length
 
   return (
-    <AppLayout title="Compliance & Tasks">
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <AppLayout title="Tasks">
+      <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)' }}>assignment_add</span>
-            Task Assignment & Tracking
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Assign compliance duties and monitor task completion across all members.</p>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Compliance Control</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Assign duties and track task completion.</p>
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <button className={`btn ${activeTab === 'create' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => { setActiveTab('create'); setSelectedAssignment(null) }}>
-            Assign Task
-          </button>
-          <button className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => { setActiveTab('history'); setSelectedAssignment(null) }}>
-            Assignment History
-          </button>
-          <button className={`btn ${activeTab === 'submissions' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => { setActiveTab('submissions'); setSelectedAssignment(null) }}>
-            Member Submissions
-            {pendingVerify > 0 && (
-              <span style={{ marginLeft: 8, background: '#ef4444', borderRadius: 12, padding: '1px 8px', fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>
-                {pendingVerify}
-              </span>
-            )}
-          </button>
+        <div style={{ display: 'flex', gap: 3, background: 'var(--bg-surface)', borderRadius: 10, padding: 3, flexWrap: 'wrap' }}>
+          {[
+            { id: 'create', label: 'Assign', icon: 'assignment_add' },
+            { id: 'history', label: 'History', icon: 'history' },
+            { id: 'submissions', label: 'Submissions', icon: 'inbox', badge: pendingVerify }
+          ].map(t => (
+            <button key={t.id} onClick={() => { setActiveTab(t.id); setSelectedAssignment(null) }} style={{
+              flex: 1, minWidth: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              fontWeight: 700, fontSize: '0.75rem',
+              background: activeTab === t.id ? 'var(--brand-primary)' : 'transparent',
+              color: activeTab === t.id ? '#fff' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>{t.icon}</span>
+              {t.label}
+              {t.badge > 0 && <span style={{ marginLeft: 4, background: '#ef4444', borderRadius: 12, padding: '1px 6px', fontSize: '0.6rem', color: '#fff' }}>{t.badge}</span>}
+            </button>
+          ))}
         </div>
 
         {/* ── CREATE TAB ─────────────────────────────────────────────────────── */}
         {activeTab === 'create' && (
-          <div className="card" style={{ maxWidth: 600, margin: '0 auto' }}>
-            <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="material-symbols-outlined">assignment_add</span>
-              New Assignment
-            </h3>
-            {message && (
-              <div style={{ padding: 12, background: message.includes('success') ? 'var(--brand-success)' : 'var(--brand-danger)', color: '#fff', borderRadius: 8, marginBottom: 16, fontSize: '0.9rem' }}>
-                {message}
-              </div>
-            )}
-            <form onSubmit={handleSubmit}>
-              <div className="form-group" style={{ zIndex: 10 }}>
-                <CustomSelect
-                  label="Assign To"
-                  options={[
-                    { value: '', label: 'Select a member...' },
-                    { value: 'all', label: 'All Active Members (Broadcast)' },
-                    ...members.map(m => ({ value: m.id.toString(), label: `${m.name} (${m.company})` }))
-                  ]}
-                  value={memberId.toString()}
-                  onChange={setMemberId}
-                />
-              </div>
-              <div className="form-group" style={{ marginTop: 16 }}>
-                <label>Task Title</label>
-                <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Submit Q3 Compliance Form" />
-              </div>
-              <div className="form-group">
-                <label>Due Date</label>
-                <input type="date" required value={dueDate} onChange={e => setDueDate(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Instructions</label>
-                <textarea required value={description} onChange={e => setDescription(e.target.value)} rows="4" placeholder="Detailed instructions for the task..." />
-              </div>
-              <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: 16 }}>
-                <span className="material-symbols-outlined">send</span> Assign Task
-              </button>
-            </form>
+          <div className="feed-card" style={{ maxWidth: 600, margin: '0 auto', width: '100%', borderRadius: 12 }}>
+            <div className="card-header" style={{ padding: '12px 16px' }}><span className="card-title">New Assignment</span></div>
+            <div className="card-body" style={{ padding: '16px' }}>
+              {message && (
+                <div style={{ padding: '10px 14px', background: message.includes('success') ? '#10b981' : '#ef4444', color: '#fff', borderRadius: 8, marginBottom: 16, fontSize: '0.8rem', fontWeight: 600 }}>
+                  {message}
+                </div>
+              )}
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Assign To</label>
+                  <CustomSelect
+                    options={[
+                      { value: '', label: 'Select a member...' },
+                      { value: 'all', label: 'All Active Members' },
+                      ...members.map(m => ({ value: m.id.toString(), label: `${m.name}` }))
+                    ]}
+                    value={memberId.toString()}
+                    onChange={setMemberId}
+                  />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Task Title</label>
+                  <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Title..." style={{ padding: '10px 12px', fontSize: '0.9rem' }} />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Due Date</label>
+                  <input type="date" required value={dueDate} onChange={e => setDueDate(e.target.value)} style={{ padding: '10px 12px', fontSize: '0.9rem' }} />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Instructions</label>
+                  <textarea required value={description} onChange={e => setDescription(e.target.value)} rows="4" placeholder="Task details..." style={{ padding: '10px 12px', fontSize: '0.9rem', borderRadius: 8, border: '1.5px solid var(--border-default)', outline: 'none' }} />
+                </div>
+                <button type="submit" className="btn btn-primary btn-full" style={{ height: 48, fontSize: '0.9rem' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>send</span> Assign Now
+                </button>
+              </form>
+            </div>
           </div>
         )}
 

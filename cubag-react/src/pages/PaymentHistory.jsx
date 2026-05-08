@@ -69,36 +69,41 @@ export default function PaymentHistory() {
   }
 
   return (
-    <AppLayout title="Payment History">
-      <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <AppLayout title="History">
+      <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Summary KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Transaction History</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Review and download receipts for all payments.</p>
+        </div>
+
+        {/* Summary KPIs - Responsive Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
           {[
             { label: 'Total Paid', value: `GH₵ ${totals.paid.toFixed(2)}`, color: '#10b981', icon: 'check_circle', bg: 'rgba(16,185,129,0.08)' },
             { label: 'Pending', value: `GH₵ ${totals.pending.toFixed(2)}`, color: '#f59e0b', icon: 'pending_actions', bg: 'rgba(245,158,11,0.08)' },
-            { label: 'Total Transactions', value: payments.length, color: 'var(--brand-primary)', icon: 'receipt_long', bg: 'rgba(240,130,50,0.08)' },
+            { label: 'Transactions', value: payments.length, color: 'var(--brand-primary)', icon: 'receipt_long', bg: 'rgba(240,130,50,0.08)' },
           ].map(kpi => (
-            <div key={kpi.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: '18px 20px', display: 'flex', gap: 14, alignItems: 'center' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: kpi.bg, color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span className="material-symbols-outlined">{kpi.icon}</span>
+            <div key={kpi.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: kpi.bg, color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{kpi.icon}</span>
               </div>
-              <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>{kpi.value}</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>{kpi.label}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{kpi.value}</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{kpi.label}</div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Filter Tabs */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        {/* Filter Tabs - Scrollable on very small screens */}
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
           {['all', 'paid', 'pending', 'overdue'].map(f => (
-            <button key={f} onClick={() => handleFilter(f)} style={{ padding: '7px 18px', borderRadius: 'var(--radius-pill)', border: 'none', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s', background: filter === f ? 'var(--brand-primary)' : 'var(--bg-elevated)', color: filter === f ? '#fff' : 'var(--text-secondary)', textTransform: 'capitalize' }}>
+            <button key={f} onClick={() => handleFilter(f)} style={{ padding: '6px 14px', borderRadius: 20, border: 'none', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', flexShrink: 0, background: filter === f ? 'var(--brand-primary)' : 'var(--bg-elevated)', color: filter === f ? '#fff' : 'var(--text-secondary)' }}>
               {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
-          <span style={{ marginLeft: 'auto', fontSize: '0.82rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{filtered.length} record{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
         {/* Transaction List */}
@@ -124,29 +129,28 @@ export default function PaymentHistory() {
             ) : paginated.map((pay, i) => {
               const s = STATUS_COLORS[pay.status] || STATUS_COLORS.pending
               return (
-                <div key={pay.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: i === paginated.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
-                  <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: s.bg, color: s.text, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span className="material-symbols-outlined">{s.icon}</span>
+                <div key={pay.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: i === paginated.length - 1 ? 'none' : '1px solid var(--border-subtle)', gap: 12 }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, minWidth: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: s.bg, color: s.text, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{s.icon}</span>
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{pay.description}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        {new Date(pay.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pay.description}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {new Date(pay.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </div>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem' }}>GH₵ {parseFloat(pay.amount).toFixed(2)}</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', background: s.bg, color: s.text }}>{pay.status}</span>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.9rem', marginBottom: 2 }}>GH₵ {parseFloat(pay.amount).toFixed(2)}</div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', color: s.text }}>{pay.status}</span>
                       {pay.status === 'paid' && (
                         <button
-                          title="Download Receipt"
                           onClick={() => printReceipt(pay)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', padding: 0 }}
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>download</span>
+                          <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>download</span>
                         </button>
                       )}
                     </div>

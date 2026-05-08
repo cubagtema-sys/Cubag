@@ -122,7 +122,6 @@ export default function AppLayout({ children, title, hideSearch }) {
               aria-label="Menu"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', lineHeight: 1 }}>menu</span></button>
-            <span className="page-title">{title}</span>
           </div>
 
           <div className="header-right">
@@ -131,8 +130,9 @@ export default function AppLayout({ children, title, hideSearch }) {
                 className="icon-btn"
                 onClick={() => navigate('/announcements')}
                 title="Notifications"
+                style={{ color: 'var(--text-primary)' }}
               >
-                🔔
+                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>notifications</span>
                 {notifCount > 0 && <span className="notif-badge">{notifCount}</span>}
               </button>
             )}
@@ -141,7 +141,14 @@ export default function AppLayout({ children, title, hideSearch }) {
             <div style={{ position: 'relative' }}>
               <div
                 className="user-avatar"
-                style={{ cursor: 'pointer', overflow: 'hidden', background: isAdminRoute ? '#ef4444' : 'var(--gradient-brand)' }}
+                style={{
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  background: isAdminRoute ? '#ef4444' : 'var(--gradient-brand)',
+                  width: '32px', /* Reduced from default */
+                  height: '32px',
+                  fontSize: '0.8rem'
+                }}
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 title="Account Settings"
               >

@@ -142,10 +142,6 @@ export default function Networking() {
                         <span className="material-symbols-outlined" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>business</span>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.company || 'Independent'}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>location_on</span>
-                        <span>{m.port_of_operation || '—'}</span>
-                      </div>
                     </div>
 
                     <button
@@ -153,8 +149,7 @@ export default function Networking() {
                       style={{ width: '100%', height: 36, marginTop: 4, justifyContent: 'center' }}
                       onClick={e => { e.stopPropagation(); setSelected(m) }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>visibility</span>
-                      View Profile
+                      View
                     </button>
                   </div>
                 </div>

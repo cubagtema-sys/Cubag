@@ -12,8 +12,8 @@ export default function Landing() {
         <div className="welcome-header">
           <img src="/logo.jpeg" alt="CUBAG Logo" className="welcome-logo"
             onError={(e) => { e.target.style.display = 'none' }} />
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--brand-primary)', marginBottom: '4px' }}>CUBAG</h1>
-          <p style={{ color: 'var(--brand-primary)', fontSize: '0.95rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enterprise Mobility</p>
+          <h1 className="welcome-title-large">CUBAG</h1>
+          <p className="welcome-subtitle-bold">Enterprise Mobility</p>
         </div>
 
         <div className="welcome-features">

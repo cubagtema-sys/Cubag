@@ -90,63 +90,68 @@ export default function LicenseRenewal() {
   const yr = new Date().getFullYear()
 
   return (
-    <AppLayout title="Receipts & Licenses" hideSearch>
-      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+    <AppLayout title="Certificates">
+      <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Receipts & Licenses</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Access your official association certificates and payment records.</p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {historyLoading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading history...</div>
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: '0.8rem' }}>Loading records...</div>
           ) : history.length === 0 ? (
-            <div className="feed-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <div className="feed-card" style={{ textAlign: 'center', padding: '48px 24px', borderRadius: 12 }}>
               <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: 'var(--text-muted)', display: 'block', marginBottom: 12 }}>history</span>
-              <h3 style={{ marginBottom: 8 }}>No Records Found</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>You don't have any receipts or license certificates yet.</p>
-              <Link to="/payments" className="btn btn-primary">Make a Payment</Link>
+              <h3 style={{ marginBottom: 8, fontSize: '1.1rem' }}>No Records</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: 20 }}>You don't have any receipts yet.</p>
+              <Link to="/payments" className="btn btn-primary" style={{ height: 48, fontSize: '0.9rem' }}>Make Payment</Link>
             </div>
           ) : history.map((rec, i) => (
-            <div key={i} className="feed-card" style={{ padding: '20px 24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: 4 }}>License / Membership Record</div>
+            <div key={i} className="feed-card" style={{ padding: '16px 20px', borderRadius: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Membership Record</div>
                   {rec.payment_ref && rec.payment_ref !== 'N/A' && (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ref: <span style={{ fontFamily: 'monospace' }}>{rec.payment_ref}</span></div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ref: <span style={{ fontFamily: 'monospace' }}>{rec.payment_ref}</span></div>
                   )}
                 </div>
                 <span style={{
-                  padding: '4px 14px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800,
+                  padding: '3px 10px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 800, flexShrink: 0, textTransform: 'uppercase',
                   background: rec.approved ? 'rgba(16,185,129,0.1)' : rec.status === 'suspended' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
                   color: rec.approved ? '#10b981' : rec.status === 'suspended' ? '#ef4444' : '#f59e0b'
                 }}>
-                  {rec.approved ? 'Approved & Active' : rec.status === 'suspended' ? 'Suspended' : 'Pending Approval'}
+                  {rec.approved ? 'Active' : rec.status === 'suspended' ? 'Suspended' : 'Pending'}
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 16 }}>
-                {[['Company', rec.company], ['Member Type', rec.member_type], ['Port', rec.port_of_operation], ['Submitted', rec.submitted_at?.split('T')[0]]].map(([label, val]) => (
-                  <div key={label} style={{ padding: '10px 12px', background: 'var(--bg-base)', borderRadius: 10 }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 2 }}>{label}</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>{val || '—'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+                {[['Company', rec.company], ['Port', rec.port_of_operation]].map(([label, val]) => (
+                  <div key={label} style={{ padding: '8px 10px', background: 'var(--bg-base)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 1 }}>{label}</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{val || '—'}</div>
                   </div>
                 ))}
               </div>
 
               {rec.approved ? (
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button className="btn btn-outline" style={{ flex: '1 1 200px', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-outline btn-sm" style={{ flex: 1, height: 40, fontSize: '0.75rem', padding: '0 8px' }}
                     onClick={() => generatePDF('view', rec)} disabled={generating === (rec.id || rec.payment_ref)}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>visibility</span>
-                    {generating === (rec.id || rec.payment_ref) ? 'Generating...' : 'View Certificate'}
+                    <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>visibility</span>
+                    View
                   </button>
-                  <button className="btn btn-primary" style={{ flex: '1 1 200px', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+                  <button className="btn btn-primary btn-sm" style={{ flex: 1, height: 40, fontSize: '0.75rem', padding: '0 8px' }}
                     onClick={() => generatePDF('download', rec)} disabled={generating === (rec.id || rec.payment_ref)}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>download</span>
-                    {generating === (rec.id || rec.payment_ref) ? 'Generating...' : 'Download Certificate'}
+                    <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>download</span>
+                    Download
                   </button>
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: 10, background: 'rgba(245,158,11,0.08)', borderRadius: 10, fontSize: '0.85rem', color: '#f59e0b' }}>
-                  <span className="material-symbols-outlined" style={{ verticalAlign: 'middle', fontSize: '1rem', marginRight: 4 }}>schedule</span>
-                  Awaiting admin approval. Certificate available once approved.
+                <div style={{ textAlign: 'center', padding: 8, background: 'rgba(245,158,11,0.08)', borderRadius: 8, fontSize: '0.75rem', color: '#f59e0b' }}>
+                  Awaiting admin approval...
                 </div>
               )}
             </div>

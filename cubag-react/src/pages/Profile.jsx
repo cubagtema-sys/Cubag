@@ -89,35 +89,41 @@ export default function Profile() {
   }
 
   return (
-    <AppLayout title="My Profile" hideSearch>
-      <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <AppLayout title="Profile">
+      <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>My Profile</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage your personal and professional information.</p>
+        </div>
+
         {/* Profile Header Card */}
         <div className="feed-card" style={{ overflow: 'visible' }}>
-          <div style={{ height: 120, background: 'var(--gradient-brand)', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}></div>
-          <div className="card-body" style={{ padding: '0 24px 24px', textAlign: 'center', marginTop: -50 }}>
+          <div style={{ height: 100, background: 'var(--gradient-brand)', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}></div>
+          <div className="card-body" style={{ padding: '0 16px 16px', textAlign: 'center', marginTop: -40 }}>
             
-            <label style={{ cursor: 'pointer', display: 'block', width: 100, height: 100, margin: '0 auto 16px', position: 'relative' }}>
+            <label style={{ cursor: 'pointer', display: 'block', width: 80, height: 80, margin: '0 auto 12px', position: 'relative' }}>
               <input id="profile-upload-input" type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={handlePhotoUpload} />
-              <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--bg-surface)', border: '4px solid var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 800, color: 'var(--brand-primary)', boxShadow: 'var(--shadow-md)', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--bg-surface)', border: '3px solid var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, color: 'var(--brand-primary)', boxShadow: 'var(--shadow-md)', overflow: 'hidden' }}>
                 {user.photo ? (
                   <img src={user.photo} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   initials
                 )}
               </div>
-              <div style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--brand-primary)', color: '#fff', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-sm)' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>photo_camera</span>
+              <div style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--brand-primary)', color: '#fff', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-sm)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>photo_camera</span>
               </div>
             </label>
             
-            <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: 4 }}>{user.name}</h2>
-            <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: 12 }}>{user.role}</p>
+            <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)', marginBottom: 2 }}>{user.name}</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 10 }}>{user.role}</p>
             
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <span className="badge badge-success" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>{user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : ''} Member</span>
-              <button className="btn btn-ghost btn-sm" onClick={handleViewIdCard} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>badge</span> View ID Card
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <span className="badge badge-success" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>{user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : ''} Member</span>
+              <button className="btn btn-ghost btn-sm" onClick={handleViewIdCard} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: '0.75rem' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>badge</span> ID Card
               </button>
             </div>
           </div>

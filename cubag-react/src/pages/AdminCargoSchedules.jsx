@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import AppLayout from '../components/AppLayout'
 import useAutoRefresh from '../hooks/useAutoRefresh'
 import ConfirmModal from '../components/ConfirmModal'
@@ -65,10 +65,8 @@ export default function AdminCargoSchedules() {
     finally { setLoading(false) }
   }
 
-  // ── Inline status update ─────────────────────────────────────────────────────
   const handleStatusChange = async (id, newStatus) => {
     setSavingId(id)
-    // Optimistic update
     setSchedules(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s))
     try {
       await fetch(`${API_URL}/schedules/${id}`, {
@@ -78,7 +76,7 @@ export default function AdminCargoSchedules() {
       })
     } catch (e) {
       console.error(e)
-      fetchSchedules() // revert on error
+      fetchSchedules()
     } finally {
       setSavingId(null)
     }
@@ -95,222 +93,148 @@ export default function AdminCargoSchedules() {
       })
       if (res.ok) setSchedules(prev => prev.filter(s => s.id !== id))
     } catch (e) { console.error(e) }
-    finally { setDeletingId(null) }
+    finally { setDeletingId(null); setPendingDelete(null); }
   }
 
   return (
-    <>
-    <AppLayout title="Cargo Management" hideSearch>
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)' }}>local_shipping</span>
-            Manage Logistics Data
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Publish live vessel and vanning schedules or view uploaded history.</p>
+    <Fragment>
+    <AppLayout title="Cargo">
+      <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Logistics Management</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Publish live vessel and container schedules.</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-          <button className={`btn ${activeTab === 'upload' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('upload')}>Upload Schedule</button>
-          <button className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('history')}>
-            Upload History
-            {schedules.length > 0 && <span style={{ marginLeft: 8, background: 'rgba(255,255,255,0.25)', borderRadius: 12, padding: '1px 8px', fontSize: '0.8rem', fontWeight: 800 }}>{schedules.length}</span>}
-          </button>
+        <div style={{ display: 'flex', gap: 6, background: 'var(--bg-surface)', borderRadius: 10, padding: 3, flexWrap: 'wrap' }}>
+          {[
+            { id: 'upload', label: 'New Entry', icon: 'publish' },
+            { id: 'history', label: 'History', icon: 'history', badge: schedules.length }
+          ].map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              flex: 1, minWidth: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              fontWeight: 700, fontSize: '0.8rem',
+              background: activeTab === t.id ? 'var(--brand-primary)' : 'transparent',
+              color: activeTab === t.id ? '#fff' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>{t.icon}</span>
+              {t.label}
+              {t.badge > 0 && <span style={{ marginLeft: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 12, padding: '1px 6px', fontSize: '0.65rem' }}>{t.badge}</span>}
+            </button>
+          ))}
         </div>
 
         {activeTab === 'upload' ? (
-          <div className="card" style={{ maxWidth: 700, margin: '0 auto' }}>
-            <h2 style={{ fontSize: '1.4rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)' }}>publish</span>
-              Upload Cargo & Vessel Data
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: 24 }}>Publish new vanning, devanning, or vessel movement schedules to the member portal.</p>
-
-            {success && (
-              <div style={{ padding: 12, background: 'rgba(16,185,129,0.1)', color: 'var(--brand-success)', borderRadius: 8, marginBottom: 24, border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>check_circle</span>
-                Schedule data published successfully!
-              </div>
-            )}
-
-            <form onSubmit={handleUpload}>
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Schedule Type</label>
-                <select name="type" value={formData.type} onChange={handleChange} style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}>
-                  <option value="vanning">Vanning (Loading)</option>
-                  <option value="devanning">Devanning (Unloading)</option>
-                  <option value="movement">Vessel Movement</option>
-                </select>
-              </div>
-
-              <div className="form-row" style={{ marginBottom: 16 }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Container Number</label>
-                  <input required type="text" name="container" placeholder="e.g. MSCU1234567" value={formData.container} onChange={handleChange} style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
+          <div className="feed-card" style={{ maxWidth: 700, margin: '0 auto', width: '100%', borderRadius: 12 }}>
+            <div className="card-header" style={{ padding: '12px 16px' }}><span className="card-title">Compose Entry</span></div>
+            <div className="card-body" style={{ padding: '16px' }}>
+              {success && (
+                <div style={{ padding: '10px 14px', background: '#10b981', color: '#fff', borderRadius: 8, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600 }}>
+                  Published successfully!
                 </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Vessel Name</label>
-                  <input required type="text" name="vessel" placeholder="e.g. Maersk Atlantic" value={formData.vessel} onChange={handleChange} style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
-                </div>
-              </div>
+              )}
 
-              <div className="form-row" style={{ marginBottom: 16 }}>
+              <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="form-group">
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Cargo Type</label>
-                  <input required type="text" name="cargo" placeholder="e.g. Electronics" value={formData.cargo} onChange={handleChange} style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Type</label>
+                  <select name="type" value={formData.type} onChange={handleChange} style={{ width: '100%', padding: 10, border: '1.5px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-base)', fontSize: '0.9rem' }}>
+                    <option value="vanning">Vanning (Loading)</option>
+                    <option value="devanning">Devanning (Unloading)</option>
+                    <option value="movement">Vessel Movement</option>
+                  </select>
                 </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Date / Time</label>
-                  <input required type="text" name="date" placeholder="e.g. 10 May 2026" value={formData.date} onChange={handleChange} style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
-                </div>
-              </div>
 
-              {/* ── Movement-only fields ──────────────────────────────────── */}
-              {formData.type === 'movement' && (
-                <>
-                  <div style={{ padding: '12px 16px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, marginBottom: 16 }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#3b82f6', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>directions_boat</span>
-                      Vessel Route Details
-                    </div>
-                    <div className="form-row" style={{ marginBottom: 12 }}>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Container ID</label>
+                  <input required type="text" name="container" placeholder="MSCU..." value={formData.container} onChange={handleChange} style={{ width: '100%', padding: 10, border: '1.5px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-base)', fontSize: '0.9rem' }} />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Vessel Name</label>
+                  <input required type="text" name="vessel" placeholder="Vessel..." value={formData.vessel} onChange={handleChange} style={{ width: '100%', padding: 10, border: '1.5px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-base)', fontSize: '0.9rem' }} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Date</label>
+                    <input required type="text" name="date" placeholder="10 May" value={formData.date} onChange={handleChange} style={{ width: '100%', padding: 10, border: '1.5px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-base)', fontSize: '0.9rem' }} />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Port</label>
+                    <input required type="text" name="port" placeholder="Tema" value={formData.port} onChange={handleChange} style={{ width: '100%', padding: 10, border: '1.5px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-base)', fontSize: '0.9rem' }} />
+                  </div>
+                </div>
+
+                {formData.type === 'movement' && (
+                  <div style={{ padding: 12, background: 'rgba(59,130,246,0.05)', borderRadius: 10, border: '1px solid rgba(59,130,246,0.1)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       <div className="form-group">
-                        <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Origin Port (Departure)</label>
-                        <input type="text" name="origin" placeholder="e.g. Port of Hamburg" value={formData.origin} onChange={handleChange}
-                          style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Origin</label>
+                        <input type="text" name="origin" value={formData.origin} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1.5px solid var(--border-default)', borderRadius: 6, fontSize: '0.85rem' }} />
                       </div>
                       <div className="form-group">
-                        <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Destination Port (Arrival)</label>
-                        <input type="text" name="destination" placeholder="e.g. Tema Port, Ghana" value={formData.destination} onChange={handleChange}
-                          style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Current Route Progress</span>
-                        <span style={{ color: 'var(--brand-primary)' }}>Automatic</span>
-                      </label>
-                      <div style={{ padding: '12px 16px', background: 'var(--bg-base)', borderRadius: 8, border: '1px solid var(--border-subtle)', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '1.3rem', color: 'var(--brand-primary)' }}>auto_mode</span>
-                        <span>Route progress will automatically update based on the shipment's <strong>Status</strong>.</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 12 }}>
-                        <span>🚢 {formData.origin || 'Origin'}</span>
-                        <span>{formData.destination || 'Destination'} ⚓</span>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Destination</label>
+                        <input type="text" name="destination" value={formData.destination} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1.5px solid var(--border-default)', borderRadius: 6, fontSize: '0.85rem' }} />
                       </div>
                     </div>
                   </div>
-                </>
-              )}
+                )}
 
-              <div className="form-row" style={{ marginBottom: 32 }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Port / Location</label>
-                  <input required type="text" name="port" placeholder="e.g. Tema Port" value={formData.port} onChange={handleChange} style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }} />
-                </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Initial Status</label>
-                  <select name="status" value={formData.status} onChange={handleChange} style={{ width: '100%', padding: 12, border: '2px solid var(--border-subtle)', borderRadius: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}>
-                    {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', height: 54 }} disabled={loading}>
-                {loading ? 'Publishing...' : 'Upload Data to Portal'}
-              </button>
-            </form>
+                <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', height: 48, fontSize: '0.95rem' }} disabled={loading}>
+                  {loading ? 'Publishing...' : 'Upload to Portal'}
+                </button>
+              </form>
+            </div>
           </div>
         ) : (
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0 }}>Uploaded Schedules History</h3>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Click status to update · Trash to delete</span>
-            </div>
-            <div className="responsive-table-wrapper">
-              <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Type</th>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Vessel / Container</th>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Port & Date</th>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Status</th>
-                    <th style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'right' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedules.map((s) => {
-                    const ss = statusStyle[s.status] || statusStyle['Scheduled']
-                    return (
-                      <tr key={s.id} style={{ borderBottom: '1px solid var(--border-subtle)', opacity: deletingId === s.id ? 0.4 : 1, transition: 'opacity 0.2s' }}>
-                        <td data-label="Type" style={{ padding: '14px 12px', fontSize: '0.9rem', fontWeight: 600, textTransform: 'capitalize' }}>
-                          {s.type}
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{s.cargo}</div>
-                        </td>
-                        <td data-label="Vessel / Container" style={{ padding: '14px 12px', fontSize: '0.9rem' }}>
-                          <div style={{ fontWeight: 600 }}>{s.vessel}</div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{s.container}</div>
-                        </td>
-                        <td data-label="Port & Date" style={{ padding: '14px 12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                          <div>{s.port}</div>
-                          <div style={{ fontSize: '0.8rem' }}>{s.date}</div>
-                        </td>
-                        <td data-label="Status" style={{ padding: '14px 12px' }}>
-                          {/* ── Inline status dropdown ── */}
-                          <div style={{ position: 'relative', display: 'inline-block' }}>
-                            <select
-                              value={s.status}
-                              onChange={e => handleStatusChange(s.id, e.target.value)}
-                              disabled={savingId === s.id}
-                              style={{
-                                appearance: 'none',
-                                WebkitAppearance: 'none',
-                                background: ss.bg,
-                                color: ss.color,
-                                border: `1.5px solid ${ss.color}40`,
-                                borderRadius: 20,
-                                padding: '5px 28px 5px 12px',
-                                fontSize: '0.75rem',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                outline: 'none',
-                                transition: 'all 0.2s',
-                                minWidth: 110
-                              }}
-                            >
-                              {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
-                            </select>
-                            <span className="material-symbols-outlined" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: ss.color, pointerEvents: 'none' }}>
-                              {savingId === s.id ? 'sync' : 'expand_more'}
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '14px 12px', textAlign: 'right' }}>
-                          <button
-                            onClick={() => setPendingDelete(s.id)}
-                            disabled={deletingId === s.id}
-                            title="Delete schedule"
-                            style={{ background: 'rgba(239,68,68,0.08)', border: 'none', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: '#ef4444', display: 'inline-flex', alignItems: 'center', transition: 'background 0.2s' }}
-                            onMouseOver={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
-                            onMouseOut={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>delete</span>
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  {schedules.length === 0 && (
-                    <tr>
-                      <td colSpan="5" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', display: 'block', marginBottom: 8 }}>inventory_2</span>
-                        No schedules uploaded yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {schedules.map((s) => {
+              const ss = statusStyle[s.status] || statusStyle['Scheduled']
+              return (
+                <div key={s.id} className="feed-card" style={{ padding: '12px 16px', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10, opacity: deletingId === s.id ? 0.4 : 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--brand-primary)', textTransform: 'uppercase' }}>{s.type}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>•</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.date}</span>
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.vessel}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{s.container}</div>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={s.status}
+                        onChange={e => handleStatusChange(s.id, e.target.value)}
+                        disabled={savingId === s.id}
+                        style={{
+                          appearance: 'none', background: ss.bg, color: ss.color, border: 'none',
+                          borderRadius: 20, padding: '4px 24px 4px 10px', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase'
+                        }}
+                      >
+                        {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
+                      </select>
+                      <span className="material-symbols-outlined" style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: ss.color, pointerEvents: 'none' }}>expand_more</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.port}</span>
+                    <button onClick={() => setPendingDelete(s.id)} style={{ background: 'none', border: 'none', color: '#ef4444', padding: 4, display: 'flex' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>delete</span>
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+            {schedules.length === 0 && (
+              <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No history found.</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -321,8 +245,6 @@ export default function AdminCargoSchedules() {
       onConfirm={() => handleDelete(pendingDelete)}
       onCancel={() => setPendingDelete(null)}
     />
-  </>
+    </Fragment>
   )
 }
-
-

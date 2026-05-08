@@ -70,58 +70,56 @@ export default function AdminPaymentSettings() {
   }
 
   return (
-    <AppLayout title="Payment Settings (Admin)" hideSearch>
-      <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <AppLayout title="Regulations">
+      <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
-        <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderRadius: 16 }}>
-          <h2 style={{ fontSize: '1.4rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="material-symbols-outlined" style={{ color: 'var(--brand-primary)' }}>admin_panel_settings</span>
-            Payment Regulations
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: 24 }}>
-            Configure the fees, mobile money integrations, and bank details displayed to members during the license renewal and dues payment processes.
-          </p>
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Collection Settings</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage MoMo and Bank details for renewals.</p>
+        </div>
 
+        <div style={{ padding: '20px 16px', background: 'var(--bg-elevated)', borderRadius: 12 }}>
           {success && (
-            <div style={{ padding: 12, background: 'rgba(16, 185, 129, 0.1)', color: 'var(--brand-success)', borderRadius: 8, marginBottom: 24, border: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>check_circle</span>
-              Payment settings updated successfully!
+            <div style={{ padding: 10, background: '#10b981', color: '#fff', borderRadius: 8, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', fontWeight: 600 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>check_circle</span>
+              Settings updated!
             </div>
           )}
 
-          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             
             {/* Mobile Money Settings */}
-            <div style={{ width: '100%', maxWidth: 400, marginBottom: 32 }}>
-              <h3 style={{ fontSize: '1.2rem', marginBottom: 16, paddingBottom: 8, color: '#10b981', borderBottom: '2px solid rgba(16,185,129,0.1)', display: 'inline-block' }}>Mobile Money Accounts</h3>
+            <div style={{ width: '100%' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: 12, color: '#10b981', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>MoMo Accounts</h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
                 {settings.momoAccounts.map((momo, index) => (
-                  <div key={index} style={{ padding: '16px', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: '12px', position: 'relative' }}>
+                  <div key={index} style={{ padding: '14px', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: '12px', position: 'relative' }}>
                     {settings.momoAccounts.length > 1 && (
-                      <button type="button" onClick={() => removeMomo(index)} style={{ position: 'absolute', top: 8, right: 8, background: 'transparent', border: 'none', color: 'var(--brand-danger)', cursor: 'pointer' }}>
-                        <span className="material-symbols-outlined">close</span>
+                      <button type="button" onClick={() => removeMomo(index)} style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>close</span>
                       </button>
                     )}
-                    <div className="form-group" style={{ alignItems: 'center', marginBottom: 12 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Provider</label>
+                    <div className="form-group" style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 4 }}>Provider</label>
                       <select 
                         value={momo.network}
                         onChange={(e) => handleMomoChange(index, 'network', e.target.value)}
-                        style={{ width: '100%', padding: 12, border: '2px solid #e2e8f0', borderRadius: 8, background: '#fff', textAlign: 'center', fontWeight: 600 }}
+                        style={{ width: '100%', padding: 10, border: '1px solid var(--border-default)', borderRadius: 8, background: '#fff', fontSize: '0.9rem', fontWeight: 600 }}
                       >
-                        <option value="MTN">MTN Mobile Money</option>
+                        <option value="MTN">MTN MoMo</option>
                         <option value="Vodafone">Vodafone Cash</option>
-                        <option value="AirtelTigo">AirtelTigo Money</option>
+                        <option value="AirtelTigo">AirtelTigo</option>
                       </select>
                     </div>
-                    <div className="form-group" style={{ alignItems: 'center', margin: 0 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Collection Number</label>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 4 }}>Number</label>
                       <input 
                         type="text" 
                         value={momo.number}
                         onChange={(e) => handleMomoChange(index, 'number', e.target.value)}
-                        style={{ width: '100%', padding: 12, border: '2px solid #e2e8f0', borderRadius: 8, background: '#fff', textAlign: 'center', fontWeight: 600, letterSpacing: '2px' }} 
+                        style={{ width: '100%', padding: 10, border: '1px solid var(--border-default)', borderRadius: 8, background: '#fff', fontWeight: 800, letterSpacing: '1px', fontSize: '1rem', color: 'var(--text-primary)' }}
                         required
                       />
                     </div>
@@ -129,74 +127,46 @@ export default function AdminPaymentSettings() {
                 ))}
               </div>
               
-              <button type="button" onClick={addMomo} className="btn btn-outline btn-sm" style={{ marginTop: 16, width: '100%' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>add</span> Add MoMo Account
+              <button type="button" onClick={addMomo} className="btn btn-outline btn-sm" style={{ marginTop: 12, width: '100%', height: 40, fontSize: '0.75rem' }}>
+                + Add Account
               </button>
             </div>
 
-            {/* Bank Settings */}
-            <div style={{ width: '100%', maxWidth: 400, marginBottom: 40 }}>
-              <h3 style={{ fontSize: '1.2rem', marginBottom: 16, paddingBottom: 8, color: '#3b82f6', borderBottom: '2px solid rgba(59,130,246,0.1)', display: 'inline-block' }}>Bank Transfer Details</h3>
+            {/* Bank Details Section */}
+            <div style={{ width: '100%' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: 12, color: '#3b82f6', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bank Details</h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
                 {settings.bankAccounts.map((bank, index) => (
-                  <div key={index} style={{ padding: '16px', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: '12px', position: 'relative' }}>
+                  <div key={index} style={{ padding: '14px', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: '12px', position: 'relative', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {settings.bankAccounts.length > 1 && (
-                      <button type="button" onClick={() => removeBank(index)} style={{ position: 'absolute', top: 8, right: 8, background: 'transparent', border: 'none', color: 'var(--brand-danger)', cursor: 'pointer' }}>
-                        <span className="material-symbols-outlined">close</span>
+                      <button type="button" onClick={() => removeBank(index)} style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>close</span>
                       </button>
                     )}
-                    <div className="form-group" style={{ alignItems: 'center', marginBottom: 12 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Bank Name</label>
-                      <input 
-                        type="text" 
-                        value={bank.bankName}
-                        onChange={(e) => handleBankChange(index, 'bankName', e.target.value)}
-                        style={{ width: '100%', padding: 12, border: '2px solid #e2e8f0', borderRadius: 8, background: '#fff', textAlign: 'center', fontWeight: 600 }} 
-                        required
-                      />
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 2 }}>Bank</label>
+                      <input type="text" value={bank.bankName} onChange={(e) => handleBankChange(index, 'bankName', e.target.value)} style={{ padding: 8, fontSize: '0.9rem' }} required />
                     </div>
-                    <div className="form-group" style={{ alignItems: 'center', marginBottom: 12 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Account Name</label>
-                      <input 
-                        type="text" 
-                        value={bank.accountName}
-                        onChange={(e) => handleBankChange(index, 'accountName', e.target.value)}
-                        style={{ width: '100%', padding: 12, border: '2px solid #e2e8f0', borderRadius: 8, background: '#fff', textAlign: 'center', fontWeight: 600 }} 
-                        required
-                      />
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 2 }}>A/C Name</label>
+                      <input type="text" value={bank.accountName} onChange={(e) => handleBankChange(index, 'accountName', e.target.value)} style={{ padding: 8, fontSize: '0.9rem' }} required />
                     </div>
-                    <div className="form-group" style={{ alignItems: 'center', marginBottom: 12 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Account Number</label>
-                      <input 
-                        type="text" 
-                        value={bank.accountNumber}
-                        onChange={(e) => handleBankChange(index, 'accountNumber', e.target.value)}
-                        style={{ width: '100%', padding: 12, border: '2px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: '1.1rem', color: 'var(--brand-primary)', fontWeight: 800, textAlign: 'center', letterSpacing: '2px' }} 
-                        required
-                      />
-                    </div>
-                    <div className="form-group" style={{ alignItems: 'center', margin: 0 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Branch</label>
-                      <input 
-                        type="text" 
-                        value={bank.branch}
-                        onChange={(e) => handleBankChange(index, 'branch', e.target.value)}
-                        style={{ width: '100%', padding: 12, border: '2px solid #e2e8f0', borderRadius: 8, background: '#fff', textAlign: 'center', fontWeight: 600 }} 
-                        required
-                      />
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 2 }}>A/C Number</label>
+                      <input type="text" value={bank.accountNumber} onChange={(e) => handleBankChange(index, 'accountNumber', e.target.value)} style={{ padding: 10, fontSize: '1rem', fontWeight: 800, color: 'var(--brand-primary)', textAlign: 'center' }} required />
                     </div>
                   </div>
                 ))}
               </div>
 
-              <button type="button" onClick={addBank} className="btn btn-outline btn-sm" style={{ marginTop: 16, width: '100%' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>add</span> Add Bank Account
+              <button type="button" onClick={addBank} className="btn btn-outline btn-sm" style={{ marginTop: 12, width: '100%', height: 40, fontSize: '0.75rem' }}>
+                + Add Bank
               </button>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', maxWidth: 400, height: 54, borderRadius: 27 }} disabled={loading}>
-              {loading ? 'Saving Settings...' : 'Save Payment Settings'}
+            <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', height: 50, borderRadius: 25, fontSize: '0.95rem' }} disabled={loading}>
+              {loading ? 'Saving...' : 'Save Settings'}
             </button>
           </form>
         </div>

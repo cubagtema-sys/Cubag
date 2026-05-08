@@ -22,9 +22,15 @@ export default function Settings() {
   }
 
   return (
-    <AppLayout title="Settings" hideSearch>
-      <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <AppLayout title="Settings">
+      <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
+        {/* Page Title for Content */}
+        <div style={{ marginBottom: 4 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Settings</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Configure your account preferences and security.</p>
+        </div>
+
         {!isChangingPassword ? (
           <div className="feed-card">
             <div className="card-header">

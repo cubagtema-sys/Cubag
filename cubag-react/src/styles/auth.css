@@ -4,8 +4,11 @@
 
 .auth-layout {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   background: var(--bg-surface);
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .auth-sidebar {
@@ -18,6 +21,12 @@
   padding: 60px;
   color: #fff;
   max-width: 600px;
+}
+
+@media (max-width: 1024px) {
+  .auth-sidebar {
+    padding: 40px;
+  }
 }
 
 .auth-sidebar-bg {
@@ -72,6 +81,7 @@
   justify-content: center;
   padding: 40px;
   background: var(--bg-base);
+  width: 100%;
 }
 
 .auth-container {
@@ -80,34 +90,35 @@
 }
 
 .auth-header {
-  margin-bottom: 40px;
+  margin-bottom: 32px; /* Reduced from 40px */
   text-align: center;
 }
 
 .auth-logo {
-  height: 56px;
+  height: 50px; /* Reduced from 56px */
   width: auto;
-  margin: 0 auto 24px;
+  margin: 0 auto 20px;
   border-radius: 12px;
 }
 
 .auth-title {
-  font-size: 1.8rem;
+  font-size: 1.6rem; /* Reduced from 1.8rem */
   color: var(--text-primary);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .auth-subtitle {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.9rem; /* Reduced from 0.95rem */
 }
 
 .auth-form {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
-  padding: 40px;
+  padding: 32px; /* Reduced from 40px */
   box-shadow: var(--shadow-sm);
+  width: 100%;
 }
 
 .form-group-flex {
@@ -117,9 +128,9 @@
 }
 
 .auth-footer {
-  margin-top: 32px;
+  margin-top: 24px; /* Reduced from 32px */
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 0.88rem; /* Reduced from 0.9rem */
   color: var(--text-secondary);
 }
 
@@ -129,7 +140,8 @@
 
 .auth-form input[type="text"],
 .auth-form input[type="email"],
-.auth-form input[type="password"] {
+.auth-form input[type="password"],
+.auth-form input[type="tel"] {
   border: 1.5px solid #000 !important;
   background: #fff !important;
   color: #000 !important;
@@ -141,6 +153,22 @@
 
 @media (max-width: 960px) {
   .auth-sidebar { display: none; }
+  .auth-main { padding: 24px; }
+  .auth-form { padding: 24px; }
+  .auth-header { margin-bottom: 24px; }
+  .auth-container { max-width: 100%; }
+}
+
+@media (max-width: 480px) {
   .auth-main { padding: 20px; }
-  .auth-form { padding: 32px 24px; }
+  .auth-form {
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+  .auth-title { font-size: 1.4rem; }
+  .auth-logo { height: 44px; }
+  .form-row { grid-template-columns: 1fr; gap: 0; } /* Stack grid inputs */
 }

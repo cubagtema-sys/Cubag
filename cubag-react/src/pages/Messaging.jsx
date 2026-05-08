@@ -93,30 +93,33 @@ export default function Messaging() {
   }
 
   return (
-    <AppLayout title={activeChat ? 'Chat' : 'Messages'} hideSearch>
-      <div style={{ height: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column' }}>
+    <AppLayout title="Messages" hideSearch>
+      <div style={{ height: 'calc(100vh - 120px)', height: 'calc(100svh - 120px)', display: 'flex', flexDirection: 'column' }}>
 
         {!activeChat ? (
           // Conversations List View
-          <div className="feed-card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-subtle)' }}>
-              <input
-                type="text"
-                placeholder="Search messages..." autoComplete="off"
-                style={{ width: '100%', padding: '12px 16px', border: '1.5px solid var(--border-default)', borderRadius: 12, background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '0.95rem' }}
-              />
+          <div className="feed-card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', border: 'none', borderRadius: 12 }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div style={{ position: 'relative' }}>
+                <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '1.1rem' }}>search</span>
+                <input
+                  type="text"
+                  placeholder="Search messages..." autoComplete="off"
+                  style={{ width: '100%', padding: '10px 12px 10px 38px', border: '1.5px solid var(--border-default)', borderRadius: 10, background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                />
+              </div>
             </div>
 
             {conversations.length === 0 ? (
               // Empty state
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '40px 24px', textAlign: 'center' }}>
-                <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(240,130,50,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '2.4rem', color: 'var(--brand-primary)' }}>chat_bubble</span>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '40px 24px', textAlign: 'center' }}>
+                <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(240,130,50,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: 'var(--brand-primary)' }}>chat_bubble</span>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: 8 }}>No messages yet</div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 280 }}>
-                    Your conversations with CUBAG secretariat and other members will appear here.
+                  <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: 4 }}>No messages</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, maxWidth: 240, margin: '0 auto' }}>
+                    Conversations with secretariat and members appear here.
                   </div>
                 </div>
               </div>
@@ -126,20 +129,20 @@ export default function Messaging() {
                   <div
                     key={conv.id}
                     onClick={() => openChat(conv)}
-                    style={{ display: 'flex', gap: 14, padding: '16px 20px', cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.2s' }}
+                    style={{ display: 'flex', gap: 12, padding: '14px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.2s' }}
                   >
-                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--brand-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, flexShrink: 0 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 800, flexShrink: 0 }}>
                       {conv.initials}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{conv.name}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{conv.time}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.name}</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{conv.time}</span>
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.lastMsg}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.lastMsg}</div>
                     </div>
                     {conv.unread > 0 && (
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--brand-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0, marginTop: 4 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--brand-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0, marginTop: 4 }}>
                         {conv.unread}
                       </div>
                     )}
@@ -150,40 +153,40 @@ export default function Messaging() {
           </div>
         ) : (
           // Active Chat View
-          <div className="feed-card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="feed-card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', border: 'none', borderRadius: 12 }}>
             {/* Chat Header */}
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: 4 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1.5rem' }}>arrow_back_ios_new</span>
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>arrow_back_ios_new</span>
               </button>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--brand-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 800, flexShrink: 0 }}>
                 {activeChat.initials}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeChat.name}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{activeChat.company}</div>
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeChat.name}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeChat.company}</div>
               </div>
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--bg-base)' }}>
               {messages.length === 0 && (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 40 }}>
-                  No messages yet. Say hello!
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 32 }}>
+                  Say hello to {activeChat.name.split(' ')[0]}!
                 </div>
               )}
               {messages.map(msg => (
                 <div key={msg.id} style={{ display: 'flex', justifyContent: msg.from === 'me' ? 'flex-end' : 'flex-start' }}>
                   <div style={{
-                    maxWidth: '80%', padding: '12px 16px',
-                    borderRadius: msg.from === 'me' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                    background: msg.from === 'me' ? 'var(--brand-primary)' : '#fff',
+                    maxWidth: '85%', padding: '10px 14px',
+                    borderRadius: msg.from === 'me' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                    background: msg.from === 'me' ? 'var(--brand-primary)' : 'var(--bg-elevated)',
                     color: msg.from === 'me' ? '#fff' : 'var(--text-primary)',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                    fontSize: '0.9rem', lineHeight: 1.5
+                    fontSize: '0.85rem', lineHeight: 1.4
                   }}>
                     {msg.text}
-                    <div style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: 4, textAlign: 'right' }}>{msg.time}</div>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.7, marginTop: 4, textAlign: 'right' }}>{msg.time}</div>
                   </div>
                 </div>
               ))}
@@ -191,22 +194,21 @@ export default function Messaging() {
             </div>
 
             {/* Input */}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12, background: '#fff' }}>
+            <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 10, background: 'var(--bg-surface)' }}>
               <input
                 type="text"
                 value={newMsg}
                 onChange={e => setNewMsg(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                placeholder="Type a message..."
-                style={{ flex: 1, padding: '12px 16px', border: '1.5px solid var(--border-default)', borderRadius: 24, background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '0.95rem', outline: 'none' }}
+                placeholder="Type..."
+                style={{ flex: 1, padding: '10px 14px', border: '1.5px solid var(--border-default)', borderRadius: 20, background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' }}
               />
-              <button onClick={sendMessage} className="btn btn-primary" style={{ width: 46, height: 46, borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span className="material-symbols-outlined" style={{ marginLeft: 4 }}>send</span>
+              <button onClick={sendMessage} className="btn btn-primary" style={{ width: 40, height: 40, borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', marginLeft: 2 }}>send</span>
               </button>
             </div>
           </div>
         )}
-
       </div>
     </AppLayout>
   )

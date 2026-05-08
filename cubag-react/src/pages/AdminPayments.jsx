@@ -115,108 +115,58 @@ export default function AdminPayments() {
 
   return (
     <>
-    <AppLayout title="Financial Control Center">
-      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <AppLayout title="Financials">
+      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
         {/* Header Section */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.6rem', color: 'var(--text-primary)', fontWeight: 800 }}>Payments & Financials</h2>
-            <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Unified management of dues, licenses, and penalty revenue streams.</p>
+            <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--text-primary)', fontWeight: 800 }}>Financial Center</h2>
+            <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Management of dues and revenue streams.</p>
           </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className="btn btn-outline" style={{ gap: 8 }} onClick={fetchPayments}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>refresh</span>
-              Refresh
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-outline btn-sm" onClick={fetchPayments} style={{ height: 36, padding: '0 12px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>refresh</span> Refresh
             </button>
-            <button className="btn btn-primary" style={{ gap: 8 }} onClick={exportCSV}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>download</span>
-              Export CSV
+            <button className="btn btn-primary btn-sm" onClick={exportCSV} style={{ height: 36, padding: '0 12px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>download</span> CSV
             </button>
           </div>
         </div>
 
-        {/* ── Details Modal ── */}
-        {selectedTx && (
-          <div onClick={() => setSelectedTx(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 20, padding: 32, maxWidth: 480, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>Transaction Details</h3>
-                <button onClick={() => setSelectedTx(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-              {[
-                { label: 'TX ID',        value: `#${selectedTx.tx_id}` },
-                { label: 'Member',       value: selectedTx.member_name },
-                { label: 'Description', value: selectedTx.description },
-                { label: 'Amount',       value: `GHS ${parseFloat(selectedTx.amount).toFixed(2)}`, highlight: true },
-                { label: 'Status',       value: selectedTx.status.toUpperCase() },
-                { label: 'Date',         value: new Date(selectedTx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
-              ].map(row => (
-                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.88rem' }}>{row.label}</span>
-                  <span style={{ fontWeight: row.highlight ? 800 : 600, color: row.highlight ? 'var(--brand-primary)' : 'var(--text-primary)', fontSize: row.highlight ? '1.05rem' : '0.9rem' }}>{row.value}</span>
-                </div>
-              ))}
-              <button onClick={() => setSelectedTx(null)} className="btn btn-primary" style={{ marginTop: 24, width: '100%', justifyContent: 'center' }}>Close</button>
+        {/* Financial KPI Cards - Mobile Tighter */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+          {[
+            { label: 'Revenue', value: `GH₵ ${parseFloat(data.kpis.revenue || 0).toLocaleString()}`, color: '#10b981' },
+            { label: 'Pending', value: `GH₵ ${parseFloat(data.kpis.pending || 0).toLocaleString()}`, color: '#f59e0b' },
+            { label: 'Overdue', value: data.kpis.failed, color: '#ef4444' }
+          ].map(kpi => (
+            <div key={kpi.label} className="feed-card" style={{ padding: '12px 16px', borderRadius: 12, textAlign: 'center' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>{kpi.label}</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: kpi.color, fontFamily: 'monospace' }}>{kpi.value}</div>
             </div>
-          </div>
-        )}
-
-        {/* Financial KPI Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 24, padding: 24, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.05em' }}>Total Net Revenue</div>
-             <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#10b981', fontFamily: 'monospace' }}>
-               <small style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>GHS</small> {parseFloat(data.kpis.revenue || 0).toLocaleString()}
-             </div>
-             <div style={{ marginTop: 12, height: 4, background: '#10b98122', borderRadius: 2 }}>
-               <div style={{ width: '75%', height: '100%', background: '#10b981', borderRadius: 2 }} />
-             </div>
-          </div>
-
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 24, padding: 24, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.05em' }}>Pending Invoices</div>
-             <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#f59e0b', fontFamily: 'monospace' }}>
-               <small style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>GHS</small> {parseFloat(data.kpis.pending || 0).toLocaleString()}
-             </div>
-             <div style={{ marginTop: 12, display: 'flex', gap: 4 }}>
-               <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '1.2rem' }}>hourglass_empty</span>
-               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Awaiting verification</span>
-             </div>
-          </div>
-
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 24, padding: 24, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.05em' }}>System Flags</div>
-             <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#ef4444', fontFamily: 'monospace' }}>
-               {data.kpis.failed} <small style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Overdue</small>
-             </div>
-             <div style={{ marginTop: 12, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Immediate action required</div>
-          </div>
+          ))}
         </div>
 
-        {/* Search & Filter Toolbar */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Search & Filter Toolbar - Mobile Vertical Stack */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ position: 'relative' }}>
-            <span className="material-symbols-outlined" style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>search</span>
+            <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '1.1rem' }}>search</span>
             <input 
               type="text" 
-              placeholder="Filter by Name, TX ID or Description..."
+              placeholder="Search TX ID or Member..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: 16, border: '1.5px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none', fontSize: '0.95rem' }}
+              style={{ width: '100%', padding: '10px 12px 10px 38px', borderRadius: 10, border: '1.5px solid var(--border-default)', background: 'var(--bg-base)', color: 'var(--text-primary)', outline: 'none', fontSize: '0.9rem' }}
             />
           </div>
-          <div style={{ width: 220 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <CustomSelect
               value={filterType}
               onChange={setFilterType}
               options={TYPE_OPTIONS}
               icon="category"
             />
-          </div>
-          <div style={{ width: 200 }}>
             <CustomSelect
               value={filterStatus}
               onChange={setFilterStatus}
@@ -226,104 +176,47 @@ export default function AdminPayments() {
           </div>
         </div>
 
-        {/* Main Financial Table */}
-        <div className="feed-card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border-subtle)', borderRadius: 24 }}>
+        {/* Main List - Replaced Table with Cards for Mobile */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {loading ? (
-            <div style={{ padding: 100, textAlign: 'center' }}>
-              <div className="spinner" style={{ margin: '0 auto 16px' }} />
-              <p style={{ color: 'var(--text-secondary)' }}>Synchronizing financial data...</p>
-            </div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading financials...</div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 100, textAlign: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '4rem', color: 'var(--border-default)', marginBottom: 16 }}>no_accounts</span>
-              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>No financial records found for current filters.</p>
+            <div className="card" style={{ padding: 40, textAlign: 'center', borderRadius: 12 }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No records found.</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <th style={{ padding: '20px 24px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Recipient & Type</th>
-                    <th style={{ padding: '20px 24px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Amount</th>
-                    <th style={{ padding: '20px 24px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>TX Details</th>
-                    <th style={{ padding: '20px 24px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
-                    <th style={{ padding: '20px 24px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((tx, i) => {
-                    const type = getPaymentType(tx.description)
-                    return (
-                      <tr key={tx.tx_id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none', transition: 'all 0.2s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <td style={{ padding: '18px 24px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: 12, background: type === 'license' ? '#3b82f622' : type === 'dues' ? '#10b98122' : '#f59e0b22', color: type === 'license' ? '#3b82f6' : type === 'dues' ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span className="material-symbols-outlined">{type === 'license' ? 'badge' : type === 'dues' ? 'group' : 'payments'}</span>
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{tx.member_name}</div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{tx.description}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '18px 24px' }}>
-                          <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem', fontFamily: 'monospace' }}>
-                            GHS {parseFloat(tx.amount).toLocaleString()}
-                          </div>
-                        </td>
-                        <td style={{ padding: '18px 24px' }}>
-                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 500 }}>ID: {tx.tx_id}</div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{new Date(tx.date).toLocaleDateString()}</div>
-                        </td>
-                        <td style={{ padding: '18px 24px' }}>
-                          <span style={{ 
-                            padding: '6px 12px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', 
-                            background: tx.status === 'paid' ? '#10b98115' : tx.status === 'pending' ? '#f59e0b15' : '#ef444415',
-                            color: tx.status === 'paid' ? '#10b981' : tx.status === 'pending' ? '#f59e0b' : '#ef4444',
-                            display: 'inline-flex', alignItems: 'center', gap: 6
-                          }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>{tx.status === 'paid' ? 'check_circle' : 'pending'}</span>
-                            {tx.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            {type === 'license' && tx.status === 'pending' && (
-                              <button
-                                className="btn btn-sm btn-primary"
-                                style={{ padding: '6px 12px', fontSize: '0.75rem', opacity: actionLoading === tx.tx_id ? 0.5 : 1 }}
-                                disabled={actionLoading === tx.tx_id}
-                                onClick={() => setPendingLicense({ txId: tx.tx_id, memberId: tx.member_id })}
-                              >
-                                {actionLoading === tx.tx_id ? '...' : 'Approve License'}
-                              </button>
-                            )}
-                            {tx.status === 'pending' && type !== 'license' && (
-                              <button
-                                className="btn btn-sm btn-outline"
-                                style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#10b981', borderColor: '#10b981', opacity: actionLoading === tx.tx_id ? 0.5 : 1 }}
-                                disabled={actionLoading === tx.tx_id}
-                                onClick={() => setPendingPaid(tx.tx_id)}
-                              >
-                                {actionLoading === tx.tx_id ? '...' : 'Mark Paid'}
-                              </button>
-                            )}
-                            <button
-                              className="btn btn-sm btn-ghost"
-                              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-                              onClick={() => setSelectedTx(tx)}
-                            >Details</button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            filtered.map((tx, i) => {
+              const type = getPaymentType(tx.description)
+              return (
+                <div key={tx.tx_id} className="feed-card" style={{ padding: '12px 16px', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: type === 'license' ? '#3b82f622' : type === 'dues' ? '#10b98122' : '#f59e0b22', color: type === 'license' ? '#3b82f6' : type === 'dues' ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>{type === 'license' ? 'badge' : type === 'dues' ? 'group' : 'payments'}</span>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{tx.member_name}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>ID: {tx.tx_id.toString().slice(-6)}</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'monospace' }}>₵{parseFloat(tx.amount).toLocaleString()}</div>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800, color: tx.status === 'paid' ? '#10b981' : '#f59e0b', textTransform: 'uppercase' }}>{tx.status}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {tx.status === 'pending' && (
+                      <button className="btn btn-primary btn-sm" style={{ flex: 1, height: 32, fontSize: '0.7rem', padding: 0 }}
+                        onClick={() => type === 'license' ? setPendingLicense({ txId: tx.tx_id }) : setPendingPaid(tx.tx_id)}>
+                        Approve
+                      </button>
+                    )}
+                    <button className="btn btn-ghost btn-sm" style={{ flex: 1, height: 32, fontSize: '0.7rem', padding: 0 }} onClick={() => setSelectedTx(tx)}>Details</button>
+                  </div>
+                </div>
+              )
+            })
           )}
         </div>
 

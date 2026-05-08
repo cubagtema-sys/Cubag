@@ -17,7 +17,6 @@ export default function Payments() {
   const [method, setMethod] = useState('momo')
   const [paystackCode, setPaystackCode] = useState('')
   const [paymentId, setPaymentId] = useState(null)
-  const [paystackRef, setPaystackRef] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
   const [platformFees, setPlatformFees] = useState({ renewalFee: '1500.00', monthlyDues: '100.00', latePenaltyFee: '50.00', otherFee: '0.00' })
   const [paymentSettings, setPaymentSettings] = useState({
@@ -90,8 +89,7 @@ export default function Payments() {
       if (res.ok) {
         if (method === 'momo' && result.payment_id) {
           setPaymentId(result.payment_id)
-          setPaystackRef(result.paystack_ref || '')
-          setPayStep(4) // OTP Code Verification
+          setPayStep(4) // Move to Code Verification
         } else {
           setSuccessMsg('✅ ' + (result.message || 'Payment submitted!'))
           setAmount(''); setReason(''); setPayStep(1)
@@ -119,18 +117,18 @@ export default function Payments() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
         },
-        body: JSON.stringify({ payment_id: paymentId, code: paystackCode, paystack_ref: paystackRef })
+        body: JSON.stringify({ payment_id: paymentId, code: paystackCode })
       })
       const result = await res.json()
       if (res.ok) {
-        setSuccessMsg('✅ ' + (result.message || 'Payment verified!'))
-        setAmount(''); setReason(''); setPaystackCode(''); setPaystackRef(''); setPayStep(1)
+        setSuccessMsg('✅ ' + (result.message || 'Payment success!'))
+        setAmount(''); setReason(''); setPaystackCode(''); setPayStep(1)
         setTimeout(() => setSuccessMsg(''), 5000)
       } else {
-        alert(result.message || 'Verification failed.')
+        alert(result.message || 'Verification failed / Rejected.')
       }
     } catch (e) {
-      alert('Connection error during verification.')
+      alert('Connection error.')
     } finally {
       setIsVerifying(false)
     }
