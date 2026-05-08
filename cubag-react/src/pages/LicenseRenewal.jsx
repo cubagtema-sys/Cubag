@@ -12,6 +12,7 @@ export default function LicenseRenewal() {
   const [memberInfo, setMemberInfo] = useState(null)
   const [viewCert, setViewCert] = useState(null)
   const [generating, setGenerating] = useState(null) // ID of record being generated
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null) // Blob URL for inline viewing
   const certRef = useRef()
 
   const fetchHistory = async () => {
@@ -74,7 +75,7 @@ export default function LicenseRenewal() {
         setViewCert(null)
       } else {
         const blob = pdf.output('blob')
-        window.open(URL.createObjectURL(blob), '_blank')
+        setPdfPreviewUrl(URL.createObjectURL(blob))
         setViewCert(null)
       }
     } catch (e) { 
@@ -155,6 +156,28 @@ export default function LicenseRenewal() {
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Need help? <Link to="/engagement" style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}>Contact Support</Link></p>
         </div>
       </div>
+
+      {/* ── Inline PDF Viewer Modal ────────────────────────────────────────── */}
+      {pdfPreviewUrl && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.8)',
+          display: 'flex', flexDirection: 'column', padding: '20px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+            <button className="btn btn-primary" onClick={() => {
+              URL.revokeObjectURL(pdfPreviewUrl)
+              setPdfPreviewUrl(null)
+            }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="material-symbols-outlined">close</span> Close Preview
+            </button>
+          </div>
+          <iframe 
+            src={pdfPreviewUrl} 
+            style={{ width: '100%', flex: 1, border: 'none', borderRadius: 8, background: '#fff' }}
+            title="Certificate Preview"
+          />
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           HIDDEN CERTIFICATE DOM — Optimized for A4 PDF output
