@@ -119,10 +119,7 @@ export default function Networking() {
                 <div
                   key={m.id}
                   className="feed-card"
-                  onClick={() => setSelected(m)}
-                  style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', padding: 0, overflow: 'hidden', borderRadius: 12 }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+                  style={{ transition: 'transform 0.15s, box-shadow 0.15s', padding: 0, overflow: 'hidden', borderRadius: 12 }}
                 >
                   <div style={{ height: 4, background: color }} />
 
@@ -147,7 +144,7 @@ export default function Networking() {
                     <button
                       className="btn btn-primary btn-sm"
                       style={{ width: '100%', height: 36, marginTop: 4, justifyContent: 'center' }}
-                      onClick={e => { e.stopPropagation(); setSelected(m) }}
+                      onClick={(e) => { e.stopPropagation(); setSelected(m); }}
                     >
                       View
                     </button>
@@ -166,52 +163,113 @@ export default function Networking() {
         )}
       </div>
 
-      {/* Member Detail Modal */}
-      {selected && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-          onClick={() => setSelected(null)}
-        >
+      {/* Member Detail Bottom Sheet Modal */}
+      {selected && (() => {
+        const color = accentColor(selected.member_type)
+        const initials = getInitials(selected.name)
+        return (
           <div
-            style={{ background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 500, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 -4px 32px rgba(0,0,0,0.2)', animation: 'fadeInUp 0.2s ease' }}
-            onClick={e => e.stopPropagation()}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            onClick={() => setSelected(null)}
           >
-            <div style={{ width: 36, height: 4, background: 'var(--border-default)', borderRadius: 2, margin: '10px auto 0' }} />
+            <div
+              style={{ background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)', animation: 'fadeInUp 0.22s ease' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Drag handle */}
+              <div style={{ width: 40, height: 4, background: 'var(--border-default)', borderRadius: 2, margin: '12px auto 0' }} />
 
-            <div style={{ padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: `${accentColor(m.member_type)}15`, border: `2.5px solid ${accentColor(m.member_type)}`, color: accentColor(m.member_type), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 800, flexShrink: 0 }}>
-                  {getInitials(selected.name)}
-                </div>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{selected.name}</h2>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor(selected.member_type) }}>{selected.member_type}</div>
-                </div>
+              {/* Header banner */}
+              <div style={{ height: 72, background: `linear-gradient(135deg, ${color}cc, ${color})`, margin: '12px 16px 0', borderRadius: 14, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, background: '#fff', opacity: 0.1, borderRadius: '50%' }} />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[
-                  { icon: 'business',    label: 'Organisation', val: selected.company },
-                  { icon: 'location_on', label: 'Operation',    val: selected.port_of_operation },
-                  { icon: 'mail',        label: 'Email',        val: selected.email },
-                  { icon: 'call',        label: 'Phone',        val: selected.phone },
-                ].map(({ icon, label, val }) => (
-                  <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', background: 'var(--bg-base)', borderRadius: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>{icon}</span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{label}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{val || '—'}</div>
-                    </div>
+              <div style={{ padding: '0 20px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Avatar + name row — lifted over banner */}
+                <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', marginTop: -28 }}>
+                  <div style={{
+                    width: 64, height: 64, borderRadius: '50%',
+                    background: `${color}22`, border: `3px solid var(--bg-surface)`,
+                    outline: `2.5px solid ${color}`,
+                    color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.5rem', fontWeight: 900, flexShrink: 0,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                  }}>
+                    {initials}
                   </div>
-                ))}
-              </div>
+                  <div style={{ paddingBottom: 4, minWidth: 0 }}>
+                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.2 }}>{selected.name}</h2>
+                    <span style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 800, color, background: `${color}18`, padding: '2px 10px', borderRadius: 20, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {selected.member_type}
+                    </span>
+                  </div>
+                </div>
 
-              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} onClick={() => navigate('/messaging', { state: { chatUser: selected } })}>Send Message</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)}>Close</button>
+                {/* Status badge */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '4px 12px',
+                    background: selected.status === 'active' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                    color: selected.status === 'active' ? '#10b981' : '#ef4444',
+                    borderRadius: 20, fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase'
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>
+                      {selected.status === 'active' ? 'verified' : 'cancel'}
+                    </span>
+                    {selected.status}
+                  </span>
+                </div>
+
+                {/* Info rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { icon: 'business',     label: 'Organisation',   val: selected.company },
+                    { icon: 'location_on',  label: 'Port / Operation', val: selected.port_of_operation },
+                    { icon: 'badge',        label: 'License No.',    val: selected.license_number },
+                    { icon: 'mail',         label: 'Email',          val: selected.email },
+                    { icon: 'call',         label: 'Phone',          val: selected.phone },
+                  ].filter(row => row.val).map(({ icon, label, val }) => (
+                    <div key={label} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 12px', background: 'var(--bg-base)', borderRadius: 10 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 10, background: `${color}15`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{icon}</span>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{label}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{val}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action buttons */}
+                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ flex: 2, height: 46, justifyContent: 'center', gap: 8, fontSize: '0.9rem', fontWeight: 800 }}
+                    onClick={() => { setSelected(null); navigate('/messaging', { state: { chatUser: selected } }) }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>chat</span>
+                    Message
+                  </button>
+                  <a
+                    href={`mailto:${selected.email}`}
+                    className="btn btn-outline"
+                    style={{ flex: 1, height: 46, justifyContent: 'center', gap: 6, fontSize: '0.85rem', textDecoration: 'none' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>mail</span>
+                    Email
+                  </a>
+                </div>
+
+                <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)} style={{ width: '100%', color: 'var(--text-muted)' }}>
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </AppLayout>
   )
 }
