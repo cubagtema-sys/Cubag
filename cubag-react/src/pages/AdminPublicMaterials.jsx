@@ -132,12 +132,36 @@ export default function AdminPublicMaterials() {
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>File Source</label>
               <div style={{ position: 'relative', height: 52 }}>
                 <input type="file" onChange={handleFileChange} style={{ opacity: 0, position: 'absolute', inset: 0, width: '100%', cursor: 'pointer', zIndex: 2 }} />
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-base)', border: '1.5px dashed var(--border-default)', borderRadius: 10, padding: '0 14px', fontSize: '0.85rem', color: form.file ? 'var(--brand-primary)' : 'var(--text-muted)', fontWeight: form.file ? 700 : 400 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>attach_file</span>
-                  {form.file ? form.file.name : 'Click to choose file...'}
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: 'var(--bg-base)',
+                  border: `1.5px dashed ${form.file ? 'var(--brand-primary)' : 'var(--border-default)'}`,
+                  borderRadius: 10, padding: '0 12px',
+                  overflow: 'hidden'          /* prevent any child from escaping */
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: form.file ? 'var(--brand-primary)' : 'var(--text-muted)', flexShrink: 0 }}>attach_file</span>
+                  <span style={{
+                    fontSize: '0.82rem',
+                    color: form.file ? 'var(--brand-primary)' : 'var(--text-muted)',
+                    fontWeight: form.file ? 700 : 400,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    minWidth: 0,
+                    flex: 1
+                  }}>
+                    {form.file ? form.file.name : 'Click to choose file...'}
+                  </span>
+                  {form.file && (
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--brand-primary)', background: 'rgba(240,130,50,0.1)', padding: '2px 8px', borderRadius: 20, flexShrink: 0, textTransform: 'uppercase' }}>
+                      {form.file.name.split('.').pop()}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
+
 
             <button type="submit" className="btn btn-primary" disabled={submitting} style={{ height: 46, marginTop: 4, justifyContent: 'center', fontSize: '0.9rem' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>publish</span>
