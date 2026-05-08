@@ -4,6 +4,87 @@ import AppLayout from '../components/AppLayout'
 const API_URL = import.meta.env.VITE_API_URL
 const EMPTY_FORM = { title: '', description: '', date: '', time: '', location: '', capacity: '' }
 
+const EventCard = ({ ev, isPast, onEdit, onDelete }) => (
+  <div style={{
+    display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px',
+    background: 'var(--bg-base)', borderRadius: 12, border: '1px solid var(--border-subtle)',
+    flexWrap: 'wrap', opacity: isPast ? 0.8 : 1
+  }}>
+    {/* Date badge */}
+    <div style={{ width: 52, height: 52, borderRadius: 12, background: isPast ? 'var(--bg-surface)' : 'rgba(240,130,50,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isPast ? 'var(--text-muted)' : 'var(--brand-primary)', textTransform: 'uppercase' }}>
+        {new Date(ev.date).toLocaleString('en', { month: 'short' })}
+      </span>
+      <span style={{ fontSize: '1.3rem', fontWeight: 800, color: isPast ? 'var(--text-muted)' : 'var(--brand-primary)', lineHeight: 1 }}>
+        {new Date(ev.date).getDate()}
+      </span>
+    </div>
+
+    {/* Info */}
+    <div style={{ flex: 1, minWidth: 160 }}>
+      <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{ev.title}</div>
+      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
+        <span><span className="material-symbols-outlined" style={{ fontSize: '0.9rem', verticalAlign: 'middle' }}>schedule</span> {ev.time || 'TBD'}</span>
+        <span><span className="material-symbols-outlined" style={{ fontSize: '0.9rem', verticalAlign: 'middle' }}>location_on</span> {ev.location}</span>
+        {ev.capacity && <span><span className="material-symbols-outlined" style={{ fontSize: '0.9rem', verticalAlign: 'middle' }}>group</span> {ev.capacity}</span>}
+      </div>
+      {ev.description && <div style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginTop: 6 }}>{ev.description}</div>}
+    </div>
+
+    {/* Actions */}
+    <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignSelf: 'flex-start', flexWrap: 'wrap' }}>
+      <button className="btn btn-sm btn-outline" onClick={() => onEdit(ev)}
+        style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>edit</span> Edit
+      </button>
+      <button className="btn btn-sm btn-danger" onClick={() => onDelete(ev.id)}
+        style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>delete</span> Delete
+      </button>
+    </div>
+  </div>
+)
+
+const EventForm = ({ formData, setFormData, onSubmit, submitLabel, submitting }) => (
+  <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="form-group">
+      <label>Event Title</label>
+      <input required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
+        placeholder="e.g. Annual General Meeting" />
+    </div>
+    <div className="form-group">
+      <label>Location / Venue</label>
+      <input required value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
+        placeholder="e.g. CUBAG Secretariat, Tema" />
+    </div>
+    <div className="form-group">
+      <label>Date</label>
+      <input required type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+    </div>
+    <div className="form-group">
+      <label>Time</label>
+      <input required type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} />
+    </div>
+    <div className="form-group">
+      <label>Capacity <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.8rem' }}>(optional)</span></label>
+      <input type="number" min="1" value={formData.capacity}
+        onChange={e => setFormData({ ...formData, capacity: e.target.value })}
+        placeholder="Leave blank for unlimited" />
+    </div>
+    <div className="form-group">
+      <label>Description</label>
+      <textarea rows="3" value={formData.description}
+        onChange={e => setFormData({ ...formData, description: e.target.value })}
+        placeholder="Brief description of the event..."
+        style={{ resize: 'vertical', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-default)', padding: '10px 14px', fontFamily: 'inherit', fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }}
+      />
+    </div>
+    <button type="submit" className="btn btn-primary" disabled={submitting} style={{ width: '100%' }}>
+      {submitting ? 'Saving...' : submitLabel}
+    </button>
+  </form>
+)
+
 export default function AdminEvents() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -101,87 +182,6 @@ export default function AdminEvents() {
     { id: 'create',   label: 'New Event',                            icon: 'add_circle' },
   ]
 
-  const EventCard = ({ ev, isPast }) => (
-    <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px',
-      background: 'var(--bg-base)', borderRadius: 12, border: '1px solid var(--border-subtle)',
-      flexWrap: 'wrap', opacity: isPast ? 0.8 : 1
-    }}>
-      {/* Date badge */}
-      <div style={{ width: 52, height: 52, borderRadius: 12, background: isPast ? 'var(--bg-surface)' : 'rgba(240,130,50,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isPast ? 'var(--text-muted)' : 'var(--brand-primary)', textTransform: 'uppercase' }}>
-          {new Date(ev.date).toLocaleString('en', { month: 'short' })}
-        </span>
-        <span style={{ fontSize: '1.3rem', fontWeight: 800, color: isPast ? 'var(--text-muted)' : 'var(--brand-primary)', lineHeight: 1 }}>
-          {new Date(ev.date).getDate()}
-        </span>
-      </div>
-
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 160 }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{ev.title}</div>
-        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
-          <span><span className="material-symbols-outlined" style={{ fontSize: '0.9rem', verticalAlign: 'middle' }}>schedule</span> {ev.time || 'TBD'}</span>
-          <span><span className="material-symbols-outlined" style={{ fontSize: '0.9rem', verticalAlign: 'middle' }}>location_on</span> {ev.location}</span>
-          {ev.capacity && <span><span className="material-symbols-outlined" style={{ fontSize: '0.9rem', verticalAlign: 'middle' }}>group</span> {ev.capacity}</span>}
-        </div>
-        {ev.description && <div style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginTop: 6 }}>{ev.description}</div>}
-      </div>
-
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignSelf: 'flex-start', flexWrap: 'wrap' }}>
-        <button className="btn btn-sm btn-outline" onClick={() => openEdit(ev)}
-          style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>edit</span> Edit
-        </button>
-        <button className="btn btn-sm btn-danger" onClick={() => handleDelete(ev.id)}
-          style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>delete</span> Delete
-        </button>
-      </div>
-    </div>
-  )
-
-  const EventForm = ({ formData, setFormData, onSubmit, submitLabel }) => (
-    <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div className="form-group">
-        <label>Event Title</label>
-        <input required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
-          placeholder="e.g. Annual General Meeting" />
-      </div>
-      <div className="form-group">
-        <label>Location / Venue</label>
-        <input required value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
-          placeholder="e.g. CUBAG Secretariat, Tema" />
-      </div>
-      <div className="form-group">
-        <label>Date</label>
-        <input required type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-      </div>
-      <div className="form-group">
-        <label>Time</label>
-        <input required type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} />
-      </div>
-      <div className="form-group">
-        <label>Capacity <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.8rem' }}>(optional)</span></label>
-        <input type="number" min="1" value={formData.capacity}
-          onChange={e => setFormData({ ...formData, capacity: e.target.value })}
-          placeholder="Leave blank for unlimited" />
-      </div>
-      <div className="form-group">
-        <label>Description</label>
-        <textarea rows="3" value={formData.description}
-          onChange={e => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Brief description of the event..."
-          style={{ resize: 'vertical', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-default)', padding: '10px 14px', fontFamily: 'inherit', fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }}
-        />
-      </div>
-      <button type="submit" className="btn btn-primary" disabled={submitting} style={{ width: '100%' }}>
-        {submitting ? 'Saving...' : submitLabel}
-      </button>
-    </form>
-  )
-
   return (
     <AppLayout title="Events & Workshops">
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -216,7 +216,7 @@ export default function AdminEvents() {
         {tab === 'create' && (
           <div className="card">
             <h3 style={{ marginBottom: 20 }}>Create New Event</h3>
-            <EventForm formData={form} setFormData={setForm} onSubmit={handleCreate} submitLabel="Create Event" />
+            <EventForm formData={form} setFormData={setForm} onSubmit={handleCreate} submitLabel="Create Event" submitting={submitting} />
           </div>
         )}
 
@@ -234,7 +234,7 @@ export default function AdminEvents() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {upcomingEvents.map(ev => <EventCard key={ev.id} ev={ev} isPast={false} />)}
+                {upcomingEvents.map(ev => <EventCard key={ev.id} ev={ev} isPast={false} onEdit={openEdit} onDelete={handleDelete} />)}
               </div>
             )}
           </div>
@@ -253,7 +253,7 @@ export default function AdminEvents() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {pastEvents.map(ev => <EventCard key={ev.id} ev={ev} isPast={true} />)}
+                {pastEvents.map(ev => <EventCard key={ev.id} ev={ev} isPast={true} onEdit={openEdit} onDelete={handleDelete} />)}
               </div>
             )}
           </div>
@@ -271,7 +271,7 @@ export default function AdminEvents() {
                 <span className="material-symbols-outlined" style={{ fontSize: '1.5rem' }}>close</span>
               </button>
             </div>
-            <EventForm formData={editForm} setFormData={setEditForm} onSubmit={handleEdit} submitLabel="Save Changes" />
+            <EventForm formData={editForm} setFormData={setEditForm} onSubmit={handleEdit} submitLabel="Save Changes" submitting={submitting} />
           </div>
         </div>
       )}
