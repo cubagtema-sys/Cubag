@@ -59,6 +59,9 @@ export default function Networking() {
   }, [])
 
   const filtered = (members || []).filter(m => {
+    // Completely hide the Admin / Secretariat profile from the public networking directory
+    if (m.role === 'admin' || (m.name && m.name.includes('CUBAG Admin'))) return false;
+
     const q = searchTerm.toLowerCase()
     const matchSearch = (m.name || '').toLowerCase().includes(q) ||
                         (m.company || '').toLowerCase().includes(q) ||
