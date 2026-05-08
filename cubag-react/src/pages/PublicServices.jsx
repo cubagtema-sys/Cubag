@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import CustomSelect from '../components/CustomSelect'
 
 const API_URL = import.meta.env.VITE_API_URL
-const BASE_URL = API_URL.replace('/api', '') // e.g. https://cub-production.up.railway.app
 
 export default function PublicServices() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -203,7 +202,7 @@ export default function PublicServices() {
 
                 {/* Download / View */}
                 <a
-                  href={m.file_url?.startsWith('http') ? m.file_url : `${BASE_URL}${m.file_url}`}
+                  href={m.file_url}
                   download
                   target="_blank"
                   rel="noreferrer"

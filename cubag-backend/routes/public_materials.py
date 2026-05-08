@@ -1,24 +1,65 @@
 import os
 import uuid
-from flask import Blueprint, request, jsonify, send_from_directory
+import requests as http_req
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from werkzeug.utils import secure_filename
 from config.db import get_db
 
 public_materials_bp = Blueprint('public_materials', __name__)
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'materials')
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'webp'}
 MAX_SIZE_MB = 30
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# ─── Supabase Storage config ──────────────────────────────────────────────────
+SUPABASE_URL     = os.getenv('SUPABASE_URL', '')          # https://<ref>.supabase.co
+SUPABASE_KEY     = os.getenv('SUPABASE_SERVICE_KEY', '')  # service_role key
+STORAGE_BUCKET   = os.getenv('SUPABASE_BUCKET', 'public-materials')
 
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# ─── GET /public — Publicly accessible material list ──────────────────────────
+def upload_to_supabase(file_bytes, filename, content_type):
+    """
+    Upload bytes to Supabase Storage.
+    Returns the public URL on success, raises on failure.
+    """
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise RuntimeError("SUPABASE_URL / SUPABASE_SERVICE_KEY not configured")
+
+    storage_url = f"{SUPABASE_URL}/storage/v1/object/{STORAGE_BUCKET}/{filename}"
+    headers = {
+        "apikey":        SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type":  content_type,
+        "x-upsert":      "true",
+    }
+    resp = http_req.post(storage_url, data=file_bytes, headers=headers, timeout=30)
+    if resp.status_code not in (200, 201):
+        raise RuntimeError(f"Supabase upload failed: {resp.status_code} {resp.text}")
+
+    # Build public URL
+    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{STORAGE_BUCKET}/{filename}"
+    return public_url
+
+
+def delete_from_supabase(filename):
+    """Delete a file from Supabase Storage. Silently ignores errors."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return
+    try:
+        storage_url = f"{SUPABASE_URL}/storage/v1/object/{STORAGE_BUCKET}/{filename}"
+        headers = {
+            "apikey":        SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+        }
+        http_req.delete(storage_url, headers=headers, timeout=10)
+    except Exception as e:
+        print(f"[public_materials] delete_from_supabase error: {e}")
+
+
+# ─── GET /public — Publicly accessible material list ─────────────────────────
 @public_materials_bp.route('/public', methods=['GET'])
 def get_public_materials():
     conn = get_db()
@@ -37,16 +78,16 @@ def get_public_materials():
         conn.close()
 
 
-# ─── POST / — Upload new material (admin only) ────────────────────────────────
+# ─── POST / — Upload new material (admin only) ───────────────────────────────
 @public_materials_bp.route('/', methods=['POST'])
 @jwt_required()
 def upload_material():
     if 'material' not in request.files:
         return jsonify({'message': 'No file provided'}), 400
 
-    file = request.files['material']
-    title = request.form.get('title', '').strip()
-    category = request.form.get('category', 'Other').strip()
+    file      = request.files['material']
+    title     = request.form.get('title', '').strip()
+    category  = request.form.get('category', 'Other').strip()
 
     if not file or not file.filename:
         return jsonify({'message': 'No file selected'}), 400
@@ -61,11 +102,15 @@ def upload_material():
     if size_mb > MAX_SIZE_MB:
         return jsonify({'message': f'File too large. Max {MAX_SIZE_MB}MB.'}), 413
 
-    ext = file.filename.rsplit('.', 1)[1].lower()
-    safe_name = f"{uuid.uuid4().hex}.{ext}"
-    file.save(os.path.join(UPLOAD_DIR, safe_name))
+    ext          = file.filename.rsplit('.', 1)[1].lower()
+    safe_name    = f"{uuid.uuid4().hex}.{ext}"
+    file_bytes   = file.read()
+    content_type = file.content_type or 'application/octet-stream'
 
-    file_url = f"/api/public-materials/files/{safe_name}"
+    try:
+        public_url = upload_to_supabase(file_bytes, safe_name, content_type)
+    except Exception as e:
+        return jsonify({'message': f'Storage error: {str(e)}'}), 500
 
     conn = get_db()
     try:
@@ -74,20 +119,13 @@ def upload_material():
                 INSERT INTO public_materials (title, category, file_type, file_url)
                 VALUES (%s, %s, %s, %s)
                 RETURNING id
-            """, (title, category, ext, file_url))
+            """, (title, category, ext, public_url))
             conn.commit()
         return jsonify({'message': 'Material published successfully'}), 201
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
-
-
-# ─── GET /files/<filename> — Serve file download ──────────────────────────────
-@public_materials_bp.route('/files/<filename>', methods=['GET'])
-def serve_material(filename):
-    """Public endpoint to serve uploaded materials for download."""
-    return send_from_directory(UPLOAD_DIR, filename, as_attachment=True)
 
 
 # ─── DELETE /<id> — Remove material (admin only) ─────────────────────────────
@@ -102,12 +140,11 @@ def delete_material(material_id):
             if not row:
                 return jsonify({'message': 'Not found'}), 404
 
-            # Delete the physical file
-            if row['file_url']:
-                fname = row['file_url'].split('/')[-1]
-                fpath = os.path.join(UPLOAD_DIR, fname)
-                if os.path.exists(fpath):
-                    os.remove(fpath)
+            # Try to remove from Supabase Storage too
+            file_url = row['file_url'] or ''
+            if file_url:
+                fname = file_url.split('/')[-1]
+                delete_from_supabase(fname)
 
             cursor.execute("DELETE FROM public_materials WHERE id = %s", (material_id,))
             conn.commit()
