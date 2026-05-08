@@ -66,10 +66,20 @@ export default function PublicServices() {
   const fileColor = (type) => FILE_COLORS[type] || 'var(--brand-primary)'
 
   const handleDownload = async (url) => {
+    if (!url) return
+
+    // If URL is relative (starts with /), prepend the base URL (Railway)
+    let fullUrl = url
+    if (url.startsWith('/')) {
+      // API_URL already contains /api, so strip it from old relative paths to avoid /api/api/...
+      const base = API_URL.replace(/\/api\/?$/, '')
+      fullUrl = `${base}${url}`
+    }
+
     try {
-      await Browser.open({ url })
+      await Browser.open({ url: fullUrl })
     } catch (e) {
-      window.open(url, '_blank')
+      window.open(fullUrl, '_blank')
     }
   }
 
@@ -164,15 +174,8 @@ export default function PublicServices() {
             </div>
           ) : filteredMaterials.map(m => {
             const color = fileColor(m.file_type)
-            const handleDownload = async (url) => {
-    try {
-      await Browser.open({ url })
-    } catch (e) {
-      window.open(url, '_blank')
-    }
-  }
 
-  return (
+            return (
               <div
                 key={m.id}
                 className="feed-card"

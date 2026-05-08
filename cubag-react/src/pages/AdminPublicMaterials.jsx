@@ -87,10 +87,19 @@ export default function AdminPublicMaterials() {
   }
 
   const handleViewFile = async (url) => {
+    if (!url) return
+
+    // If URL is relative (starts with /), prepend the base URL (strip /api to avoid /api/api/)
+    let fullUrl = url
+    if (url.startsWith('/')) {
+      const base = API_URL.replace(/\/api\/?$/, '')
+      fullUrl = `${base}${url}`
+    }
+
     try {
-      await Browser.open({ url })
+      await Browser.open({ url: fullUrl })
     } catch (e) {
-      window.open(url, '_blank')
+      window.open(fullUrl, '_blank')
     }
   }
 
@@ -202,15 +211,8 @@ export default function AdminPublicMaterials() {
             </div>
           ) : materials.map(m => {
             const color = fileColor(m.file_type)
-            const handleViewFile = async (url) => {
-    try {
-      await Browser.open({ url })
-    } catch (e) {
-      window.open(url, '_blank')
-    }
-  }
 
-  return (
+            return (
               <div key={m.id} className="feed-card" style={{ padding: '14px 16px', borderRadius: 14 }}>
                 {/* ── Vertical layout: category / file name / source ── */}
                 <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
