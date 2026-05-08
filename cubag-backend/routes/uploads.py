@@ -7,8 +7,8 @@ from werkzeug.utils import secure_filename
 uploads_bp = Blueprint('uploads', __name__)
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'images')
-ALLOWED = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'}
-MAX_SIZE_MB = 5
+ALLOWED = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'pdf'}
+MAX_SIZE_MB = 15
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -29,7 +29,7 @@ def upload_image():
         return jsonify({'message': 'No file provided'}), 400
 
     if not allowed(file.filename):
-        return jsonify({'message': 'File type not allowed. Use PNG, JPG, JPEG, GIF, WEBP or AVIF.'}), 400
+        return jsonify({'message': 'File type not allowed. Use PNG, JPG, JPEG, GIF, WEBP, AVIF or PDF.'}), 400
 
     # Check file size before saving
     file.seek(0, 2)          # Seek to end
