@@ -462,11 +462,21 @@ def admin_mark_paid(payment_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute(
-                "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
-                (payment_id,)
-            )
-            conn.commit()
+            # Get the member_id from the payment
+            cursor.execute("SELECT member_id FROM payments WHERE id = %s", (payment_id,))
+            row = cursor.fetchone()
+            if row:
+                # Mark payment as paid
+                cursor.execute(
+                    "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
+                    (payment_id,)
+                )
+                # Approve the member's license/activate account
+                cursor.execute(
+                    "UPDATE members SET status = 'active' WHERE id = %s",
+                    (row['member_id'],)
+                )
+                conn.commit()
         return jsonify({'message': 'Payment marked as paid'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
