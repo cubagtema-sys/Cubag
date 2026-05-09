@@ -26,8 +26,8 @@ export default function AdminTasks() {
   const fetchData = async () => {
     try {
       const [memRes, taskRes] = await Promise.all([
-        fetch(`${API_URL}/members`),
-        fetch(`${API_URL}/tasks/admin/all`)
+        fetch(`${API_URL}/members`, { headers: AUTH() }),
+        fetch(`${API_URL}/tasks/admin/all`, { headers: AUTH() })
       ])
       if (memRes.ok) setMembers(await memRes.json())
       if (taskRes.ok) setTasks(await taskRes.json())
