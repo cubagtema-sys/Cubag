@@ -164,7 +164,7 @@ export default function AdminPayments() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '1.1rem' }}>₵{parseFloat(tx.amount).toLocaleString()}</div>
-                    <span style={{ fontSize: '0.55rem', fontWeight: 900, color: tx.status === 'paid' ? '#10b981' : '#f59e0b', textTransform: 'uppercase', padding: '2px 6px', background: tx.status === 'paid' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', borderRadius: 4 }}>{tx.status}</span>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 900, color: tx.status === 'paid' ? '#10b981' : tx.status === 'pending' ? '#f59e0b' : '#ef4444', textTransform: 'uppercase', padding: '2px 6px', background: tx.status === 'paid' ? 'rgba(16,185,129,0.1)' : tx.status === 'pending' ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: 4 }}>{tx.status}</span>
                   </div>
                 </div>
 

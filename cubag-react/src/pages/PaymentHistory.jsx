@@ -4,17 +4,19 @@ import CustomSelect from '../components/CustomSelect'
 
 const STATUS_COLORS = {
   paid:    { bg: 'rgba(16,185,129,0.12)',  text: '#10b981', icon: 'check_circle' },
-  pending: { bg: 'rgba(239,68,68,0.12)',   text: '#ef4444', icon: 'cancel' },
+  pending: { bg: 'rgba(245,158,11,0.12)',  text: '#f59e0b', icon: 'pending_actions' },
+  failed:  { bg: 'rgba(239,68,68,0.12)',   text: '#ef4444', icon: 'cancel' },
   overdue: { bg: 'rgba(239,68,68,0.12)',   text: '#ef4444', icon: 'cancel' },
 }
 
 // Map raw DB status to display label
-const statusLabel = (s) => s === 'pending' ? 'Failed' : s === 'overdue' ? 'Failed' : s
+const statusLabel = (s) => s === 'pending' ? 'Pending' : s === 'failed' ? 'Failed' : s === 'overdue' ? 'Overdue' : s
 
 const FILTER_OPTIONS = [
   { value: 'all',     label: 'All Transactions',  icon: 'receipt_long' },
   { value: 'paid',    label: 'Paid',               icon: 'check_circle' },
-  { value: 'pending', label: 'Failed',             icon: 'cancel' },
+  { value: 'pending', label: 'Pending',            icon: 'pending_actions' },
+  { value: 'failed',  label: 'Failed',             icon: 'cancel' },
   { value: 'overdue', label: 'Overdue',            icon: 'cancel' },
 ]
 
@@ -107,16 +109,16 @@ export default function PaymentHistory() {
             </div>
           </div>
 
-          {/* Failed Actions */}
-          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(239,68,68,0.25)', borderRadius: 14, padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: -12, right: -12, width: 60, height: 60, background: 'rgba(239,68,68,0.08)', borderRadius: '50%' }} />
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(239,68,68,0.12)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.6rem' }}>cancel</span>
+          {/* Pending / Processing */}
+          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(245,158,11,0.25)', borderRadius: 14, padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: -12, right: -12, width: 60, height: 60, background: 'rgba(245,158,11,0.08)', borderRadius: '50%' }} />
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(245,158,11,0.12)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.6rem' }}>pending_actions</span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Failed Actions</div>
-              <div style={{ fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 900, color: '#ef4444', lineHeight: 1.1, wordBreak: 'break-all' }}>
-                GH₵ {fmt(totals.failed)}
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Pending Approval</div>
+              <div style={{ fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 900, color: '#f59e0b', lineHeight: 1.1, wordBreak: 'break-all' }}>
+                GH₵ {fmt(totals.pending)}
               </div>
             </div>
           </div>
