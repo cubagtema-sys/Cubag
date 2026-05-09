@@ -225,6 +225,19 @@ def init_db():
                 )
             """)
 
+            # News / Blog
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS news_blog (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    category VARCHAR(100) DEFAULT 'General',
+                    content TEXT,
+                    image_url TEXT,
+                    author VARCHAR(100) DEFAULT 'CUBAG Admin',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
         conn.commit()
         print("[OK] Database tables initialised successfully.")
     except Exception as e:
