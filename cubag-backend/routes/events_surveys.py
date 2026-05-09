@@ -101,7 +101,7 @@ def get_surveys():
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT s.*, 
-                       (CASE WHEN sr.id IS NOT NULL THEN TRUE ELSE FALSE END) as has_responded
+                       (CASE WHEN sr.survey_id IS NOT NULL THEN TRUE ELSE FALSE END) as has_responded
                 FROM surveys s
                 LEFT JOIN survey_responses sr ON s.id = sr.survey_id AND sr.member_id = %s
                 ORDER BY s.created_at DESC
@@ -162,6 +162,7 @@ def get_all_surveys_admin():
         conn.close()
 
 @surveys_bp.route('/<int:survey_id>/participation', methods=['GET'])
+@jwt_required()
 def get_survey_participation(survey_id):
     """Returns lists of members who have and haven't responded to a survey."""
     conn = get_db()
