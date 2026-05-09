@@ -25,7 +25,7 @@ export default function AdminDashboard() {
         let payments = { kpis: { revenue: 0, pending: 0 } }
         if (payRes.ok) payments = await payRes.json()
 
-        const ticketRes = await fetch(`${import.meta.env.VITE_API_URL}/tickets`, { headers: authHeader })
+        const ticketRes = await fetch(`${import.meta.env.VITE_API_URL}/tickets/admin/all`, { headers: authHeader })
         let openTickets = 0
         if (ticketRes.ok) {
           const ticketData = await ticketRes.json()
