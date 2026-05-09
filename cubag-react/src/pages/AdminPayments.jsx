@@ -15,6 +15,9 @@ export default function AdminPayments() {
   const [selectedTx, setSelectedTx] = useState(null)
   const [pendingPaid, setPendingPaid] = useState(null)
   const [toast, setToast] = useState(null)
+  const [page, setPage] = useState(1)
+  
+  const PAGE_SIZE = 10
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -128,14 +131,14 @@ export default function AdminPayments() {
             <CustomSelect
               label="Type"
               value={filterType}
-              onChange={setFilterType}
+              onChange={(val) => { setFilterType(val); setPage(1); }}
               options={TYPE_OPTIONS}
               icon="category"
             />
             <CustomSelect
               label="Status"
               value={filterStatus}
-              onChange={setFilterStatus}
+              onChange={(val) => { setFilterStatus(val); setPage(1); }}
               options={STATUS_OPTIONS}
               icon="payments"
             />
@@ -151,7 +154,7 @@ export default function AdminPayments() {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No payment records found.</p>
             </div>
           ) : (
-            filtered.map((tx) => (
+            filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((tx) => (
               <div key={tx.tx_id} className="feed-card" style={{ padding: '14px 16px', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>
@@ -184,6 +187,25 @@ export default function AdminPayments() {
                 </div>
               </div>
             ))
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && filtered.length > PAGE_SIZE && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: page === 1 ? 'var(--text-muted)' : 'var(--text-primary)', cursor: page === 1 ? 'default' : 'pointer', fontWeight: 600, opacity: page === 1 ? 0.5 : 1 }}
+              >← Prev</button>
+              {Array.from({ length: Math.ceil(filtered.length / PAGE_SIZE) }, (_, i) => i + 1).map(n => (
+                <button key={n} onClick={() => setPage(n)} style={{ width: 34, height: 34, borderRadius: 8, border: 'none', background: page === n ? 'var(--brand-primary)' : 'var(--bg-card)', color: page === n ? '#fff' : 'var(--text-secondary)', fontWeight: 700, cursor: 'pointer' }}>{n}</button>
+              ))}
+              <button
+                onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE), p + 1))}
+                disabled={page === Math.ceil(filtered.length / PAGE_SIZE)}
+                style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: page === Math.ceil(filtered.length / PAGE_SIZE) ? 'var(--text-muted)' : 'var(--text-primary)', cursor: page === Math.ceil(filtered.length / PAGE_SIZE) ? 'default' : 'pointer', fontWeight: 600, opacity: page === Math.ceil(filtered.length / PAGE_SIZE) ? 0.5 : 1 }}
+              >Next →</button>
+            </div>
           )}
         </div>
       </div>
