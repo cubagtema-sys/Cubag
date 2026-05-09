@@ -63,8 +63,8 @@ def delete_blog(id):
 @news_bp.route('/global', methods=['GET'])
 def get_global_news():
     # Fetch automated RSS feed using rss2json API (free public logistics news)
-    # Using Supply Chain Dive or gCaptain as a source of maritime/logistics news
-    rss_url = "https://gcaptain.com/feed/"
+    # Using Splash247 as a reliable source of maritime/logistics news
+    rss_url = "https://splash247.com/feed/"
     api_url = f"https://api.rss2json.com/v1/api.json?rss_url={rss_url}"
     try:
         response = requests.get(api_url, timeout=10)
