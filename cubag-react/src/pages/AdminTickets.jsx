@@ -27,7 +27,9 @@ export default function AdminTickets() {
 
   const fetchTickets = async () => {
     try {
-      const res = await fetch(`${API_URL}/tickets/admin/all`)
+      const res = await fetch(`${API_URL}/tickets/admin/all`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
+      })
       if (res.ok) {
         const data = await res.json()
         setTickets(data)
@@ -46,7 +48,10 @@ export default function AdminTickets() {
     try {
       const res = await fetch(`${API_URL}/tickets/admin/${selectedTicket.id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
+        },
         body: JSON.stringify({ status: newStatus })
       })
       if (res.ok) {
@@ -64,7 +69,10 @@ export default function AdminTickets() {
     try {
       const res = await fetch(`${API_URL}/tickets/admin/${selectedTicket.id}/reply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
+        },
         body: JSON.stringify({ message: reply })
       })
       if (res.ok) {
