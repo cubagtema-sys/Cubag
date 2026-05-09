@@ -22,6 +22,10 @@ export default function AdminTasks() {
   const [verifyingId, setVerifyingId] = useState(null)
   const [verifyNotes, setVerifyNotes] = useState({})
   const [viewFile, setViewFile] = useState(null) // { url, type, name }
+  const [historyPage, setHistoryPage] = useState(1)
+  const [submissionsPage, setSubmissionsPage] = useState(1)
+
+  const PAGE_SIZE = 8
 
   const fetchData = async () => {
     try {
@@ -105,6 +109,12 @@ export default function AdminTasks() {
 
   const submissions = tasks.filter(t => t.submission_id)
   const pendingVerify = submissions.filter(t => !t.admin_verified).length
+
+  const paginatedHistory = assignmentGroups.slice((historyPage - 1) * PAGE_SIZE, historyPage * PAGE_SIZE)
+  const totalHistoryPages = Math.ceil(assignmentGroups.length / PAGE_SIZE)
+
+  const paginatedSubmissions = submissions.slice((submissionsPage - 1) * PAGE_SIZE, submissionsPage * PAGE_SIZE)
+  const totalSubmissionsPages = Math.ceil(submissions.length / PAGE_SIZE)
 
   return (
     <AppLayout title="Tasks">
@@ -194,7 +204,7 @@ export default function AdminTasks() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {submissions.map((task, i) => (
+                {paginatedSubmissions.map((task, i) => (
                   <div key={i} style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
 
                     {/* Header */}
@@ -283,6 +293,25 @@ export default function AdminTasks() {
                     )}
                   </div>
                 ))}
+
+                {/* Submissions Pagination Controls */}
+                {totalSubmissionsPages > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                    <button
+                      onClick={() => setSubmissionsPage(p => Math.max(1, p - 1))}
+                      disabled={submissionsPage === 1}
+                      style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: submissionsPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)', cursor: submissionsPage === 1 ? 'default' : 'pointer', fontWeight: 600, opacity: submissionsPage === 1 ? 0.5 : 1 }}
+                    >← Prev</button>
+                    {Array.from({ length: totalSubmissionsPages }, (_, i) => i + 1).map(n => (
+                      <button key={n} onClick={() => setSubmissionsPage(n)} style={{ width: 34, height: 34, borderRadius: 8, border: 'none', background: submissionsPage === n ? 'var(--brand-primary)' : 'var(--bg-card)', color: submissionsPage === n ? '#fff' : 'var(--text-secondary)', fontWeight: 700, cursor: 'pointer' }}>{n}</button>
+                    ))}
+                    <button
+                      onClick={() => setSubmissionsPage(p => Math.min(totalSubmissionsPages, p + 1))}
+                      disabled={submissionsPage === totalSubmissionsPages}
+                      style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: submissionsPage === totalSubmissionsPages ? 'var(--text-muted)' : 'var(--text-primary)', cursor: submissionsPage === totalSubmissionsPages ? 'default' : 'pointer', fontWeight: 600, opacity: submissionsPage === totalSubmissionsPages ? 0.5 : 1 }}
+                    >Next →</button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -344,7 +373,7 @@ export default function AdminTasks() {
                     </tr>
                   </thead>
                   <tbody>
-                    {assignmentGroups.map((group, i) => {
+                    {paginatedHistory.map((group, i) => {
                       const isOverdue = new Date(group.due_date) < new Date() && group.completed < group.total
                       return (
                         <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -375,6 +404,25 @@ export default function AdminTasks() {
                   </tbody>
                 </table>
               </div>
+
+              {/* History Pagination Controls */}
+              {totalHistoryPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: '12px 0', marginTop: 12 }}>
+                  <button
+                    onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                    disabled={historyPage === 1}
+                    style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: historyPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)', cursor: historyPage === 1 ? 'default' : 'pointer', fontWeight: 600, opacity: historyPage === 1 ? 0.5 : 1 }}
+                  >← Prev</button>
+                  {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map(n => (
+                    <button key={n} onClick={() => setHistoryPage(n)} style={{ width: 34, height: 34, borderRadius: 8, border: 'none', background: historyPage === n ? 'var(--brand-primary)' : 'var(--bg-card)', color: historyPage === n ? '#fff' : 'var(--text-secondary)', fontWeight: 700, cursor: 'pointer' }}>{n}</button>
+                  ))}
+                  <button
+                    onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}
+                    disabled={historyPage === totalHistoryPages}
+                    style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: historyPage === totalHistoryPages ? 'var(--text-muted)' : 'var(--text-primary)', cursor: historyPage === totalHistoryPages ? 'default' : 'pointer', fontWeight: 600, opacity: historyPage === totalHistoryPages ? 0.5 : 1 }}
+                  >Next →</button>
+                </div>
+              )}
             </div>
           )
         )}
