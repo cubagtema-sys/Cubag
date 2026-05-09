@@ -77,7 +77,8 @@ export default function PaymentHistory() {
 
   const totals = {
     paid:    payments.filter(p => p.status === 'paid').reduce((s, p) => s + parseFloat(p.amount || 0), 0),
-    failed:  payments.filter(p => p.status === 'pending' || p.status === 'overdue').reduce((s, p) => s + parseFloat(p.amount || 0), 0),
+    pending: payments.filter(p => p.status === 'pending').reduce((s, p) => s + parseFloat(p.amount || 0), 0),
+    failed:  payments.filter(p => p.status === 'failed' || p.status === 'overdue').reduce((s, p) => s + parseFloat(p.amount || 0), 0),
   }
 
   const fmt = (n) => n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -119,6 +120,20 @@ export default function PaymentHistory() {
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Pending Approval</div>
               <div style={{ fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 900, color: '#f59e0b', lineHeight: 1.1, wordBreak: 'break-all' }}>
                 GH₵ {fmt(totals.pending)}
+              </div>
+            </div>
+          </div>
+
+          {/* Failed Actions */}
+          <div style={{ background: 'var(--bg-card)', border: '1.5px solid rgba(239,68,68,0.25)', borderRadius: 14, padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: -12, right: -12, width: 60, height: 60, background: 'rgba(239,68,68,0.08)', borderRadius: '50%' }} />
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(239,68,68,0.12)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.6rem' }}>cancel</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Failed Actions</div>
+              <div style={{ fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 900, color: '#ef4444', lineHeight: 1.1, wordBreak: 'break-all' }}>
+                GH₵ {fmt(totals.failed)}
               </div>
             </div>
           </div>
