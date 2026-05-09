@@ -104,14 +104,10 @@ export default function AdminPayments() {
         </div>
 
         {/* Financial KPIs - High Density */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
           <div className="feed-card" style={{ padding: '16px', borderRadius: 12, background: 'var(--gradient-brand)', color: '#fff', border: 'none' }}>
             <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', opacity: 0.8, marginBottom: 4 }}>Total Revenue</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 900, fontFamily: 'monospace' }}>₵{parseFloat(data.kpis.revenue || 0).toLocaleString()}</div>
-          </div>
-          <div className="feed-card" style={{ padding: '16px', borderRadius: 12, border: '1.5px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>Pending Collection</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#f59e0b', fontFamily: 'monospace' }}>₵{parseFloat(data.kpis.pending || 0).toLocaleString()}</div>
           </div>
         </div>
 
