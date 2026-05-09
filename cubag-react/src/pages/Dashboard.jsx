@@ -25,7 +25,7 @@ export default function Dashboard() {
       try {
         setLoading(true)
         // Load tasks from real API
-        const taskRes = await fetch(`${API_URL}/tasks/summary`, {
+        const taskRes = await fetch(`${API_URL}/tasks`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
         })
         if (taskRes.ok) {
@@ -138,20 +138,23 @@ export default function Dashboard() {
                   <p style={{ fontSize: '0.85rem' }}>No pending tasks! You are all caught up.</p>
                 </div>
               ) : (
-                tasks.filter(t => !t.done).map(task => (
-                  <div className="task-item" key={task.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <div className={`task-check ${task.done ? 'done' : ''}`} onClick={() => toggleTask(task.id)}></div>
-                    <div className="task-info">
-                      <div className="task-name" style={{ fontWeight: 600, fontSize: '0.9rem' }}>{task.name}</div>
-                      <div className={`task-due ${task.overdue ? 'overdue' : ''}`} style={{ fontSize: '0.75rem', color: task.overdue ? 'var(--brand-danger)' : 'var(--text-muted)' }}>
-                        {task.overdue ? '⚠ Overdue: ' : 'Due: '} {task.due}
+                tasks.filter(t => !t.done).map(task => {
+                  const isOverdue = task.due_date && new Date(task.due_date) < new Date()
+                  return (
+                    <div className="task-item" key={task.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                      <div className={`task-check ${task.done ? 'done' : ''}`} onClick={() => toggleTask(task.id)}></div>
+                      <div className="task-info">
+                        <div className="task-name" style={{ fontWeight: 600, fontSize: '0.9rem' }}>{task.title}</div>
+                        <div className={`task-due ${isOverdue ? 'overdue' : ''}`} style={{ fontSize: '0.75rem', color: isOverdue ? 'var(--brand-danger)' : 'var(--text-muted)' }}>
+                          {isOverdue ? '⚠ Overdue: ' : 'Due: '} {task.due_date || 'No deadline'}
+                        </div>
                       </div>
+                      <span className="task-priority priority-high" style={{ fontSize: '0.65rem', background: 'rgba(240,130,50,0.1)', color: 'var(--brand-primary)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+                        Required
+                      </span>
                     </div>
-                    <span className={`task-priority priority-${task.priority.toLowerCase()}`} style={{ fontSize: '0.65rem' }}>
-                      {task.priority}
-                    </span>
-                  </div>
-                ))
+                  )
+                })
               )}
               <Link to="/tasks" className="btn btn-ghost btn-sm" style={{ width: '100%', marginTop: 12, justifyContent: 'center', fontSize: '0.8rem' }}>View all tasks</Link>
             </div>
