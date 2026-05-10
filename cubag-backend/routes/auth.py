@@ -434,26 +434,4 @@ def reset_password():
     finally:
         conn.close()
 
-@auth_bp.route('/update-fcm-token', methods=['POST', 'OPTIONS'])
-@jwt_required()
-def update_fcm_token():
-    if request.method == 'OPTIONS':
-        return jsonify({'ok': True}), 200
 
-    member_id = get_jwt_identity()
-    data = request.get_json() or {}
-    token = data.get('token')
-    
-    if not token:
-        return jsonify({'message': 'Token is required'}), 400
-        
-    conn = get_db()
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute("UPDATE members SET fcm_token = %s WHERE id = %s", (token, member_id))
-            conn.commit()
-        return jsonify({'message': 'FCM Token updated successfully'}), 200
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
-    finally:
-        conn.close()
