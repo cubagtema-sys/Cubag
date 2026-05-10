@@ -202,21 +202,27 @@ export default function LicenseRenewal() {
       {pdfPreviewUrl && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)',
-          display: 'flex', flexDirection: 'column', padding: '16px'
+          display: 'flex', flexDirection: 'column', padding: '16px 16px 80px'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12, flexShrink: 0 }}>
-            <button className="btn btn-primary" onClick={() => {
-              setPdfPreviewUrl(null)
-            }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="material-symbols-outlined">close</span> Close Preview
-            </button>
-          </div>
-          <div style={{ flex: 1, overflow: 'auto', background: '#fff', borderRadius: 8, display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
+          <div style={{ flex: 1, overflow: 'auto', background: '#fff', borderRadius: 12, display: 'flex', justifyContent: 'center', padding: '20px 0', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
             <img 
               src={pdfPreviewUrl} 
               alt="Certificate Preview"
               style={{ width: '100%', maxWidth: '800px', height: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto' }}
             />
+          </div>
+          
+          <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 10000 }}>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setPdfPreviewUrl(null)} 
+              style={{ 
+                borderRadius: 30, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 8, 
+                boxShadow: '0 8px 30px rgba(0,0,0,0.4)', fontSize: '1rem', fontWeight: 800
+              }}
+            >
+              <span className="material-symbols-outlined">close</span> Close Preview
+            </button>
           </div>
         </div>
       )}
