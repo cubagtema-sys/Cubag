@@ -36,11 +36,11 @@ export default function Payments() {
   const [confirmedAmount, setConfirmedAmount] = useState('')
 
   const stopPolling = useCallback(() => {
-    if (pollInterval) {
-      clearInterval(pollInterval)
-      setPollInterval(null)
-    }
-  }, [pollInterval])
+    setPollInterval(prev => {
+      if (prev) clearInterval(prev)
+      return null
+    })
+  }, [])
 
   useEffect(() => {
     return () => stopPolling()
@@ -94,7 +94,7 @@ export default function Payments() {
       } catch (e) {}
     }, 4000)
     setPollInterval(id)
-  }, [stopPolling, fetchSummary])
+  }, [stopPolling, fetchSummary, amount])
 
   useAutoRefresh(fetchSummary, 60000)
 
