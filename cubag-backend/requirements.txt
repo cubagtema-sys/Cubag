@@ -9,4 +9,6 @@ psycopg2-binary
 gunicorn==22.0.0
 firebase-admin
 Flask-SocketIO==5.3.6
-eventlet==0.33.3
+gevent==23.9.1
+gevent-websocket==0.10.1
+setuptools
