@@ -127,7 +127,6 @@ export default function LicenseRenewal() {
                   </div>
                   <div>
                     <div style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--text-primary)' }}>Membership Record</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Ref: {rec.payment_ref && rec.payment_ref !== 'N/A' ? rec.payment_ref : (rec.approved ? 'Admin Verified' : 'Pending Ref')}</div>
                   </div>
                 </div>
                 <span style={{
