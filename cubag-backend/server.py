@@ -93,10 +93,13 @@ def health():
     return {'status': 'CUBAG API is running'}, 200
 
 # Run DB migrations on startup (works with both gunicorn and direct python)
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"[CRITICAL] Failed to initialize database: {e}")
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
-    print(f"[*] CUBAG Flask API running on http://localhost:{port}")
+    print(f"[*] CUBAG Flask API running on http://0.0.0.0:{port}")
     # Use socketio.run instead of app.run for real-time support
     socketio.run(app, host='0.0.0.0', port=port, debug=True, allow_unsafe_werkzeug=True)

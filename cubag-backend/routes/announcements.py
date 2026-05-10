@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
-from utils.push import send_push_to_all
+from utils import send_push_to_all
 
 announcements_bp = Blueprint('announcements', __name__)
 
