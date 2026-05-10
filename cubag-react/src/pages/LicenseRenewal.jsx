@@ -142,6 +142,7 @@ export default function LicenseRenewal() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
                 {[
+                  { label: 'License Number', val: rec.license_number || (rec.approved ? 'Validating...' : 'Pending'), icon: 'verified' },
                   { label: 'Organization', val: rec.company, icon: 'business' },
                   { label: 'Port of Operation', val: rec.port_of_operation, icon: 'location_on' }
                 ].map(({ label, val, icon }) => (
