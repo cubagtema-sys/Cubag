@@ -4,6 +4,8 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from datetime import timedelta
+import firebase_admin
+from firebase_admin import credentials
 
 from config.db import init_db
 from routes.auth import auth_bp
@@ -19,6 +21,29 @@ load_dotenv()
 # Create Flask app
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+
+import json
+
+# Initialize Firebase Admin
+try:
+    firebase_json_env = os.getenv('FIREBASE_CREDENTIALS_JSON')
+    cred_path = os.getenv('FIREBASE_CREDENTIALS', 'planning-with-ai-a2368-firebase-adminsdk-fbsvc-3f0078de77.json')
+    
+    if firebase_json_env:
+        # Load directly from environment variable string (for Railway deployment)
+        cred_dict = json.loads(firebase_json_env)
+        cred = credentials.Certificate(cred_dict)
+        firebase_admin.initialize_app(cred)
+        print("Firebase Admin initialized successfully from ENV.")
+    elif os.path.exists(cred_path):
+        # Load from file (for local development)
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+        print("Firebase Admin initialized successfully from FILE.")
+    else:
+        print(f"Firebase credentials not found. Push notifications will not work.")
+except Exception as e:
+    print(f"Failed to initialize Firebase Admin: {e}")
 
 # Config
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'cubag-secret')

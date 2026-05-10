@@ -45,7 +45,8 @@ def init_db():
             cursor.execute("""
                 ALTER TABLE members 
                 ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);
+                ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255),
+                ADD COLUMN IF NOT EXISTS fcm_token VARCHAR(255);
             """)
 
             # OTP Codes table for pre-registration verification
@@ -70,8 +71,13 @@ def init_db():
                     body TEXT,
                     category VARCHAR(100) DEFAULT 'General',
                     posted_by VARCHAR(150),
+                    deleted_at TIMESTAMP DEFAULT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
+            """)
+
+            cursor.execute("""
+                ALTER TABLE announcements ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL;
             """)
 
             # Tasks / Compliance
@@ -176,7 +182,8 @@ def init_db():
                 ALTER TABLE members 
                 ADD COLUMN IF NOT EXISTS payment_ref VARCHAR(255),
                 ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'member',
-                ADD COLUMN IF NOT EXISTS profile_photo TEXT;
+                ADD COLUMN IF NOT EXISTS profile_photo TEXT,
+                ADD COLUMN IF NOT EXISTS fcm_token TEXT;
             """)
 
             # Add movement-specific columns to schedules if not exists

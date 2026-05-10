@@ -313,6 +313,34 @@ def change_password():
         conn.close()
 
 
+@auth_bp.route('/update-fcm-token', methods=['POST', 'OPTIONS'])
+def update_fcm_token():
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True}), 200
+
+    @jwt_required()
+    def handle_post():
+        member_id = get_jwt_identity()
+        data = request.get_json()
+        token = data.get('token')
+
+        if not token:
+            return jsonify({'message': 'Token is required'}), 400
+
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("UPDATE members SET fcm_token = %s WHERE id = %s", (token, member_id))
+                conn.commit()
+            return jsonify({'message': 'FCM token updated'}), 200
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500
+        finally:
+            conn.close()
+
+    return handle_post()
+
+
 def send_reset_email(to_email, token):
     smtp_host = os.getenv('SMTP_HOST')
     smtp_port = int(os.getenv('SMTP_PORT', 587))
@@ -401,6 +429,30 @@ def reset_password():
             conn.commit()
             
             return jsonify({'message': 'Password has been reset successfully. You can now log in.'}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+@auth_bp.route('/update-fcm-token', methods=['POST', 'OPTIONS'])
+@jwt_required()
+def update_fcm_token():
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True}), 200
+
+    member_id = get_jwt_identity()
+    data = request.get_json() or {}
+    token = data.get('token')
+    
+    if not token:
+        return jsonify({'message': 'Token is required'}), 400
+        
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE members SET fcm_token = %s WHERE id = %s", (token, member_id))
+            conn.commit()
+        return jsonify({'message': 'FCM Token updated successfully'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
