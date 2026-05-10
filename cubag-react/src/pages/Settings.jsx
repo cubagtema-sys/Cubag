@@ -7,19 +7,43 @@ export default function Settings() {
   const [showPasswords, setShowPasswords] = useState({ current: false, next: false, confirm: false })
   const [message, setMessage] = useState('')
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault()
     if (passwords.next !== passwords.confirm) {
       setMessage('Passwords do not match!')
       return
     }
-    // Simulate API call
-    setMessage('Password updated successfully!')
-    setTimeout(() => {
-      setIsChangingPassword(false)
-      setMessage('')
-      setPasswords({ current: '', next: '', confirm: '' })
-    }, 2000)
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL.endsWith('/')
+        ? import.meta.env.VITE_API_URL.slice(0, -1)
+        : import.meta.env.VITE_API_URL;
+
+      const res = await fetch(`${baseUrl}/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
+        },
+        body: JSON.stringify({
+          current_password: passwords.current,
+          new_password: passwords.next
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setMessage('✅ Password updated successfully!')
+        setTimeout(() => {
+          setIsChangingPassword(false)
+          setMessage('')
+          setPasswords({ current: '', next: '', confirm: '' })
+        }, 2000)
+      } else {
+        setMessage(`❌ ${data.message || 'Update failed'}`)
+      }
+    } catch (err) {
+      setMessage('❌ Connection error. Try again.')
+    }
   }
 
   return (
@@ -49,13 +73,39 @@ export default function Settings() {
                 <span className="material-symbols-outlined" style={{ color: 'var(--text-muted)' }}>chevron_right</span>
               </div>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span className="material-symbols-outlined" style={{ color: 'var(--text-secondary)' }}>notifications_active</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Push Notifications</span>
                 </div>
                 <input type="checkbox" defaultChecked style={{ width: 20, height: 20 }} />
               </div>
+
+              {/* Contact Support */}
+              <div style={{ padding: '12px 20px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>Contact &amp; Support</span>
+              </div>
+
+              {[
+                { icon: 'call',  color: 'var(--brand-primary)', bg: 'rgba(240,130,50,0.1)', label: 'Call Support', value: '+233 (0) 302 123 456', href: 'tel:+233302123456' },
+                { icon: 'mail',  color: '#3b82f6',              bg: 'rgba(59,130,246,0.1)',  label: 'Email Us',    value: 'support@cubag.org.gh',  href: 'mailto:support@cubag.org.gh' },
+                { icon: 'forum', color: '#10b981',              bg: 'rgba(16,185,129,0.1)',  label: 'Live Chat',   value: 'Available 8am – 5pm',   href: '#' },
+              ].map((c, i, arr) => (
+                <a key={c.label} href={c.href}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', textDecoration: 'none', borderBottom: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: c.bg, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{c.icon}</span>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>{c.label}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{c.value}</div>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>chevron_right</span>
+                </a>
+              ))}
             </div>
           </div>
         ) : (

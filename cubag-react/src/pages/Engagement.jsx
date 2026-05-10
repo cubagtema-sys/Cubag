@@ -92,11 +92,7 @@ export default function Engagement() {
     }
   }
 
-  const CONTACTS = [
-    { icon: 'call',  color: 'var(--brand-primary)', bg: 'rgba(240,130,50,0.1)', label: 'Call Support', value: '+233 (0) 302 123 456', href: 'tel:+233302123456' },
-    { icon: 'mail',  color: '#3b82f6',              bg: 'rgba(59,130,246,0.1)',  label: 'Email Us',    value: 'support@cubag.org.gh',  href: 'mailto:support@cubag.org.gh' },
-    { icon: 'forum', color: '#10b981',              bg: 'rgba(16,185,129,0.1)',  label: 'Live Chat',   value: 'Available 8am – 5pm',   href: '#' },
-  ]
+
 
   return (
     <AppLayout title="Support">
@@ -108,22 +104,6 @@ export default function Engagement() {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Get assistance and manage your help requests.</p>
         </div>
 
-        {/* Quick Contact Strip - Smaller cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
-          {CONTACTS.map((c, i) => (
-            <a key={i} href={c.href}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 12, textDecoration: 'none' }}
-            >
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: c.bg, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{c.icon}</span>
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.75rem' }}>{c.label}</div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.value}</div>
-              </div>
-            </a>
-          ))}
-        </div>
 
         {/* Tab Switcher */}
         <div style={{ display: 'flex', gap: 3, background: 'var(--bg-surface)', borderRadius: 10, padding: 3 }}>
