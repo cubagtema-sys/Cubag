@@ -86,9 +86,9 @@ export default function Payments() {
           setPsStatus('')
           setShowSuccess(true)
           fetchSummary()
-        } else if (data.status === 'failed') {
+        } else if (['failed', 'abandoned', 'timeout', 'declined', 'cancelled'].includes(data.status)) {
           stopPolling()
-          alert('Payment failed or declined.')
+          alert('Payment was cancelled or timed out.')
           setPayStep(1)
         }
       } catch (e) {}
