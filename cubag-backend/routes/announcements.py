@@ -5,7 +5,24 @@ from utils import send_push_to_all
 
 announcements_bp = Blueprint('announcements', __name__)
 
-# ... (get_announcements code remains same) ...
+# ─── GET / — Members: only non-deleted announcements ──────────────────────────
+@announcements_bp.route('/', methods=['GET'])
+@jwt_required()
+def get_announcements():
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT * FROM announcements
+                WHERE deleted_at IS NULL
+                ORDER BY created_at DESC
+            """)
+            data = cursor.fetchall()
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
 
 # ─── POST / — Create new announcement ─────────────────────────────────────────
 @announcements_bp.route('/', methods=['POST'])
