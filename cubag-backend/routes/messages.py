@@ -40,7 +40,7 @@ def get_conversations():
                     
                     initials = ''.join([n[0] for n in (other_user['name'] or 'U').split()]).upper()[:2]
                     
-                    time_str = last_msg['created_at'].strftime('%I:%M %p') if last_msg else ''
+                    time_str = last_msg['created_at'].strftime('%b %d, %I:%M %p') if last_msg else ''
                     
                     conversations.append({
                         'id': other_user['id'],
@@ -80,7 +80,7 @@ def get_messages(other_id):
                     'id': m['id'],
                     'from': 'me' if m['sender_id'] == user_id else 'them',
                     'text': m['message'],
-                    'time': m['created_at'].strftime('%I:%M %p')
+                    'time': m['created_at'].strftime('%b %d, %I:%M %p')
                 })
             
             return jsonify(formatted), 200
@@ -108,7 +108,7 @@ def send_message(other_id):
                 'id': new_msg['id'],
                 'from': 'me',
                 'text': data.get('text'),
-                'time': new_msg['created_at'].strftime('%I:%M %p')
+                'time': new_msg['created_at'].strftime('%b %d, %I:%M %p')
             }), 201
     except Exception as e:
         return jsonify({'message': str(e)}), 500
