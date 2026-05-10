@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import { usePushNotifications } from './hooks/usePushNotifications.js'
 
 // Landing
 import Landing from './pages/Landing.jsx'
@@ -53,6 +54,7 @@ const P = ({ children }) => <ProtectedRoute>{children}</ProtectedRoute>
 const A = ({ children }) => <ProtectedRoute adminOnly>{children}</ProtectedRoute>
 
 export default function App() {
+  usePushNotifications()
   return (
     <BrowserRouter>
       <Routes>
