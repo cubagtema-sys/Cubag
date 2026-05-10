@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 
 export default function AppLayout({ children, title, hideSearch }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Initialize Push Notifications
+  usePushNotifications();
+
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('cubag_theme') === 'dark')
   const [notifCount, setNotifCount] = useState(0)
@@ -70,7 +75,11 @@ export default function AppLayout({ children, title, hideSearch }) {
       // Check for persistent photo if not in the object
       if (!user.photo && user.email) {
         const savedPhoto = localStorage.getItem(`cubag_photo_${user.email}`)
-        if (savedPhoto) user.photo = savedPhoto
+        if (savedPhoto) {
+          user.photo = savedPhoto
+          // Also update the session user object to ensure it stays in this tab
+          localStorage.setItem('cubag_user', JSON.stringify(user))
+        }
       }
     }
   } catch (e) {
@@ -91,11 +100,13 @@ export default function AppLayout({ children, title, hideSearch }) {
     { to: '/dashboard',       icon: 'home',           label: 'Home' },
     { to: '/networking',      icon: 'groups',         label: 'Network' },
     { to: '/payments',        icon: 'payments',       label: 'Payments' },
-    { to: '/payment-history', icon: 'receipt_long',   label: 'History' },
     { to: '/profile',         icon: 'account_circle', label: 'Profile' }
-  ].filter(item => {
-    if (user.status !== 'active' && item.to === '/networking') return false
-    return true
+  ].map(item => {
+    // For inactive users, swap "Network" with "Announcements" to keep 4 icons
+    if (user.status !== 'active' && item.to === '/networking') {
+      return { to: '/announcements', icon: 'campaign', label: 'Alerts' }
+    }
+    return item
   })
 
   const ADMIN_BOTTOM_NAV = [

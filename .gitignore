@@ -47,3 +47,9 @@ npm-debug.log*
 # Capacitor generated (will be re-generated on build)
 cubag-react/assets/android/
 cubag-react/assets/ios/
+
+# Database dumps
+*.sql
+
+# Service accounts
+*-firebase-adminsdk-*.json

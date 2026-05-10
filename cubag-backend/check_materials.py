@@ -8,7 +8,8 @@ def check_materials():
             rows = cursor.fetchall()
             print(f"Found {len(rows)} materials:")
             for row in rows:
-                print(f"ID: {row['id']} | Title: {row['title']} | URL: {row['file_url']}")
+                print(f"ID: {row['id']} | Title: {row['title']}")
+                print(f"URL: '{row['file_url']}'")
     except Exception as e:
         print(f"Error: {e}")
     finally:

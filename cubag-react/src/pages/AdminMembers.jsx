@@ -55,14 +55,24 @@ export default function AdminMembers() {
   const updateStatus = async (id, newStatus) => {
     setUpdating(true)
     try {
-      await fetch(`${API_URL}/members/admin/status/${id}`, {
+      const res = await fetch(`${API_URL}/members/admin/status/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus })
       })
+      const data = await res.json()
+      
       // Update local state immediately
-      setMembers(prev => prev.map(m => m.id === id ? { ...m, status: newStatus } : m))
-      if (selected?.id === id) setSelected(s => ({ ...s, status: newStatus }))
+      setMembers(prev => prev.map(m => {
+        if (m.id === id) {
+          return { ...m, status: newStatus, license_number: data.license_number || m.license_number }
+        }
+        return m
+      }))
+      
+      if (selected?.id === id) {
+        setSelected(s => ({ ...s, status: newStatus, license_number: data.license_number || s.license_number }))
+      }
     } catch {
     } finally {
       setUpdating(false)
@@ -251,6 +261,7 @@ export default function AdminMembers() {
                   { icon: 'work',        label: 'Type',              val: selected.member_type },
                   { icon: 'location_on', label: 'Port',              val: selected.port_of_operation },
                   { icon: 'badge',       label: 'License',           val: selected.license_number || 'N/A' },
+                  { icon: 'notifications', label: 'Push Token',       val: selected.fcm_token ? 'Active (Registered)' : 'Not Registered' },
                   { icon: 'calendar_month', label: 'Registered',     val: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : 'N/A' },
                 ].map(({ icon, label, val }) => (
                   <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px', background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>

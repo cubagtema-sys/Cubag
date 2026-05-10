@@ -27,7 +27,18 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
     function updatePos() {
       if (!triggerRef.current) return
       const rect = triggerRef.current.getBoundingClientRect()
-      setDropPos({ top: rect.bottom + 6, left: rect.left, width: rect.width })
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      
+      let newPos = { left: rect.left, width: rect.width }
+      if (spaceBelow < 250 && spaceAbove > spaceBelow) {
+        newPos.bottom = window.innerHeight - rect.top + 6
+        newPos.maxHeight = spaceAbove - 20
+      } else {
+        newPos.top = rect.bottom + 6
+        newPos.maxHeight = spaceBelow - 20
+      }
+      setDropPos(newPos)
     }
     updatePos()
     window.addEventListener('scroll', updatePos, true)
@@ -41,7 +52,18 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
   const handleOpen = () => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect()
-      setDropPos({ top: rect.bottom + 6, left: rect.left, width: rect.width })
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      
+      let newPos = { left: rect.left, width: rect.width }
+      if (spaceBelow < 250 && spaceAbove > spaceBelow) {
+        newPos.bottom = window.innerHeight - rect.top + 6
+        newPos.maxHeight = spaceAbove - 20
+      } else {
+        newPos.top = rect.bottom + 6
+        newPos.maxHeight = spaceBelow - 20
+      }
+      setDropPos(newPos)
     }
     setIsOpen(prev => !prev)
   }
@@ -71,9 +93,13 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
           style={{
             position: 'fixed',
             top: dropPos.top,
+            bottom: dropPos.bottom,
             left: dropPos.left,
             width: dropPos.width,
-            zIndex: 99999,
+            maxHeight: dropPos.maxHeight ? Math.max(100, dropPos.maxHeight) : undefined,
+            zIndex: 100000,
+            animation: 'slideInDown 0.2s ease-out',
+            overflowY: 'auto'
           }}
         >
           {options.map(option => (

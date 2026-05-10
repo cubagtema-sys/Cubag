@@ -31,7 +31,7 @@ def get_all_members_admin():
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT id, name, email, phone, company, member_type,
-                       port_of_operation, license_number, status, created_at, payment_ref
+                       port_of_operation, license_number, status, created_at, payment_ref, fcm_token
                 FROM members
                 ORDER BY created_at DESC
             """)
@@ -114,9 +114,26 @@ def update_member_status(member_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("UPDATE members SET status = %s WHERE id = %s", (new_status, member_id))
+            new_license = None
+            if new_status == 'active':
+                cursor.execute("SELECT license_number FROM members WHERE id = %s", (member_id,))
+                member = cursor.fetchone()
+                if member and (not member['license_number'] or member['license_number'].lower() == 'pending'):
+                    import datetime
+                    year = datetime.datetime.now().year
+                    new_license = f"CUBAG-LIC-{year}-{member_id:04d}"
+                    cursor.execute("UPDATE members SET status = %s, license_number = %s WHERE id = %s", (new_status, new_license, member_id))
+                else:
+                    cursor.execute("UPDATE members SET status = %s WHERE id = %s", (new_status, member_id))
+            else:
+                cursor.execute("UPDATE members SET status = %s WHERE id = %s", (new_status, member_id))
         conn.commit()
-        return jsonify({'message': f'Member {member_id} status updated to {new_status}'}), 200
+        
+        response_data = {'message': f'Member {member_id} status updated to {new_status}'}
+        if new_license:
+            response_data['license_number'] = new_license
+            
+        return jsonify(response_data), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:

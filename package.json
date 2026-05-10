@@ -2,6 +2,11 @@
   "name": "cubag-mobile-root",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "build:web": "cd cubag-react && npm run build",
+    "sync:android": "npx cap sync android",
+    "build:android": "npm run build:web && npm run sync:android"
+  },
   "devDependencies": {
     "@capacitor/cli": "^8.3.2"
   },

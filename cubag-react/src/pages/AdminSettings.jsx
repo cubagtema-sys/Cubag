@@ -17,15 +17,39 @@ export default function AdminSettings() {
     }
   }, [])
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault()
     if (passwordForm.new !== passwordForm.confirm) {
       setMessage('New passwords do not match.')
       return
     }
-    // Simulate password reset
-    setMessage('Password successfully reset.')
-    setPasswordForm({ current: '', new: '', confirm: '' })
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL.endsWith('/')
+        ? import.meta.env.VITE_API_URL.slice(0, -1)
+        : import.meta.env.VITE_API_URL;
+
+      const res = await fetch(`${baseUrl}/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('cubag_token')}`
+        },
+        body: JSON.stringify({
+          current_password: passwordForm.current,
+          new_password: passwordForm.new
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setMessage('✅ Password successfully reset.')
+        setPasswordForm({ current: '', new: '', confirm: '' })
+      } else {
+        setMessage(`❌ ${data.message || 'Update failed'}`)
+      }
+    } catch (err) {
+      setMessage('❌ Network error. Try again.')
+    }
     
     // Clear message after 3 seconds
     setTimeout(() => setMessage(''), 3000)

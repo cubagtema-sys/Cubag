@@ -231,7 +231,7 @@ export default function Payments() {
         </div>
 
         {/* 4-Step Payment Card - Moved to the Top */}
-        <div className="feed-card" style={{ borderRadius: 20, border: '1.5px solid var(--border-subtle)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
+        <div className="feed-card" style={{ borderRadius: 20, border: '1.5px solid var(--border-subtle)', boxShadow: 'var(--shadow-lg)' }}>
 
           {/* Progress Indicator */}
           <div style={{ padding: '24px 24px 20px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
