@@ -54,6 +54,10 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=int(os.getenv('JWT_AC
 CORS(app, origins=[os.getenv('CLIENT_URL', 'http://localhost:5173'), 'http://localhost:5174', 'capacitor://localhost', 'http://localhost', 'https://localhost'])
 JWTManager(app)
 
+# Initialize SocketIO
+from socket_instance import socketio
+socketio.init_app(app)
+
 # Register blueprints (all under /api)
 app.register_blueprint(auth_bp,          url_prefix='/api/auth')
 app.register_blueprint(members_bp,       url_prefix='/api/members')
@@ -94,4 +98,5 @@ init_db()
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
     print(f"[*] CUBAG Flask API running on http://localhost:{port}")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Use socketio.run instead of app.run for real-time support
+    socketio.run(app, host='0.0.0.0', port=port, debug=True, allow_unsafe_werkzeug=True)

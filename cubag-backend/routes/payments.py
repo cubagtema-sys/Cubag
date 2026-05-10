@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify, request
 from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
+from socket_instance import socketio
 
 payments_bp = Blueprint('payments', __name__)
 
@@ -477,6 +478,8 @@ def admin_mark_paid(payment_id):
                     (row['member_id'],)
                 )
                 conn.commit()
+                # Real-time WebSocket emission
+                socketio.emit('payment_approved', {'member_id': row['member_id'], 'payment_id': payment_id})
         return jsonify({'message': 'Payment marked as paid'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500

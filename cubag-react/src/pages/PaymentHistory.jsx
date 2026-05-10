@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
+import { useSocket } from '../hooks/useSocket'
 
 const STATUS_COLORS = {
   paid:    { bg: 'rgba(16,185,129,0.12)',  text: '#10b981', icon: 'check_circle' },
@@ -59,7 +60,9 @@ export default function PaymentHistory() {
   const [filter, setFilter] = useState('all')
   const [page, setPage] = useState(1)
 
-  useEffect(() => {
+  const socket = useSocket()
+
+  const fetchPayments = () => {
     fetch(`${import.meta.env.VITE_API_URL}/payments`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
     })
@@ -67,7 +70,23 @@ export default function PaymentHistory() {
       .then(data => setPayments(Array.isArray(data) ? data : []))
       .catch(() => setPayments([]))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    fetchPayments()
   }, [])
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('payment_approved', (data) => {
+        // Automatically fetch new payment list on socket event
+        fetchPayments()
+      })
+    }
+    return () => {
+      if (socket) socket.off('payment_approved')
+    }
+  }, [socket])
 
   const filtered = filter === 'all' ? payments : payments.filter(p => p.status === filter)
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
