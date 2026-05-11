@@ -79,18 +79,37 @@ export default function AdminLicenseRenewal() {
     setTimeout(() => setMessage({ text: '', ok: true }), 3000)
   }
 
+  // Per-member license history state
+  const [histories, setHistories]     = useState({})   // { [memberId]: [] }
+  const [showHistory, setShowHistory] = useState({})   // { [memberId]: bool }
+
+  const toggleHistory = async (memberId) => {
+    const nowShowing = !showHistory[memberId]
+    setShowHistory(prev => ({ ...prev, [memberId]: nowShowing }))
+    if (nowShowing && !histories[memberId]) {
+      try {
+        const res = await fetch(`${API}/members/admin/license-history/${memberId}`, {
+          headers: { 'Authorization': `Bearer ${token()}` }
+        })
+        if (res.ok) setHistories(prev => ({ ...prev, [memberId]: await res.json() }))
+      } catch {}
+    }
+  }
+
   const handleSaveExpiry = async (member) => {
     const ed = editors[member.id]
     if (!ed) return
 
-    // Determine the final expiry date
-    let expiryDate = ''
+    let expiryDate   = ''
+    let durationLabel = ''
+    const today = new Date().toISOString().split('T')[0]
+
     if (ed.preset) {
-      // Use today as start (the day admin is setting it = approval confirmation day)
-      const approvalDate = new Date().toISOString().split('T')[0]
-      expiryDate = addMonths(approvalDate, ed.preset)
+      expiryDate    = addMonths(today, ed.preset)
+      durationLabel = DURATION_PRESETS.find(p => p.months === ed.preset)?.label || ''
     } else if (ed.customDate) {
-      expiryDate = ed.customDate
+      expiryDate    = ed.customDate
+      durationLabel = 'Custom'
     }
 
     if (!expiryDate) return
@@ -100,17 +119,24 @@ export default function AdminLicenseRenewal() {
       const res = await fetch(`${API}/members/admin/set-expiry/${member.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token()}` },
-        body: JSON.stringify({ license_expiry_date: expiryDate })
+        body: JSON.stringify({
+          license_expiry_date: expiryDate,
+          duration_label:      durationLabel,
+          start_date:          today
+        })
       })
       if (res.ok) {
-        setMessage({ text: `Expiry set to ${formatDate(expiryDate)} for ${member.name}.`, ok: true })
+        setMessage({ text: `✓ ${durationLabel || 'Custom'} period set for ${member.name}. Old license archived.`, ok: true })
+        // Clear cached history so it reloads fresh
+        setHistories(prev => ({ ...prev, [member.id]: undefined }))
         fetchMembers()
       } else { setMessage({ text: 'Failed to save expiry date.', ok: false }) }
     } catch { setMessage({ text: 'Network error.', ok: false }) }
 
     setEditor(member.id, { saving: false })
-    setTimeout(() => setMessage({ text: '', ok: true }), 4000)
+    setTimeout(() => setMessage({ text: '', ok: true }), 5000)
   }
+
 
   const pendingList = members.filter(m => m.status === 'pending')
   const activeList  = members.filter(m => m.status === 'active' || m.status === 'suspended')
@@ -316,6 +342,59 @@ export default function AdminLicenseRenewal() {
                       {ed.saving ? 'Saving…' : 'Apply & Save'}
                     </button>
                   </div>
+
+                  {/* License History toggle */}
+                  <button
+                    onClick={() => toggleHistory(m.id)}
+                    style={{ marginTop: 10, width: '100%', padding: '7px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '0.95rem' }}>
+                      {showHistory[m.id] ? 'expand_less' : 'history'}
+                    </span>
+                    {showHistory[m.id] ? 'Hide' : 'View'} License History
+                  </button>
+
+                  {/* License History Panel */}
+                  {showHistory[m.id] && (
+                    <div style={{ marginTop: 6, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
+                      {!histories[m.id] || histories[m.id].length === 0 ? (
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', margin: '8px 0' }}>No history yet — history is recorded from the first renewal.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {histories[m.id].map((h, idx) => {
+                            const expired = h.expiry_date && new Date(h.expiry_date) < new Date()
+                            const isCurrent = idx === 0
+                            return (
+                              <div key={h.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                                {/* Timeline dot */}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 2 }}>
+                                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: isCurrent ? '#10b981' : expired ? '#ef4444' : 'var(--text-muted)', flexShrink: 0 }} />
+                                  {idx < histories[m.id].length - 1 && <div style={{ width: 1, flex: 1, background: 'var(--border-subtle)', minHeight: 16, marginTop: 3 }} />}
+                                </div>
+                                <div style={{ flex: 1, padding: '6px 10px', background: 'var(--bg-elevated)', borderRadius: 8, border: `1px solid ${isCurrent ? 'rgba(16,185,129,0.3)' : 'var(--border-subtle)'}` }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: isCurrent ? '#10b981' : 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                      {isCurrent ? 'Current' : 'Archived'} · {h.duration_label || '—'}
+                                    </span>
+                                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>
+                                      {h.archived_at ? new Date(h.archived_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                                    {h.license_number || '—'}
+                                  </div>
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                                    {formatDate(h.start_date)} → <span style={{ color: expired && !isCurrent ? '#ef4444' : 'var(--text-secondary)', fontWeight: 700 }}>{formatDate(h.expiry_date)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               )
             })}

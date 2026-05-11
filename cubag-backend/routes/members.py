@@ -149,36 +149,115 @@ def update_member_status(member_id):
 
 @members_bp.route('/admin/set-expiry/<int:member_id>', methods=['PUT'])
 def set_license_expiry(member_id):
-    """Admin: set or update the license expiry date for a member."""
-    data = request.get_json()
-    expiry_date = data.get('license_expiry_date')  # expected: 'YYYY-MM-DD'
+    """Admin: archive old license period then set new expiry date."""
+    data          = request.get_json()
+    expiry_date   = data.get('license_expiry_date')   # 'YYYY-MM-DD'
+    duration_label = data.get('duration_label', '')   # e.g. '1 Year'
+    start_date    = data.get('start_date', '')         # defaults to today server-side
+
     if not expiry_date:
         return jsonify({'message': 'license_expiry_date is required (YYYY-MM-DD)'}), 400
+
+    from datetime import date
+    today = date.today().isoformat()
+    effective_start = start_date or today
 
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            try:
-                cursor.execute(
-                    "UPDATE members SET license_expiry_date = %s WHERE id = %s",
-                    (expiry_date, member_id)
+            # ── 1. Ensure columns & history table exist ───────────────────────
+            cursor.execute(
+                "ALTER TABLE members ADD COLUMN IF NOT EXISTS license_expiry_date DATE"
+            )
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS license_history (
+                    id             SERIAL PRIMARY KEY,
+                    member_id      INTEGER NOT NULL,
+                    license_number VARCHAR(100),
+                    start_date     DATE,
+                    expiry_date    DATE,
+                    duration_label VARCHAR(50),
+                    archived_at    TIMESTAMP DEFAULT NOW()
                 )
-            except Exception:
-                # Column may not exist yet — create it first
-                conn.rollback()
-                cursor.execute(
-                    "ALTER TABLE members ADD COLUMN IF NOT EXISTS license_expiry_date DATE"
-                )
-                cursor.execute(
-                    "UPDATE members SET license_expiry_date = %s WHERE id = %s",
-                    (expiry_date, member_id)
-                )
+            """)
+
+            # ── 2. Read the current (outgoing) license period ─────────────────
+            cursor.execute("""
+                SELECT license_number, license_expiry_date
+                FROM members WHERE id = %s
+            """, (member_id,))
+            current = cursor.fetchone()
+
+            # ── 3. Archive it only if there was a previous expiry set ─────────
+            if current and current.get('license_expiry_date'):
+                cursor.execute("""
+                    INSERT INTO license_history
+                        (member_id, license_number, start_date, expiry_date, duration_label)
+                    SELECT %s, license_number,
+                           COALESCE(
+                               (SELECT MAX(expiry_date) FROM license_history WHERE member_id = %s),
+                               created_at::date
+                           ),
+                           %s, 'Previous Period'
+                    FROM members WHERE id = %s
+                """, (member_id, member_id, str(current['license_expiry_date']), member_id))
+
+            # ── 4. Set new expiry and log the new period ──────────────────────
+            cursor.execute(
+                "UPDATE members SET license_expiry_date = %s WHERE id = %s",
+                (expiry_date, member_id)
+            )
+            cursor.execute("""
+                INSERT INTO license_history
+                    (member_id, license_number, start_date, expiry_date, duration_label)
+                SELECT %s, license_number, %s, %s, %s
+                FROM members WHERE id = %s
+            """, (member_id, effective_start, expiry_date, duration_label or 'Custom', member_id))
+
         conn.commit()
-        return jsonify({'message': 'License expiry date updated', 'license_expiry_date': expiry_date}), 200
+        return jsonify({
+            'message': 'License period updated and history archived.',
+            'license_expiry_date': expiry_date,
+            'start_date': effective_start
+        }), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
+
+
+@members_bp.route('/admin/license-history/<int:member_id>', methods=['GET'])
+def get_member_license_history(member_id):
+    """Admin: fetch the full license period history for a member."""
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            # Return empty list gracefully if table doesn't exist yet
+            try:
+                cursor.execute("""
+                    SELECT lh.id, lh.license_number, lh.start_date, lh.expiry_date,
+                           lh.duration_label, lh.archived_at
+                    FROM license_history lh
+                    WHERE lh.member_id = %s
+                    ORDER BY lh.archived_at DESC
+                """, (member_id,))
+                rows = cursor.fetchall()
+                result = []
+                for r in rows:
+                    d = dict(r)
+                    for field in ('start_date', 'expiry_date', 'archived_at'):
+                        if d.get(field):
+                            d[field] = str(d[field])
+                    result.append(d)
+                return jsonify(result), 200
+            except Exception:
+                conn.rollback()
+                return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
 
 @members_bp.route('/public-directory', methods=['GET'])
 def get_public_directory():
