@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { showToast } from '../utils/toast'
+import { mapUser, getStoredUser, saveUser } from '../utils/user'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -27,26 +28,9 @@ export default function Profile() {
         })
         if (res.ok) {
           const data = await res.json()
-          const mappedUser = {
-            name:          data.name,
-            email:         data.email,
-            phone:         data.phone,
-            company:       data.company,
-            memberId:      data.id,
-            role:          data.member_type,
-            licenseNumber: data.license_number || null,
-            licenseExpiry: data.license_expiry_date || null,   // actual expiry DATE
-            status:        data.status,
-            photo:         data.profile_photo || null
-          }
+          const mappedUser = mapUser(data, getStoredUser() || {})
           setUser(mappedUser)
-          if (mappedUser.photo && mappedUser.email) {
-            localStorage.setItem(`cubag_photo_${mappedUser.email}`, mappedUser.photo)
-          }
-          localStorage.setItem('cubag_user', JSON.stringify({
-            ...mappedUser,
-            licenseExpiryDate: data.license_expiry_date || null
-          }))
+          saveUser(mappedUser)
         } else {
           localStorage.removeItem('cubag_token')
           navigate('/login')
@@ -95,12 +79,9 @@ export default function Profile() {
       })
       const result = await res.json()
       if (res.ok && result.photo_url) {
-        const updatedUser = { ...user, photo: result.photo_url }
+        const updatedUser = mapUser({ profile_photo: result.photo_url }, user)
         setUser(updatedUser)
-        if (user.email) {
-          localStorage.setItem(`cubag_photo_${user.email}`, result.photo_url)
-        }
-        localStorage.setItem('cubag_user', JSON.stringify(updatedUser))
+        saveUser(updatedUser)
         showToast('Profile photo updated!', 'success')
         setShowIdCard(true)
       } else {

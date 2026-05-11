@@ -48,8 +48,8 @@ export default function AppLayout({ children, title, hideSearch }) {
           if (Array.isArray(data)) setTaskCount(data.filter(t => !t.done).length)
         }
 
-        // ── Fetch fresh user profile to get profile photo ──────────────────────
-        const meRes = await fetch(`${url}/members/me`, { headers: authHeader })
+        // ── Fetch fresh user profile to get profile photo + expiry ────────────
+        const meRes = await fetch(`${url}/auth/me`, { headers: authHeader })
         if (meRes.ok) {
           const me = await meRes.json()
           const currentUser = getStoredUser()

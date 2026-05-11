@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import useAutoRefresh from '../hooks/useAutoRefresh'
+import { getStoredUser } from '../utils/user'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -14,12 +15,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('cubag_user')
-      if (stored) setUser(JSON.parse(stored))
-    } catch (e) {
-      console.error("Error loading user", e)
-    }
+    const stored = getStoredUser()
+    if (stored) setUser(stored)
 
     async function loadData() {
       try {

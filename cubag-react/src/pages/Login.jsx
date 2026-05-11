@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { mapUser, saveUser } from '../utils/user'
 
 export default function Login() {
   const [memberId, setMemberId] = useState('')
@@ -47,26 +48,12 @@ export default function Login() {
 
         localStorage.setItem('cubag_token', data.token)
 
-        // Attach saved photo if exists
-        const email = data.user?.email
-        const savedPhoto = email ? localStorage.getItem(`cubag_photo_${email}`) : null
-
-        // Map backend fields to frontend expected fields
-        const userToSave = {
-          ...data.user,
-          photo: savedPhoto || data.user.profile_photo || data.user.photo || null,
-          licenseExpiry: data.user.license_number || data.user.licenseNumber || 'No Active License'
-        }
-
-        // Persist photo URL for future sessions/tabs
-        if (userToSave.photo && email) {
-          localStorage.setItem(`cubag_photo_${email}`, userToSave.photo)
-        }
-
-        localStorage.setItem('cubag_user', JSON.stringify(userToSave))
+        // Map backend fields to frontend expected fields and persist
+        const userToSave = mapUser(data.user || {})
+        saveUser(userToSave)
 
         // Redirect based on role — admin → /admin, everyone else → /dashboard
-        navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard')
+        navigate(userToSave.role === 'admin' ? '/admin' : '/dashboard')
       } else {
         setError(data.error || data.message || 'Login failed. Please check credentials.')
       }
