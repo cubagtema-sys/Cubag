@@ -25,58 +25,71 @@ export default function AppLayout({ children, title, hideSearch }) {
   const location = useLocation()
 
   useEffect(() => {
-    async function getCounts() {
+    const url = import.meta.env.VITE_API_URL
+    const authHeader = () => ({ 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` })
+
+    // ── 1. Profile photo + expiry — runs FIRST, independently ────────────
+    async function fetchProfile() {
       try {
-        const url = import.meta.env.VITE_API_URL
-        const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
-        
-        // Fetch announcements — count only UNREAD ones
-        const annRes = await fetch(`${url}/announcements`, { headers: authHeader })
+        const res = await fetch(`${url}/auth/me`, { headers: authHeader() })
+        if (res.ok) {
+          const me = await res.json()
+          const currentUser = getStoredUser()
+          const updatedUser = mapUser(me, currentUser || {})
+          if (JSON.stringify(currentUser) !== JSON.stringify(updatedUser)) {
+            saveUser(updatedUser)
+          }
+          const photo = updatedUser.photo || updatedUser.profile_photo
+          if (photo) setUserPhoto(photo)
+        }
+      } catch (e) {
+        console.warn('[AppLayout] Profile fetch failed:', e)
+      }
+    }
+
+    // ── 2. Notification counts — separate, can fail without blocking photo
+    async function fetchCounts() {
+      try {
+        const annRes = await fetch(`${url}/announcements`, { headers: authHeader() })
         if (annRes.ok) {
           const data = await annRes.json()
           if (Array.isArray(data)) {
             try {
               const readIds = new Set(JSON.parse(localStorage.getItem('cubag_read_announcements') || '[]'))
-              const unread = data.filter(a => !readIds.has(a.id)).length
-              setNotifCount(unread)
+              setNotifCount(data.filter(a => !readIds.has(a.id)).length)
             } catch {
               setNotifCount(data.length)
             }
           }
         }
+      } catch {}
 
-        // Fetch tasks
-        const taskRes = await fetch(`${url}/tasks/summary`, { headers: authHeader })
+      try {
+        const taskRes = await fetch(`${url}/tasks/summary`, { headers: authHeader() })
         if (taskRes.ok) {
           const data = await taskRes.json()
           if (Array.isArray(data)) setTaskCount(data.filter(t => !t.done).length)
         }
+      } catch {}
+    }
 
-        // ── Fetch fresh user profile to get profile photo + expiry ────────────
-        const meRes = await fetch(`${url}/auth/me`, { headers: authHeader })
-        if (meRes.ok) {
-          const me = await meRes.json()
-          const currentUser = getStoredUser()
-          const updatedUser = mapUser(me, currentUser || {})
-
-          if (JSON.stringify(currentUser) !== JSON.stringify(updatedUser)) {
-            saveUser(updatedUser)
-          }
-          if (updatedUser.photo) setUserPhoto(updatedUser.photo)
-        }
-
-        // Connection restored
+    async function init() {
+      try {
+        await fetchProfile()
+        await fetchCounts()
         failCount.current = 0
         setIsOffline(false)
-      } catch (e) {
+      } catch {
         failCount.current += 1
         if (failCount.current >= 2) setIsOffline(true)
       }
     }
-    getCounts()
-    const id = setInterval(getCounts, 60000)
+
+    init()
+    const id = setInterval(init, 60000)
     return () => clearInterval(id)
   }, [])
+
 
   useEffect(() => {
     const theme = isDarkMode ? 'dark' : 'light'
