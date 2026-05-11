@@ -74,12 +74,15 @@ async function fetchOneFeed(sourceConfig) {
   return parseFeedXml(xml, sourceConfig)
 }
 
+const NEWS_PER_PAGE = 10
+
 export default function LiveData() {
   const [forex, setForex]               = useState({ USD: '...', EUR: '...', GBP: '...', CNY: '...' })
   const [globalNews, setGlobalNews]     = useState([])
   const [newsLoading, setNewsLoading]   = useState(true)
   const [forexLoading, setForexLoading] = useState(true)
   const [lastUpdated, setLastUpdated]   = useState(new Date().toLocaleTimeString())
+  const [newsPage, setNewsPage]         = useState(1)
 
   // ── Fetch Forex ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -115,7 +118,8 @@ export default function LiveData() {
         results.forEach(r => { if (r.status === 'fulfilled') all = [...all, ...r.value] })
         all.sort((a, b) => (b.pubTs || 0) - (a.pubTs || 0))
         all.forEach(i => delete i.pubTs)
-        setGlobalNews(all.slice(0, 30))
+        setGlobalNews(all)          // store ALL items — pagination slices them
+        setNewsPage(1)              // reset to page 1 on each refresh
         setLastUpdated(new Date().toLocaleTimeString())
       } catch (e) {
         console.error('News load error', e)
@@ -170,10 +174,17 @@ export default function LiveData() {
 
         {/* News Feed */}
         <section>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '1.4rem' }}>public</span>
-            Maritime & Customs Intelligence
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '1.4rem' }}>directions_boat</span>
+              Maritime &amp; Customs Intelligence
+            </h3>
+            {!newsLoading && globalNews.length > 0 && (
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {globalNews.length} articles
+              </span>
+            )}
+          </div>
           <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 12 }}>
             gCaptain · Hellenic Shipping · Splash247 · World Maritime News · Ship Technology · FreightWaves — sorted by latest
           </p>
@@ -181,48 +192,91 @@ export default function LiveData() {
           {newsLoading ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
               <div className="spinner" style={{ margin: '0 auto 12px' }} />
-              Syncing global news feeds...
+              Syncing maritime news feeds...
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {globalNews.map((news, i) => (
-                <a key={i} href={news.link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div className="feed-card" style={{ padding: '16px', borderRadius: 14, display: 'flex', gap: 16, alignItems: 'flex-start', cursor: 'pointer', transition: 'transform 0.15s' }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                  >
-                    {news.thumbnail && (
-                      <img src={news.thumbnail} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, flexShrink: 0, background: 'var(--bg-base)' }}
-                        onError={e => { e.target.style.display = 'none' }} />
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'wrap' }}>
-                        {news.source && (
-                          <span style={{ background: (news.sourceColor || '#3b82f6') + '18', color: news.sourceColor || '#3b82f6', padding: '1px 8px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', border: `1px solid ${news.sourceColor || '#3b82f6'}30`, flexShrink: 0 }}>
-                            {news.source}
+          ) : (() => {
+            const totalPages = Math.max(1, Math.ceil(globalNews.length / NEWS_PER_PAGE))
+            const pageItems  = globalNews.slice((newsPage - 1) * NEWS_PER_PAGE, newsPage * NEWS_PER_PAGE)
+
+            const goTo = (n) => {
+              setNewsPage(n)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pageItems.map((news, i) => (
+                  <a key={i} href={news.link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div className="feed-card" style={{ padding: '16px', borderRadius: 14, display: 'flex', gap: 16, alignItems: 'flex-start', cursor: 'pointer', transition: 'transform 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      {news.thumbnail && (
+                        <img src={news.thumbnail} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, flexShrink: 0, background: 'var(--bg-base)' }}
+                          onError={e => { e.target.style.display = 'none' }} />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'wrap' }}>
+                          {news.source && (
+                            <span style={{ background: (news.sourceColor || '#3b82f6') + '18', color: news.sourceColor || '#3b82f6', padding: '1px 8px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', border: `1px solid ${news.sourceColor || '#3b82f6'}30`, flexShrink: 0 }}>
+                              {news.source}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            {news.pubDate ? new Date(news.pubDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                           </span>
-                        )}
-                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          {news.pubDate ? new Date(news.pubDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
-                        </span>
-                      </div>
-                      <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {news.title}
-                      </h4>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {news.description}
+                        </div>
+                        <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {news.title}
+                        </h4>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {news.description}
+                        </div>
                       </div>
                     </div>
+                  </a>
+                ))}
+
+                {globalNews.length === 0 && (
+                  <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-elevated)', borderRadius: 12, fontSize: '0.85rem' }}>
+                    Global feed currently unavailable. Please try again later.
                   </div>
-                </a>
-              ))}
-              {globalNews.length === 0 && (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-elevated)', borderRadius: 12, fontSize: '0.85rem' }}>
-                  Global feed currently unavailable. Please try again later.
-                </div>
-              )}
-            </div>
-          )}
+                )}
+
+                {/* ── Pagination ── */}
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, padding: '16px 0 8px' }}>
+                    <button
+                      onClick={() => goTo(Math.max(1, newsPage - 1))}
+                      disabled={newsPage === 1}
+                      style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: newsPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)', cursor: newsPage === 1 ? 'default' : 'pointer', fontWeight: 700, fontSize: '0.8rem', opacity: newsPage === 1 ? 0.45 : 1 }}
+                    >← Prev</button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(n => n === 1 || n === totalPages || Math.abs(n - newsPage) <= 1)
+                      .reduce((acc, n, idx, arr) => {
+                        if (idx > 0 && n - arr[idx - 1] > 1) acc.push('…')
+                        acc.push(n)
+                        return acc
+                      }, [])
+                      .map((n, idx) =>
+                        n === '…'
+                          ? <span key={`e${idx}`} style={{ padding: '0 4px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>…</span>
+                          : <button key={n} onClick={() => goTo(n)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: newsPage === n ? 'var(--brand-primary)' : 'var(--bg-card)', color: newsPage === n ? '#fff' : 'var(--text-secondary)', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>{n}</button>
+                      )
+                    }
+
+                    <button
+                      onClick={() => goTo(Math.min(totalPages, newsPage + 1))}
+                      disabled={newsPage === totalPages}
+                      style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', color: newsPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)', cursor: newsPage === totalPages ? 'default' : 'pointer', fontWeight: 700, fontSize: '0.8rem', opacity: newsPage === totalPages ? 0.45 : 1 }}
+                    >Next →</button>
+                  </div>
+                )}
+
+              </div>
+            )
+          })()}
         </section>
 
       </div>
