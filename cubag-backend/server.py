@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
@@ -18,8 +18,16 @@ from routes.events_surveys import events_bp, surveys_bp
 # Load environment variables
 load_dotenv()
 
-# Create Flask app
-app = Flask(__name__)
+# ── Resolve React build path ─────────────────────────────────────────────────
+STATIC_DIR = os.path.join(os.path.dirname(__file__), '..', 'cubag-react', 'dist')
+# Fallback: if deployed with build output right next to the backend
+if not os.path.isdir(STATIC_DIR):
+    STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
+if not os.path.isdir(STATIC_DIR):
+    STATIC_DIR = os.path.join(os.path.dirname(__file__), 'dist')
+
+# Create Flask app — serve React build as static files
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='')
 app.url_map.strict_slashes = False
 
 import json
@@ -92,6 +100,23 @@ app.register_blueprint(news_bp,             url_prefix='/api/news')
 def health():
     return {'status': 'CUBAG API is running'}, 200
 
+
+# ── SPA catch-all: serve React's index.html for any non-API route ─────────
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_spa(path):
+    # If the path matches an actual file in the build (JS, CSS, images), serve it
+    full_path = os.path.join(app.static_folder, path)
+    if path and os.path.isfile(full_path):
+        return send_from_directory(app.static_folder, path)
+    # Otherwise serve index.html so React Router handles the route
+    index_path = os.path.join(app.static_folder, 'index.html')
+    if os.path.isfile(index_path):
+        return send_from_directory(app.static_folder, 'index.html')
+    # No build found — return API info
+    return {'message': 'CUBAG API is running. Frontend build not found at this location.'}, 200
+
+
 # Run DB migrations on startup (works with both gunicorn and direct python)
 try:
     init_db()
@@ -103,3 +128,4 @@ if __name__ == '__main__':
     print(f"[*] CUBAG Flask API running on http://0.0.0.0:{port}")
     # Use socketio.run instead of app.run for real-time support
     socketio.run(app, host='0.0.0.0', port=port, debug=True, allow_unsafe_werkzeug=True)
+
