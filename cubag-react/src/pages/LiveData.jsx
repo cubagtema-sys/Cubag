@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 
+// Maritime, Customs & Logistics feeds — curated for CUBAG members
 const FEED_SOURCES = [
-  { url: 'http://feeds.bbci.co.uk/news/world/rss.xml',     source: 'BBC News',         color: '#c0392b' },
-  { url: 'https://www.aljazeera.com/xml/rss/all.xml',      source: 'Al Jazeera',       color: '#1a6b3c' },
-  { url: 'https://feeds.skynews.com/feeds/rss/world.xml',  source: 'Sky News',         color: '#0066cc' },
-  { url: 'https://gcaptain.com/feed/',                     source: 'gCaptain Maritime', color: '#f08232' },
-  { url: 'https://www.theafricareport.com/feed/',          source: 'Africa Report',    color: '#7c3aed' },
-  { url: 'https://rssfeeds.usatoday.com/usatoday-NewsTopStories', source: 'USA Today', color: '#003580' },
+  { url: 'https://gcaptain.com/feed/',                        source: 'gCaptain',            color: '#f08232', icon: 'anchor' },
+  { url: 'https://www.hellenicshippingnews.com/feed/',        source: 'Hellenic Shipping',   color: '#1a6b3c', icon: 'directions_boat' },
+  { url: 'https://splash247.com/feed/',                       source: 'Splash247',           color: '#0066cc', icon: 'waves' },
+  { url: 'https://worldmaritimenews.com/feed/',               source: 'World Maritime News', color: '#7c3aed', icon: 'public' },
+  { url: 'https://www.ship-technology.com/feed/',             source: 'Ship Technology',     color: '#c0392b', icon: 'precision_manufacturing' },
+  { url: 'https://www.freightwaves.com/news/feed',            source: 'FreightWaves',        color: '#003580', icon: 'local_shipping' },
 ]
 
 function parseFeedXml(xml, sourceConfig) {
@@ -112,7 +113,7 @@ export default function LiveData() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12 }}>
           <div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 2 }}>Intelligence Hub</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>Live monitoring of global markets & logistics news.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>Live monitoring of global maritime, shipping & customs news.</p>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase' }}>
@@ -149,10 +150,10 @@ export default function LiveData() {
         <section>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
             <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '1.4rem' }}>public</span>
-            Worldwide News Feed
+            Maritime & Customs Intelligence
           </h3>
           <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 12 }}>
-            BBC World · Al Jazeera · Sky News · gCaptain · USA Today · Africa Report — sorted by latest
+            gCaptain · Hellenic Shipping · Splash247 · World Maritime News · Ship Technology · FreightWaves — sorted by latest
           </p>
 
           {newsLoading ? (
