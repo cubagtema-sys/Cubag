@@ -75,17 +75,31 @@ def create_payment():
                 """, (member_id, amount, description, payment_ref))
                 payment_id = cursor.fetchone()['id']
 
+            # If it's a license renewal, ensure member status is 'pending' while waiting for pay
+            if 'Renewal' in description:
+                cursor.execute(
+                    "UPDATE members SET status = 'pending' WHERE id = %s",
+                    (member_id,)
+                )
+
             conn.commit()
 
         # ── 2. Handle MoMo via Paystack ──
         if method == 'momo' and PAYSTACK_SECRET and 'REPLACE' not in PAYSTACK_SECRET:
             network_map = {'MTN': 'mtn', 'Vodafone': 'vod', 'AirtelTigo': 'atl'}
+
+            # Ensure phone is in local 10-digit format for Paystack GHS
+            # (Remove +233 if it was somehow added, but usually frontend sends 0...)
+            clean_phone = phone.strip().replace(' ', '')
+            if clean_phone.startswith('+233'):
+                clean_phone = '0' + clean_phone[4:]
+
             payload = {
                 'email': member['email'],
-                'amount': int(float(amount) * 100),  # Paystack expects pesewas
+                'amount': int(float(amount) * 100),  # pesewas
                 'currency': 'GHS',
                 'mobile_money': {
-                    'phone': phone,
+                    'phone': clean_phone,
                     'provider': network_map.get(network, 'mtn')
                 },
                 'metadata': {
@@ -94,6 +108,7 @@ def create_payment():
                     'description': description
                 }
             }
+            print(f"[DEBUG] Initiating Paystack Charge. Phone: {clean_phone}, Provider: {network_map.get(network)}")
             try:
                 ps_res = requests.post(
                     'https://api.paystack.co/charge',
@@ -102,12 +117,17 @@ def create_payment():
                     timeout=15
                 )
                 ps_data = ps_res.json()
+                print(f"[DEBUG] Paystack Charge Response: {ps_data}")
 
                 if not ps_data.get('status'):
+                    with conn.cursor() as cursor:
+                        cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s", (payment_id,))
+                        conn.commit()
                     return jsonify({
                         'payment_id': payment_id,
                         'message': ps_data.get('message', 'Paystack initialization failed'),
-                        'error': True
+                        'error': True,
+                        'details': ps_data
                     }), 400
 
                 ps_payload = ps_data.get('data', {})
@@ -137,12 +157,15 @@ def create_payment():
                 }), 200
 
             except Exception as e:
+                with conn.cursor() as cursor:
+                    cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s", (payment_id,))
+                    conn.commit()
                 return jsonify({
                     'payment_id': payment_id,
-                    'status': 'pending',
+                    'status': 'failed',
                     'message': 'Payment record created, but MoMo prompt failed to send.',
                     'error': str(e)
-                }), 200
+                }), 400
 
         # ── 4. Handle Bank Transfer ──
         return jsonify({
@@ -259,7 +282,10 @@ def verify_payment_manually(reference):
             payment_id = ps_payload.get('metadata', {}).get('payment_id')
             _mark_payment_as_paid(payment_id)
             return jsonify({'message': 'Payment verified', 'status': 'success'}), 200
-        elif ps_status == 'failed':
+        elif ps_status in ('failed', 'abandoned', 'reversed', 'declined', 'cancelled', 'canceled'):
+            payment_id = ps_payload.get('metadata', {}).get('payment_id')
+            if payment_id:
+                _mark_payment_as_failed(payment_id)
             return jsonify({'message': 'Payment failed or declined', 'status': 'failed'}), 200
 
         return jsonify({'message': 'Payment processing', 'status': ps_status}), 200
@@ -268,6 +294,22 @@ def verify_payment_manually(reference):
         # Return pending instead of 500 so frontend doesn't break
         return jsonify({'message': 'Checking...', 'status': 'pending'}), 200
 
+
+def _mark_payment_as_failed(payment_id):
+    if not payment_id: return
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT status FROM payments WHERE id = %s", (payment_id,))
+            p = cursor.fetchone()
+            if p and p['status'] == 'pending':
+                cursor.execute(
+                    "UPDATE payments SET status = 'failed' WHERE id = %s",
+                    (payment_id,)
+                )
+                conn.commit()
+    finally:
+        conn.close()
 
 def _mark_payment_as_paid(payment_id):
     if not payment_id: return
@@ -326,6 +368,11 @@ def paystack_webhook():
         payment_id = ps_payload.get('metadata', {}).get('payment_id')
         if payment_id:
             _mark_payment_as_paid(payment_id)
+    elif event.get('event') in ('charge.failed', 'charge.abandoned', 'charge.reversed'):
+        ps_payload = event.get('data', {})
+        payment_id = ps_payload.get('metadata', {}).get('payment_id')
+        if payment_id:
+            _mark_payment_as_failed(payment_id)
 
     return jsonify({'message': 'ok'}), 200
 

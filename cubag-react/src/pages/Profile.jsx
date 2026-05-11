@@ -34,6 +34,9 @@ export default function Profile() {
             photo: data.profile_photo || null
           }
           setUser(mappedUser)
+          if (mappedUser.photo && mappedUser.email) {
+            localStorage.setItem(`cubag_photo_${mappedUser.email}`, mappedUser.photo)
+          }
           localStorage.setItem('cubag_user', JSON.stringify(mappedUser))
         } else {
           localStorage.removeItem('cubag_token')
@@ -72,6 +75,9 @@ export default function Profile() {
       if (res.ok && result.photo_url) {
         const updatedUser = { ...user, photo: result.photo_url }
         setUser(updatedUser)
+        if (user.email) {
+          localStorage.setItem(`cubag_photo_${user.email}`, result.photo_url)
+        }
         localStorage.setItem('cubag_user', JSON.stringify(updatedUser))
         showToast('Profile photo updated!', 'success')
         setShowIdCard(true)

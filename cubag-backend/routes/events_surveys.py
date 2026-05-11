@@ -236,6 +236,20 @@ def submit_response(survey_id):
         import json as json_lib
         data = request.get_json()
         with conn.cursor() as cursor:
+            cursor.execute("SELECT active, deadline FROM surveys WHERE id = %s", (survey_id,))
+            survey = cursor.fetchone()
+            
+            if not survey:
+                return jsonify({'message': 'Survey not found'}), 404
+                
+            if not survey['active']:
+                return jsonify({'message': 'This survey is no longer active'}), 400
+                
+            if survey['deadline']:
+                from datetime import date
+                if survey['deadline'] < date.today():
+                    return jsonify({'message': 'The deadline for this survey has passed'}), 400
+                    
             # Upsert — one response per member per survey
             cursor.execute("""
                 INSERT INTO survey_responses (survey_id, member_id, answers)

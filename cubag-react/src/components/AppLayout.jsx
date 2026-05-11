@@ -72,6 +72,12 @@ export default function AppLayout({ children, title, hideSearch }) {
     const stored = localStorage.getItem('cubag_user')
     if (stored) {
       user = JSON.parse(stored)
+
+      // Handle legacy or inconsistent field names
+      if (!user.photo && user.profile_photo) {
+        user.photo = user.profile_photo
+      }
+
       // Check for persistent photo if not in the object
       if (!user.photo && user.email) {
         const savedPhoto = localStorage.getItem(`cubag_photo_${user.email}`)

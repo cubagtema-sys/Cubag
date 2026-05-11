@@ -33,6 +33,8 @@ export default function Payments() {
   const [psStatus, setPsStatus] = useState('') // Paystack current status
   const [pollInterval, setPollInterval] = useState(null)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [showError, setShowError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [confirmedAmount, setConfirmedAmount] = useState('')
 
   const stopPolling = useCallback(() => {
@@ -88,8 +90,10 @@ export default function Payments() {
           fetchSummary()
         } else if (['failed', 'abandoned', 'timeout', 'declined', 'cancelled'].includes(data.status)) {
           stopPolling()
-          alert('Payment was cancelled or timed out.')
+          setErrorMessage(data.message || 'The payment was cancelled or timed out.')
+          setShowError(true)
           setPayStep(1)
+          setPsStatus('')
         }
       } catch (e) {}
     }, 4000)
@@ -502,6 +506,64 @@ export default function Payments() {
             </button>
 
             <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 16 }}>A receipt has been sent to your email</p>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Premium Error Overlay ═══ */}
+      {showError && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 28,
+            padding: '48px 32px 36px',
+            width: '90%',
+            maxWidth: 380,
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+            animation: 'fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)'
+          }}>
+            {/* Decorative glow */}
+            <div style={{ position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)', width: 200, height: 200, background: 'radial-gradient(circle, rgba(239,68,68,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+            {/* Animated error circle */}
+            <div style={{
+              width: 90, height: 90,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 24px',
+              boxShadow: '0 8px 32px rgba(239,68,68,0.4)',
+              animation: 'successPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both'
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: '#fff', fontWeight: 700 }}>close</span>
+            </div>
+
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.02em' }}>Transaction Failed</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
+              {errorMessage || 'Your payment could not be processed at this time. Please try again.'}
+            </p>
+
+            <button
+              className="btn btn-primary btn-lg"
+              onClick={() => setShowError(false)}
+              style={{
+                width: '100%', height: 52, fontSize: '1rem', fontWeight: 800,
+                borderRadius: 14, background: '#111',
+                border: 'none', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              }}
+            >
+              Try Again
+            </button>
           </div>
         </div>
       )}

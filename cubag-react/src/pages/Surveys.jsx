@@ -60,10 +60,17 @@ export default function Surveys() {
     finally { setSubmitting(false) }
   }
 
-  const todayStr = new Date().toISOString().split('T')[0]
-  // In a full implementation, we'd filter out surveys the user already answered
-  const activeSurveys = surveys.filter(s => s.active && (!s.deadline || s.deadline >= todayStr))
-  const pastSurveys = surveys.filter(s => !s.active || (s.deadline && s.deadline < todayStr))
+  const today = new Date()
+  const activeSurveys = surveys.filter(s => {
+    if (!s.active) return false;
+    if (!s.deadline) return true;
+    return new Date(s.deadline) >= today;
+  });
+  const pastSurveys = surveys.filter(s => {
+    if (!s.active) return true;
+    if (s.deadline && new Date(s.deadline) < today) return true;
+    return false;
+  });
 
   return (
     <AppLayout title="Surveys">
@@ -202,7 +209,7 @@ export default function Surveys() {
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Deadline: <strong>{s.deadline || 'None'}</strong>
+                      Deadline: <strong>{s.deadline ? new Date(s.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'None'}</strong>
                     </div>
                     {activeTab === 'active' ? (
                       s.has_responded ? (
