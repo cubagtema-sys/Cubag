@@ -15,7 +15,11 @@ export default function AppLayout({ children, title, hideSearch }) {
   const [notifCount, setNotifCount] = useState(0)
   const [taskCount, setTaskCount] = useState(0)
   const [isOffline, setIsOffline] = useState(false)
-  const [userPhoto, setUserPhoto] = useState(null)   // reactive photo state
+  // Initialize photo from localStorage immediately — no waiting for /me fetch
+  const [userPhoto, setUserPhoto] = useState(() => {
+    const u = getStoredUser()
+    return u?.photo || u?.profile_photo || null
+  })
   const failCount = useRef(0)
   const navigate = useNavigate()
   const location = useLocation()
@@ -61,7 +65,6 @@ export default function AppLayout({ children, title, hideSearch }) {
           if (updatedUser.photo) setUserPhoto(updatedUser.photo)
         }
 
-
         // Connection restored
         failCount.current = 0
         setIsOffline(false)
@@ -85,8 +88,9 @@ export default function AppLayout({ children, title, hideSearch }) {
 
   let user = getStoredUser() || { name: 'Member', role: 'Member' }
 
-  // Override with reactive photo state (set after /me fetch)
-  const displayPhoto = userPhoto || user.photo || null
+  // Use reactive photo — initialized from localStorage, updated by /me fetch
+  const displayPhoto = userPhoto || user.photo || user.profile_photo || null
+
 
   const isAdminRoute = location.pathname.startsWith('/admin')
 
