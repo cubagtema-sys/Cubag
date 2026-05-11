@@ -24,7 +24,7 @@ def send_verification_email(to_email, token):
     smtp_port = int(os.getenv('SMTP_PORT', 587))
     smtp_user = os.getenv('SMTP_USER')
     smtp_pass = os.getenv('SMTP_PASS')
-    client_url = os.getenv('CLIENT_URL', 'http://localhost:5173')
+    client_url = os.getenv('CLIENT_URL', 'https://cub-production.up.railway.app')
     
     if not smtp_host or not smtp_user:
         print("SMTP credentials not configured. Skipping email send.")
@@ -360,7 +360,7 @@ def send_reset_email(to_email, token):
     smtp_port = int(os.getenv('SMTP_PORT', 587))
     smtp_user = os.getenv('SMTP_USER')
     smtp_pass = os.getenv('SMTP_PASS')
-    client_url = os.getenv('CLIENT_URL', 'http://localhost:5173')
+    client_url = os.getenv('CLIENT_URL', 'https://cub-production.up.railway.app')
     
     if not smtp_host or not smtp_user:
         print("SMTP credentials not configured. Skipping password reset email.")
