@@ -137,7 +137,8 @@ def verify_email():
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
-    required = ['name', 'email', 'phone', 'company', 'licenseNumber', 'memberType', 'password']
+    # licenseNumber and agencyCode are now OPTIONAL
+    required = ['name', 'email', 'phone', 'company', 'memberType', 'password']
     for field in required:
         if not data.get(field):
             return jsonify({'message': f'{field} is required'}), 400
@@ -156,7 +157,7 @@ def register():
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE, 'pending')
             """, (
                 data['name'], data['email'], data['phone'], data['company'],
-                data.get('licenseNumber', ''), data.get('agencyCode', ''),
+                data.get('licenseNumber'), data.get('agencyCode'),
                 data.get('portOfOperation', 'Tema Port'), data['memberType'], pw_hash
             ))
             conn.commit()
