@@ -27,7 +27,7 @@ def send_verification_email(to_email, token):
     client_url = os.getenv('CLIENT_URL', 'https://cub-production.up.railway.app')
     
     if not smtp_host or not smtp_user:
-        print("SMTP credentials not configured. Skipping email send.")
+        print("[SMTP] Credentials not configured. Skipping.")
         return
 
     msg = MIMEMultipart()
@@ -38,43 +38,47 @@ def send_verification_email(to_email, token):
     body = f"Hello,\n\nYour CUBAG verification code is:\n\n{token}\n\nPlease enter this code in the app to complete your registration.\n\nThanks,\nCUBAG Secretariat"
     msg.attach(MIMEText(body, 'plain'))
 
-    try:
-        print(f"[SMTP] Attempting connection to {smtp_host}:{smtp_port}...")
-
-        # Try hostname directly first (smtplib handles resolution)
-        if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15)
+    def _try_connect(host, port):
+        if port == 465:
+            s = smtplib.SMTP_SSL(host, port, timeout=15)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
-            server.starttls()
-            
-        server.login(smtp_user, smtp_pass)
+            s = smtplib.SMTP(host, port, timeout=15)
+            s.starttls()
+        s.login(smtp_user, smtp_pass)
+        return s
+
+    try:
+        print(f"[SMTP] Attempting primary connection: {smtp_host}:{smtp_port}")
+        server = _try_connect(smtp_host, smtp_port)
         server.send_message(msg)
         server.quit()
-        print(f"[SMTP] Verification email sent to {to_email}")
+        print(f"[SMTP] Email sent to {to_email}")
         return True
     except Exception as e:
-        print(f"[SMTP] Primary connection failed: {e}. Trying IPv4 fallback...")
+        print(f"[SMTP] Primary failed: {e}. Trying alternate port/IP...")
         try:
-            # Force IPv4 fallback — some environments (Railway) have IPv6 issues
-            import socket
-            smtp_ip = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET)[0][4][0]
-            print(f"[SMTP] Connecting to IPv4 fallback {smtp_ip}:{smtp_port}")
-
-            if smtp_port == 465:
-                server = smtplib.SMTP_SSL(smtp_ip, smtp_port, timeout=15)
-            else:
-                server = smtplib.SMTP(smtp_ip, smtp_port, timeout=15)
-                server.starttls()
-
-            server.login(smtp_user, smtp_pass)
+            # Try alternate common port
+            alt_port = 465 if smtp_port != 465 else 587
+            print(f"[SMTP] Attempting alternate port: {smtp_host}:{alt_port}")
+            server = _try_connect(smtp_host, alt_port)
             server.send_message(msg)
             server.quit()
-            print(f"[SMTP] Verification email sent to {to_email} via IPv4 fallback")
+            print(f"[SMTP] Email sent via alternate port {alt_port}")
             return True
         except Exception as e2:
-            print(f"[SMTP] Error sending verification email (IPv4 fallback also failed): {e2}")
-            return False
+            print(f"[SMTP] Alternate port failed: {e2}. Trying IPv4 resolution...")
+            try:
+                import socket
+                ipv4 = socket.getaddrinfo(smtp_host, 587, socket.AF_INET)[0][4][0]
+                print(f"[SMTP] Attempting IPv4 direct: {ipv4}:587")
+                server = _try_connect(ipv4, 587)
+                server.send_message(msg)
+                server.quit()
+                print(f"[SMTP] Email sent via IPv4 fallback")
+                return True
+            except Exception as e3:
+                print(f"[SMTP] All connection paths failed. Last error: {e3}")
+                return False
 
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
@@ -387,7 +391,7 @@ def send_reset_email(to_email, token):
     client_url = os.getenv('CLIENT_URL', 'https://cub-production.up.railway.app')
     
     if not smtp_host or not smtp_user:
-        print("SMTP credentials not configured. Skipping password reset email.")
+        print("[SMTP] Credentials not configured for reset. Skipping.")
         return
 
     msg = MIMEMultipart()
@@ -400,40 +404,42 @@ def send_reset_email(to_email, token):
     body = f"Hello,\n\nYou requested a password reset. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email.\n\nThanks,\nCUBAG Secretariat"
     msg.attach(MIMEText(body, 'plain'))
 
-    try:
-        print(f"[SMTP] Attempting connection to {smtp_host}:{smtp_port} for password reset...")
-
-        # Try hostname directly first
-        if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15)
+    def _try_connect(host, port):
+        if port == 465:
+            s = smtplib.SMTP_SSL(host, port, timeout=15)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
-            server.starttls()
-            
-        server.login(smtp_user, smtp_pass)
+            s = smtplib.SMTP(host, port, timeout=15)
+            s.starttls()
+        s.login(smtp_user, smtp_pass)
+        return s
+
+    try:
+        print(f"[SMTP] Attempting primary reset connection: {smtp_host}:{smtp_port}")
+        server = _try_connect(smtp_host, smtp_port)
         server.send_message(msg)
         server.quit()
         print(f"[SMTP] Password reset email sent to {to_email}")
     except Exception as e:
-        print(f"[SMTP] Primary connection failed: {e}. Trying IPv4 fallback...")
+        print(f"[SMTP] Primary failed: {e}. Trying alternate path...")
         try:
-            # Force IPv4 fallback
-            import socket
-            smtp_ip = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET)[0][4][0]
-            print(f"[SMTP] Connecting to IPv4 fallback {smtp_ip}:{smtp_port}")
-
-            if smtp_port == 465:
-                server = smtplib.SMTP_SSL(smtp_ip, smtp_port, timeout=15)
-            else:
-                server = smtplib.SMTP(smtp_ip, smtp_port, timeout=15)
-                server.starttls()
-
-            server.login(smtp_user, smtp_pass)
+            alt_port = 465 if smtp_port != 465 else 587
+            print(f"[SMTP] Attempting alternate port: {smtp_host}:{alt_port}")
+            server = _try_connect(smtp_host, alt_port)
             server.send_message(msg)
             server.quit()
-            print(f"[SMTP] Password reset email sent to {to_email} via IPv4 fallback")
+            print(f"[SMTP] Reset email sent via alternate port {alt_port}")
         except Exception as e2:
-            print(f"[SMTP] Error sending password reset email (IPv4 fallback also failed): {e2}")
+            print(f"[SMTP] Alternate path failed: {e2}. Trying IPv4...")
+            try:
+                import socket
+                ipv4 = socket.getaddrinfo(smtp_host, 587, socket.AF_INET)[0][4][0]
+                print(f"[SMTP] Attempting IPv4 direct: {ipv4}:587")
+                server = _try_connect(ipv4, 587)
+                server.send_message(msg)
+                server.quit()
+                print(f"[SMTP] Reset email sent via IPv4 fallback")
+            except Exception as e3:
+                print(f"[SMTP] Failed all reset email attempts: {e3}")
 
 
 @auth_bp.route('/forgot-password', methods=['POST'])
