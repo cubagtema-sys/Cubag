@@ -5,17 +5,22 @@ import { showToast } from '../utils/toast'
 
 const API_URL = import.meta.env.VITE_API_URL
 
+function formatDate(str) {
+  if (!str) return '—'
+  return new Date(str).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 export default function Profile() {
-  const [user, setUser] = useState({})
+  const [user, setUser]               = useState({})
+  const [licenseHistory, setHistory]  = useState([])
+  const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem('cubag_token')
-      if (!token) {
-        navigate('/login')
-        return
-      }
+      if (!token) { navigate('/login'); return }
       try {
         const res = await fetch(`${API_URL}/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -23,21 +28,25 @@ export default function Profile() {
         if (res.ok) {
           const data = await res.json()
           const mappedUser = {
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            company: data.company,
-            memberId: data.id,
-            role: data.member_type,
-            licenseExpiry: data.license_number || 'No Active License',
-            status: data.status,
-            photo: data.profile_photo || null
+            name:          data.name,
+            email:         data.email,
+            phone:         data.phone,
+            company:       data.company,
+            memberId:      data.id,
+            role:          data.member_type,
+            licenseNumber: data.license_number || null,
+            licenseExpiry: data.license_expiry_date || null,   // actual expiry DATE
+            status:        data.status,
+            photo:         data.profile_photo || null
           }
           setUser(mappedUser)
           if (mappedUser.photo && mappedUser.email) {
             localStorage.setItem(`cubag_photo_${mappedUser.email}`, mappedUser.photo)
           }
-          localStorage.setItem('cubag_user', JSON.stringify(mappedUser))
+          localStorage.setItem('cubag_user', JSON.stringify({
+            ...mappedUser,
+            licenseExpiryDate: data.license_expiry_date || null
+          }))
         } else {
           localStorage.removeItem('cubag_token')
           navigate('/login')
@@ -50,6 +59,19 @@ export default function Profile() {
     }
     fetchUser()
   }, [navigate])
+
+  const loadHistory = async () => {
+    if (historyLoaded) { setShowHistory(v => !v); return }
+    try {
+      const res = await fetch(`${API_URL}/members/my-license-history`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
+      })
+      if (res.ok) setHistory(await res.json())
+    } catch {}
+    setHistoryLoaded(true)
+    setShowHistory(true)
+  }
+
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0]
@@ -218,8 +240,10 @@ export default function Profile() {
                     <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>{uniqueMemberId}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Expires</span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>{user.licenseExpiry}</span>
+                    <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>License Expires</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: user.licenseExpiry && new Date(user.licenseExpiry) < new Date() ? '#ef4444' : '#0f172a' }}>
+                      {user.licenseExpiry ? formatDate(user.licenseExpiry) : 'Not set'}
+                    </span>
                   </div>
                 </div>
 
@@ -234,7 +258,7 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Professional Details Card */}
+        {/* License Details Card */}
         <div className="feed-card">
           <div className="card-header">
             <span className="card-title">Professional Details</span>
@@ -257,16 +281,74 @@ export default function Profile() {
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Phone Number</div>
                 <div style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 600 }}>{user.phone || 'Not provided'}</div>
               </div>
-              <div style={{ padding: '20px', background: user.status === 'active' ? 'rgba(240,130,50,0.05)' : 'rgba(239,68,68,0.05)' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>License Number</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                  <div style={{ fontSize: '1.1rem', color: user.status === 'active' ? 'var(--text-primary)' : 'var(--brand-danger)', fontWeight: 700 }}>
-                    {user.status === 'active' ? user.licenseExpiry : 'PAYMENT REQUIRED'}
+
+              {/* License Number + Expiry */}
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', background: user.status === 'active' ? 'rgba(240,130,50,0.05)' : 'rgba(239,68,68,0.05)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>License</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: '1rem', color: user.status === 'active' ? 'var(--text-primary)' : 'var(--brand-danger)', fontWeight: 700 }}>
+                      {user.licenseNumber || (user.status === 'active' ? 'N/A' : 'PAYMENT REQUIRED')}
+                    </div>
+                    {user.licenseExpiry && (() => {
+                      const exp      = new Date(user.licenseExpiry)
+                      const daysLeft = Math.ceil((exp - new Date()) / 86400000)
+                      return (
+                        <div style={{ fontSize: '0.75rem', marginTop: 3, color: daysLeft < 0 ? '#ef4444' : daysLeft <= 30 ? '#f59e0b' : 'var(--text-muted)', fontWeight: 600 }}>
+                          {daysLeft < 0
+                            ? `Expired ${formatDate(user.licenseExpiry)}`
+                            : daysLeft <= 30
+                            ? `Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} — ${formatDate(user.licenseExpiry)}`
+                            : `Valid until ${formatDate(user.licenseExpiry)}`
+                          }
+                        </div>
+                      )
+                    })()}
                   </div>
-                  <button className="btn btn-outline btn-sm" onClick={() => navigate('/license-renewal')} style={{ whiteSpace: 'nowrap' }}>
-                    {user.status === 'active' ? 'Renew Now' : 'Pay to Activate'}
+                  <button className="btn btn-outline btn-sm" onClick={() => navigate('/payments')} style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                    {user.status === 'active' ? 'Renew' : 'Pay to Activate'}
                   </button>
                 </div>
+              </div>
+
+              {/* License History toggle */}
+              <div style={{ padding: '12px 20px' }}>
+                <button
+                  onClick={loadHistory}
+                  style={{ width: '100%', padding: '9px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>{showHistory ? 'expand_less' : 'history'}</span>
+                  {showHistory ? 'Hide' : 'View'} License History
+                </button>
+
+                {showHistory && (
+                  <div style={{ marginTop: 12 }}>
+                    {licenseHistory.length === 0 ? (
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>No renewal history yet.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {licenseHistory.map((h, idx) => {
+                          const expired   = h.expiry_date && new Date(h.expiry_date) < new Date()
+                          const isCurrent = idx === 0
+                          return (
+                            <div key={h.id} style={{ padding: '10px 12px', borderRadius: 10, border: `1px solid ${isCurrent ? 'rgba(16,185,129,0.3)' : 'var(--border-subtle)'}`, background: isCurrent ? 'rgba(16,185,129,0.04)' : 'var(--bg-elevated)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: isCurrent ? '#10b981' : 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                  {isCurrent ? '● Current' : '○ Archived'} · {h.duration_label || '—'}
+                                </span>
+                                {expired && !isCurrent && <span style={{ fontSize: '0.6rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '1px 7px', borderRadius: 20, fontWeight: 700 }}>Expired</span>}
+                              </div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>{h.license_number || '—'}</div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                                {formatDate(h.start_date)} → <strong style={{ color: expired && !isCurrent ? '#ef4444' : 'var(--text-secondary)' }}>{formatDate(h.expiry_date)}</strong>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

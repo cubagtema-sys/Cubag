@@ -259,6 +259,40 @@ def get_member_license_history(member_id):
         conn.close()
 
 
+@members_bp.route('/my-license-history', methods=['GET'])
+@jwt_required()
+def get_my_license_history():
+    """Member: fetch their own license period history."""
+    member_id = get_jwt_identity()
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            try:
+                cursor.execute("""
+                    SELECT id, license_number, start_date, expiry_date,
+                           duration_label, archived_at
+                    FROM license_history
+                    WHERE member_id = %s
+                    ORDER BY archived_at DESC
+                """, (member_id,))
+                rows = cursor.fetchall()
+                result = []
+                for r in rows:
+                    d = dict(r)
+                    for field in ('start_date', 'expiry_date', 'archived_at'):
+                        if d.get(field):
+                            d[field] = str(d[field])
+                    result.append(d)
+                return jsonify(result), 200
+            except Exception:
+                conn.rollback()
+                return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
 @members_bp.route('/public-directory', methods=['GET'])
 def get_public_directory():
     conn = get_db()
