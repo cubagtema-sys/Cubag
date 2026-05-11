@@ -91,7 +91,10 @@ export default function AdminLicenseRenewal() {
         const res = await fetch(`${API}/members/admin/license-history/${memberId}`, {
           headers: { 'Authorization': `Bearer ${token()}` }
         })
-        if (res.ok) setHistories(prev => ({ ...prev, [memberId]: await res.json() }))
+        if (res.ok) {
+          const data = await res.json()
+          setHistories(prev => ({ ...prev, [memberId]: data }))
+        }
       } catch {}
     }
   }

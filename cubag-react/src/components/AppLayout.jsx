@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import { mapUser, getStoredUser, saveUser } from '../utils/user'
 
 export default function AppLayout({ children, title, hideSearch }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -51,22 +52,13 @@ export default function AppLayout({ children, title, hideSearch }) {
         const meRes = await fetch(`${url}/members/me`, { headers: authHeader })
         if (meRes.ok) {
           const me = await meRes.json()
-          const photo = me.profile_photo || me.photo || null
-          try {
-            const stored = localStorage.getItem('cubag_user')
-            if (stored) {
-              const parsed = JSON.parse(stored)
-              let changed = false
-              if (photo && parsed.photo !== photo) { parsed.photo = photo; parsed.profile_photo = photo; changed = true }
-              if (me.license_expiry_date && parsed.license_expiry_date !== me.license_expiry_date) {
-                parsed.license_expiry_date = me.license_expiry_date
-                parsed.licenseExpiryDate   = me.license_expiry_date
-                changed = true
-              }
-              if (changed) localStorage.setItem('cubag_user', JSON.stringify(parsed))
-            }
-          } catch {}
-          if (photo) setUserPhoto(photo)
+          const currentUser = getStoredUser()
+          const updatedUser = mapUser(me, currentUser || {})
+
+          if (JSON.stringify(currentUser) !== JSON.stringify(updatedUser)) {
+            saveUser(updatedUser)
+          }
+          if (updatedUser.photo) setUserPhoto(updatedUser.photo)
         }
 
 
@@ -91,23 +83,7 @@ export default function AppLayout({ children, title, hideSearch }) {
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode)
 
-  let user = { name: 'Member', role: 'Member' }
-  try {
-    const stored = localStorage.getItem('cubag_user')
-    if (stored) {
-      user = JSON.parse(stored)
-      if (!user.photo && user.profile_photo) user.photo = user.profile_photo
-      if (!user.photo && user.email) {
-        const savedPhoto = localStorage.getItem(`cubag_photo_${user.email}`)
-        if (savedPhoto) {
-          user.photo = savedPhoto
-          localStorage.setItem('cubag_user', JSON.stringify(user))
-        }
-      }
-    }
-  } catch (e) {
-    console.error("Error parsing user from localStorage", e)
-  }
+  let user = getStoredUser() || { name: 'Member', role: 'Member' }
 
   // Override with reactive photo state (set after /me fetch)
   const displayPhoto = userPhoto || user.photo || null
