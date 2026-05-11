@@ -404,10 +404,13 @@ def forgot_password():
             if user:
                 actual_email = user['email']
                 token = str(uuid.uuid4())
-                # Delete any old tokens
-                cursor.execute("DELETE FROM otp_codes WHERE LOWER(email) = LOWER(%s) AND type = 'password_reset'", (actual_email,))
-                # Insert new token
-                cursor.execute("INSERT INTO otp_codes (email, code, type) VALUES (%s, %s, 'password_reset')", (actual_email, token))
+                # Delete ALL otp entries for this email (PK constraint = one row per email)
+                cursor.execute("DELETE FROM otp_codes WHERE LOWER(email) = LOWER(%s)", (actual_email,))
+                # Insert the password reset token
+                cursor.execute(
+                    "INSERT INTO otp_codes (email, code, type) VALUES (%s, %s, 'password_reset')",
+                    (actual_email, token)
+                )
                 conn.commit()
                 send_reset_email(actual_email, token)
                 
@@ -416,6 +419,7 @@ def forgot_password():
         return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
+
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
