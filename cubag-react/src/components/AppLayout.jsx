@@ -14,6 +14,7 @@ export default function AppLayout({ children, title, hideSearch }) {
   const [notifCount, setNotifCount] = useState(0)
   const [taskCount, setTaskCount] = useState(0)
   const [isOffline, setIsOffline] = useState(false)
+  const [userPhoto, setUserPhoto] = useState(null)   // reactive photo state
   const failCount = useRef(0)
   const navigate = useNavigate()
   const location = useLocation()
@@ -46,6 +47,28 @@ export default function AppLayout({ children, title, hideSearch }) {
           if (Array.isArray(data)) setTaskCount(data.filter(t => !t.done).length)
         }
 
+        // ── Fetch fresh user profile to get profile photo ──────────────────────
+        const meRes = await fetch(`${url}/members/me`, { headers: authHeader })
+        if (meRes.ok) {
+          const me = await meRes.json()
+          const photo = me.profile_photo || me.photo || null
+          if (photo) {
+            setUserPhoto(photo)
+            // Persist into localStorage so subsequent reads are instant
+            try {
+              const stored = localStorage.getItem('cubag_user')
+              if (stored) {
+                const parsed = JSON.parse(stored)
+                if (parsed.photo !== photo || parsed.profile_photo !== photo) {
+                  parsed.photo = photo
+                  parsed.profile_photo = photo
+                  localStorage.setItem('cubag_user', JSON.stringify(parsed))
+                }
+              }
+            } catch {}
+          }
+        }
+
         // Connection restored
         failCount.current = 0
         setIsOffline(false)
@@ -72,18 +95,11 @@ export default function AppLayout({ children, title, hideSearch }) {
     const stored = localStorage.getItem('cubag_user')
     if (stored) {
       user = JSON.parse(stored)
-
-      // Handle legacy or inconsistent field names
-      if (!user.photo && user.profile_photo) {
-        user.photo = user.profile_photo
-      }
-
-      // Check for persistent photo if not in the object
+      if (!user.photo && user.profile_photo) user.photo = user.profile_photo
       if (!user.photo && user.email) {
         const savedPhoto = localStorage.getItem(`cubag_photo_${user.email}`)
         if (savedPhoto) {
           user.photo = savedPhoto
-          // Also update the session user object to ensure it stays in this tab
           localStorage.setItem('cubag_user', JSON.stringify(user))
         }
       }
@@ -91,6 +107,9 @@ export default function AppLayout({ children, title, hideSearch }) {
   } catch (e) {
     console.error("Error parsing user from localStorage", e)
   }
+
+  // Override with reactive photo state (set after /me fetch)
+  const displayPhoto = userPhoto || user.photo || null
 
   const isAdminRoute = location.pathname.startsWith('/admin')
 
@@ -179,8 +198,8 @@ export default function AppLayout({ children, title, hideSearch }) {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 title="Account Settings"
               >
-                {!isAdminRoute && user.photo ? (
-                  <img src={user.photo} alt="Me" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {!isAdminRoute && displayPhoto ? (
+                  <img src={displayPhoto} alt="Me" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   isAdminRoute ? 'AD' : initials
                 )}
