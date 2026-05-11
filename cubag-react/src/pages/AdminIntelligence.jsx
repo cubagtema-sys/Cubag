@@ -33,11 +33,29 @@ function parseFeedXml(xml, sourceConfig) {
   } catch { return [] }
 }
 
+const CORS_PROXIES = [
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&timestamp=${Date.now()}`,
+  (url) => `https://api.cors.lol/?url=${encodeURIComponent(url)}`,
+]
+
+async function fetchWithProxy(rawUrl) {
+  for (const buildProxy of CORS_PROXIES) {
+    try {
+      const res = await fetch(buildProxy(rawUrl), { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) continue
+      const text = await res.text()
+      try { const j = JSON.parse(text); if (j.contents) return j.contents } catch {}
+      return text
+    } catch {}
+  }
+  return null
+}
+
 async function fetchOneFeed(s) {
-  const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(s.url)}&timestamp=${Date.now()}`, { signal: AbortSignal.timeout(10000) })
-  if (!res.ok) return []
-  const data = await res.json()
-  return parseFeedXml(data.contents || '', s)
+  const xml = await fetchWithProxy(s.url)
+  if (!xml) return []
+  return parseFeedXml(xml, s)
 }
 
 export default function AdminIntelligence() {

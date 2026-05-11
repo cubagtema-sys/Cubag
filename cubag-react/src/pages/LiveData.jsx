@@ -43,13 +43,35 @@ function parseFeedXml(xml, sourceConfig) {
   } catch { return [] }
 }
 
+// CORS proxy chain — tries each in order until one works
+const CORS_PROXIES = [
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&timestamp=${Date.now()}`,
+  (url) => `https://api.cors.lol/?url=${encodeURIComponent(url)}`,
+]
+
+async function fetchWithProxy(rawUrl) {
+  for (const buildProxy of CORS_PROXIES) {
+    try {
+      const proxyUrl = buildProxy(rawUrl)
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) continue
+      const text = await res.text()
+      // allorigins wraps in JSON {contents: '...'}, others return raw XML
+      try {
+        const json = JSON.parse(text)
+        if (json.contents) return json.contents
+      } catch { /* not JSON — it's raw XML */ }
+      return text
+    } catch { /* try next proxy */ }
+  }
+  return null
+}
+
 async function fetchOneFeed(sourceConfig) {
-  // allorigins.win is a free, open CORS proxy — returns RSS as text
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(sourceConfig.url)}&timestamp=${Date.now()}`
-  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) })
-  if (!res.ok) return []
-  const data = await res.json()
-  return parseFeedXml(data.contents || '', sourceConfig)
+  const xml = await fetchWithProxy(sourceConfig.url)
+  if (!xml) return []
+  return parseFeedXml(xml, sourceConfig)
 }
 
 export default function LiveData() {
