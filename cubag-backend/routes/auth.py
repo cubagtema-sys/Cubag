@@ -77,7 +77,8 @@ def send_otp():
             """, (email, token))
             conn.commit()
             
-            send_verification_email(email, token)
+            import threading
+            threading.Thread(target=send_verification_email, args=(email, token), daemon=True).start()
             return jsonify({'message': 'OTP sent to email.'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -378,16 +379,18 @@ def send_reset_email(to_email, token):
 
     try:
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
             server.starttls()
             
         server.login(smtp_user, smtp_pass)
         server.send_message(msg)
         server.quit()
+        print(f"[SMTP] Password reset email sent to {to_email}")
     except Exception as e:
-        print(f"Error sending password reset email: {e}")
+        print(f"[SMTP] Error sending password reset email: {e}")
+
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
@@ -412,12 +415,15 @@ def forgot_password():
                     (actual_email, token)
                 )
                 conn.commit()
-                send_reset_email(actual_email, token)
+                # Send email in background thread so API responds immediately
+                import threading
+                threading.Thread(target=send_reset_email, args=(actual_email, token), daemon=True).start()
                 
         return jsonify({'message': 'If an account exists, a reset link has been sent.'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
+
         conn.close()
 
 
