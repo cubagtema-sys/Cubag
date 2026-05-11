@@ -34,22 +34,30 @@ import json
 
 # Initialize Firebase Admin
 try:
-    firebase_json_env = os.getenv('FIREBASE_CREDENTIALS_JSON')
+    # Check multiple possible environment variable names
+    firebase_json_env = os.getenv('FIREBASE_CREDENTIALS_JSON') or os.getenv('FIREBASE_SERVICE_ACCOUNT')
     cred_path = os.getenv('FIREBASE_CREDENTIALS', 'planning-with-ai-a2368-firebase-adminsdk-fbsvc-3f0078de77.json')
     
     if firebase_json_env:
         # Load directly from environment variable string (for Railway deployment)
-        cred_dict = json.loads(firebase_json_env)
-        cred = credentials.Certificate(cred_dict)
-        firebase_admin.initialize_app(cred)
-        print("Firebase Admin initialized successfully from ENV.")
+        try:
+            cred_dict = json.loads(firebase_json_env)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+            print("Firebase Admin initialized successfully from ENV.")
+        except json.JSONDecodeError:
+            print("ERROR: FIREBASE_CREDENTIALS_JSON contains invalid JSON.")
+        except Exception as e:
+            print(f"ERROR initializing Firebase from ENV: {e}")
     elif os.path.exists(cred_path):
         # Load from file (for local development)
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
-        print("Firebase Admin initialized successfully from FILE.")
+        print(f"Firebase Admin initialized successfully from FILE: {cred_path}")
     else:
-        print(f"Firebase credentials not found. Push notifications will not work.")
+        print(f"Firebase credentials not found in ENV or FILE. Push notifications will not work.")
+        # Debug: list keys (not values) to help user find the right one
+        print(f"Available ENV keys: {list(os.environ.keys())}")
 except Exception as e:
     print(f"Failed to initialize Firebase Admin: {e}")
 

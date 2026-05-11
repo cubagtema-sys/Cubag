@@ -33,8 +33,8 @@ def send_push_notification(fcm_token, title, body, data=None):
         return False
 
 # Load service account from environment variable (JSON string) or file
-# Recommended: Set FIREBASE_SERVICE_ACCOUNT as a JSON string in Railway env
-service_account_json = os.getenv('FIREBASE_SERVICE_ACCOUNT')
+# Primary env variable used across the system is FIREBASE_CREDENTIALS_JSON
+service_account_json = os.getenv('FIREBASE_CREDENTIALS_JSON') or os.getenv('FIREBASE_SERVICE_ACCOUNT')
 
 def _init_firebase():
     """Initializes the Firebase Admin SDK if not already initialized."""
@@ -43,12 +43,22 @@ def _init_firebase():
     except ValueError:
         if service_account_json:
             import json
-            cred_dict = json.loads(service_account_json)
-            cred = credentials.Certificate(cred_dict)
-            firebase_admin.initialize_app(cred)
+            try:
+                cred_dict = json.loads(service_account_json)
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                print("[Push] Firebase Admin initialized from ENV.")
+            except Exception as e:
+                print(f"[Push] Error parsing FIREBASE_CREDENTIALS_JSON: {e}")
+                return False
         elif os.path.exists('firebase-service-account.json'):
             cred = credentials.Certificate('firebase-service-account.json')
             firebase_admin.initialize_app(cred)
+            print("[Push] Firebase Admin initialized from FILE.")
+        elif os.path.exists('planning-with-ai-a2368-firebase-adminsdk-fbsvc-3f0078de77.json'):
+            cred = credentials.Certificate('planning-with-ai-a2368-firebase-adminsdk-fbsvc-3f0078de77.json')
+            firebase_admin.initialize_app(cred)
+            print("[Push] Firebase Admin initialized from LEGACY FILE.")
         else:
             print("[Push] Firebase Credentials not found. Skipping push.")
             return False

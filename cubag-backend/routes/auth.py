@@ -39,15 +39,13 @@ def send_verification_email(to_email, token):
     msg.attach(MIMEText(body, 'plain'))
 
     try:
-        # Force IPv4 — Railway uses IPv6 by default, many SMTP hosts don't support it
-        import socket
-        smtp_ip = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET)[0][4][0]
-        print(f"[SMTP] Connecting to {smtp_host} → {smtp_ip}:{smtp_port}")
+        print(f"[SMTP] Attempting connection to {smtp_host}:{smtp_port}...")
 
+        # Try hostname directly first (smtplib handles resolution)
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_ip, smtp_port, timeout=15)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15)
         else:
-            server = smtplib.SMTP(smtp_ip, smtp_port, timeout=15)
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
             server.starttls()
             
         server.login(smtp_user, smtp_pass)
@@ -56,8 +54,27 @@ def send_verification_email(to_email, token):
         print(f"[SMTP] Verification email sent to {to_email}")
         return True
     except Exception as e:
-        print(f"[SMTP] Error sending verification email: {e}")
-        return False
+        print(f"[SMTP] Primary connection failed: {e}. Trying IPv4 fallback...")
+        try:
+            # Force IPv4 fallback — some environments (Railway) have IPv6 issues
+            import socket
+            smtp_ip = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET)[0][4][0]
+            print(f"[SMTP] Connecting to IPv4 fallback {smtp_ip}:{smtp_port}")
+
+            if smtp_port == 465:
+                server = smtplib.SMTP_SSL(smtp_ip, smtp_port, timeout=15)
+            else:
+                server = smtplib.SMTP(smtp_ip, smtp_port, timeout=15)
+                server.starttls()
+
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+            server.quit()
+            print(f"[SMTP] Verification email sent to {to_email} via IPv4 fallback")
+            return True
+        except Exception as e2:
+            print(f"[SMTP] Error sending verification email (IPv4 fallback also failed): {e2}")
+            return False
 
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
@@ -384,15 +401,13 @@ def send_reset_email(to_email, token):
     msg.attach(MIMEText(body, 'plain'))
 
     try:
-        # Force IPv4 — Railway uses IPv6 by default, many SMTP hosts don't support it
-        import socket
-        smtp_ip = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET)[0][4][0]
-        print(f"[SMTP] Connecting to {smtp_host} → {smtp_ip}:{smtp_port}")
+        print(f"[SMTP] Attempting connection to {smtp_host}:{smtp_port} for password reset...")
 
+        # Try hostname directly first
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_ip, smtp_port, timeout=15)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15)
         else:
-            server = smtplib.SMTP(smtp_ip, smtp_port, timeout=15)
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
             server.starttls()
             
         server.login(smtp_user, smtp_pass)
@@ -400,7 +415,25 @@ def send_reset_email(to_email, token):
         server.quit()
         print(f"[SMTP] Password reset email sent to {to_email}")
     except Exception as e:
-        print(f"[SMTP] Error sending password reset email: {e}")
+        print(f"[SMTP] Primary connection failed: {e}. Trying IPv4 fallback...")
+        try:
+            # Force IPv4 fallback
+            import socket
+            smtp_ip = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET)[0][4][0]
+            print(f"[SMTP] Connecting to IPv4 fallback {smtp_ip}:{smtp_port}")
+
+            if smtp_port == 465:
+                server = smtplib.SMTP_SSL(smtp_ip, smtp_port, timeout=15)
+            else:
+                server = smtplib.SMTP(smtp_ip, smtp_port, timeout=15)
+                server.starttls()
+
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+            server.quit()
+            print(f"[SMTP] Password reset email sent to {to_email} via IPv4 fallback")
+        except Exception as e2:
+            print(f"[SMTP] Error sending password reset email (IPv4 fallback also failed): {e2}")
 
 
 @auth_bp.route('/forgot-password', methods=['POST'])
