@@ -415,12 +415,15 @@ def forgot_password():
                     (actual_email, token)
                 )
                 conn.commit()
-                # Send email in background thread so API responds immediately
-                import threading
-                threading.Thread(target=send_reset_email, args=(actual_email, token), daemon=True).start()
+                # Send synchronously with 10s timeout (threads unreliable with gevent)
+                try:
+                    send_reset_email(actual_email, token)
+                except Exception as mail_err:
+                    print(f"[SMTP] Non-fatal: {mail_err}")
                 
         return jsonify({'message': 'If an account exists, a reset link has been sent.'}), 200
     except Exception as e:
+        print(f"[forgot-password] Error: {e}")
         return jsonify({'message': str(e)}), 500
     finally:
 
