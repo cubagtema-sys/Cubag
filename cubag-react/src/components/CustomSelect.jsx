@@ -6,6 +6,7 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
   const triggerRef = useRef(null)
   const dropdownRef = useRef(null)
+  const lastToggle = useRef(0)
 
   // Close when clicking/tapping outside
   useEffect(() => {
@@ -14,17 +15,17 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
     function handleOutside(event) {
       if (
         triggerRef.current && !triggerRef.current.contains(event.target) &&
-        dropdownRef.current && !dropdownRef.current.contains(event.target)
+        (!dropdownRef.current || !dropdownRef.current.contains(event.target))
       ) {
         setIsOpen(false)
       }
     }
 
-    // Small delay so the opening tap doesn't immediately trigger close
+    // Delay listener registration so the opening tap doesn't immediately close
     const timer = setTimeout(() => {
       document.addEventListener('mousedown', handleOutside)
-      document.addEventListener('touchstart', handleOutside)
-    }, 50)
+      document.addEventListener('touchstart', handleOutside, { passive: true })
+    }, 100)
 
     return () => {
       clearTimeout(timer)
@@ -33,7 +34,7 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
     }
   }, [isOpen])
 
-  // Recalculate position on scroll/resize so it tracks the trigger
+  // Recalculate position on scroll/resize
   const updatePos = useCallback(() => {
     if (!triggerRef.current) return
     const rect = triggerRef.current.getBoundingClientRect()
@@ -62,9 +63,11 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
     }
   }, [isOpen, updatePos])
 
-  const handleOpen = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
+  // Debounced toggle — prevents double-fire from touch + click
+  const handleToggle = () => {
+    const now = Date.now()
+    if (now - lastToggle.current < 300) return
+    lastToggle.current = now
     updatePos()
     setIsOpen(prev => !prev)
   }
@@ -84,8 +87,7 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
 
       <div
         className={`custom-select-trigger ${isOpen ? 'open' : ''}`}
-        onClick={handleOpen}
-        onTouchEnd={handleOpen}
+        onClick={handleToggle}
         role="combobox"
         aria-expanded={isOpen}
         tabIndex={0}
@@ -118,8 +120,7 @@ export default function CustomSelect({ options, value, onChange, label, icon }) 
             <div
               key={option.value || '__placeholder__'}
               className={`custom-select-option ${value === option.value ? 'selected' : ''} ${option.disabled ? 'disabled' : ''}`}
-              onClick={(e) => { e.stopPropagation(); handleSelect(option) }}
-              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(option) }}
+              onClick={() => handleSelect(option)}
               style={option.disabled ? { color: 'var(--text-muted)', cursor: 'default', fontStyle: 'italic', pointerEvents: 'none', opacity: 0.6 } : {}}
             >
               {option.icon && <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', opacity: option.disabled ? 0.4 : 1 }}>{option.icon}</span>}
