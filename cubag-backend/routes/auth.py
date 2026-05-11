@@ -161,6 +161,7 @@ def login():
                 return jsonify({'message': 'Please check your email to verify your account before logging in.'}), 403
 
             token = create_access_token(identity=str(member['id']))
+            expiry = str(member['license_expiry_date']) if member.get('license_expiry_date') else None
             return jsonify({
                 'token': token,
                 'user': {
@@ -170,6 +171,7 @@ def login():
                     'company': member['company'],
                     'memberType': member['member_type'],
                     'licenseNumber': member['license_number'],
+                    'licenseExpiryDate': expiry,
                     'portOfOperation': member['port_of_operation'],
                     'status': member['status'],
                     'role': member.get('role', 'member'),
@@ -192,21 +194,33 @@ def me():
             try:
                 cursor.execute("""
                     SELECT id, name, email, phone, company, license_number,
-                           member_type, port_of_operation, status, profile_photo
+                           member_type, port_of_operation, status, profile_photo,
+                           license_expiry_date
                     FROM members WHERE id = %s
                 """, (member_id,))
             except Exception:
-                # profile_photo column may not exist yet — fallback
                 conn.rollback()
-                cursor.execute("""
-                    SELECT id, name, email, phone, company, license_number,
-                           member_type, port_of_operation, status
-                    FROM members WHERE id = %s
-                """, (member_id,))
+                try:
+                    cursor.execute("""
+                        SELECT id, name, email, phone, company, license_number,
+                               member_type, port_of_operation, status, profile_photo
+                        FROM members WHERE id = %s
+                    """, (member_id,))
+                except Exception:
+                    conn.rollback()
+                    cursor.execute("""
+                        SELECT id, name, email, phone, company, license_number,
+                               member_type, port_of_operation, status
+                        FROM members WHERE id = %s
+                    """, (member_id,))
             member = cursor.fetchone()
             if not member:
                 return jsonify({'message': 'Member not found'}), 404
-            return jsonify(member), 200
+            # Serialize date to string for JSON
+            result = dict(member)
+            if result.get('license_expiry_date'):
+                result['license_expiry_date'] = str(result['license_expiry_date'])
+            return jsonify(result), 200
     finally:
         conn.close()
 

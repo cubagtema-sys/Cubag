@@ -31,12 +31,19 @@ def get_all_members_admin():
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT id, name, email, phone, company, member_type,
-                       port_of_operation, license_number, status, created_at, payment_ref, fcm_token
+                       port_of_operation, license_number, status, created_at,
+                       payment_ref, fcm_token, license_expiry_date
                 FROM members
                 ORDER BY created_at DESC
             """)
             members = cursor.fetchall()
-        return jsonify(members), 200
+            result = []
+            for m in members:
+                d = dict(m)
+                if d.get('license_expiry_date'):
+                    d['license_expiry_date'] = str(d['license_expiry_date'])
+                result.append(d)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
@@ -134,6 +141,40 @@ def update_member_status(member_id):
             response_data['license_number'] = new_license
             
         return jsonify(response_data), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@members_bp.route('/admin/set-expiry/<int:member_id>', methods=['PUT'])
+def set_license_expiry(member_id):
+    """Admin: set or update the license expiry date for a member."""
+    data = request.get_json()
+    expiry_date = data.get('license_expiry_date')  # expected: 'YYYY-MM-DD'
+    if not expiry_date:
+        return jsonify({'message': 'license_expiry_date is required (YYYY-MM-DD)'}), 400
+
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            try:
+                cursor.execute(
+                    "UPDATE members SET license_expiry_date = %s WHERE id = %s",
+                    (expiry_date, member_id)
+                )
+            except Exception:
+                # Column may not exist yet — create it first
+                conn.rollback()
+                cursor.execute(
+                    "ALTER TABLE members ADD COLUMN IF NOT EXISTS license_expiry_date DATE"
+                )
+                cursor.execute(
+                    "UPDATE members SET license_expiry_date = %s WHERE id = %s",
+                    (expiry_date, member_id)
+                )
+        conn.commit()
+        return jsonify({'message': 'License expiry date updated', 'license_expiry_date': expiry_date}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:

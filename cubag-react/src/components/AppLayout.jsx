@@ -52,22 +52,23 @@ export default function AppLayout({ children, title, hideSearch }) {
         if (meRes.ok) {
           const me = await meRes.json()
           const photo = me.profile_photo || me.photo || null
-          if (photo) {
-            setUserPhoto(photo)
-            // Persist into localStorage so subsequent reads are instant
-            try {
-              const stored = localStorage.getItem('cubag_user')
-              if (stored) {
-                const parsed = JSON.parse(stored)
-                if (parsed.photo !== photo || parsed.profile_photo !== photo) {
-                  parsed.photo = photo
-                  parsed.profile_photo = photo
-                  localStorage.setItem('cubag_user', JSON.stringify(parsed))
-                }
+          try {
+            const stored = localStorage.getItem('cubag_user')
+            if (stored) {
+              const parsed = JSON.parse(stored)
+              let changed = false
+              if (photo && parsed.photo !== photo) { parsed.photo = photo; parsed.profile_photo = photo; changed = true }
+              if (me.license_expiry_date && parsed.license_expiry_date !== me.license_expiry_date) {
+                parsed.license_expiry_date = me.license_expiry_date
+                parsed.licenseExpiryDate   = me.license_expiry_date
+                changed = true
               }
-            } catch {}
-          }
+              if (changed) localStorage.setItem('cubag_user', JSON.stringify(parsed))
+            }
+          } catch {}
+          if (photo) setUserPhoto(photo)
         }
+
 
         // Connection restored
         failCount.current = 0

@@ -96,17 +96,35 @@ export default function Dashboard() {
 
   return (
     <AppLayout title="Dashboard" hideSearch>
-      {/* Welcome Banner - Focused on Action */}
       <div className="welcome-banner" style={{ marginBottom: 24 }}>
         <div className="welcome-overlay"></div>
         <div className="welcome-copy">
           <h2 style={{ fontSize: '1.15rem' }}>Good day, <span>{firstName}</span>!</h2>
           <p style={{ marginBottom: 10, fontSize: '0.8rem' }}>
-            {user.status === 'active'
-              ? <>License <strong>{user.licenseNumber || user.license_number || 'N/A'}</strong> is active.</>
-              : <strong>License Inactive — Payment or Validation Required.</strong>
-            }
-            {' '}You have <strong>{Array.isArray(tasks) ? tasks.filter(t => !t.done).length : 0} pending</strong> item{tasks.filter(t => !t.done).length !== 1 ? 's' : ''}.
+            {(() => {
+              const licNum   = user.licenseNumber || user.license_number
+              const expStr   = user.licenseExpiryDate || user.license_expiry_date
+
+              if (user.status !== 'active') {
+                return <strong>License Inactive — Payment or Validation Required.</strong>
+              }
+              if (!expStr) {
+                return <>License <strong>{licNum || 'N/A'}</strong> is active.</>
+              }
+
+              const expDate   = new Date(expStr)
+              const today     = new Date()
+              const daysLeft  = Math.ceil((expDate - today) / 86400000)
+
+              if (daysLeft < 0) {
+                return <>License <strong>{licNum}</strong> <span style={{ color: '#fca5a5' }}>expired on {expDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>.</>
+              }
+              if (daysLeft <= 30) {
+                return <>License <strong>{licNum}</strong> expires in <span style={{ color: '#fde68a' }}><strong>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</strong></span>.</>
+              }
+              return <>License <strong>{licNum}</strong> — valid until <strong>{expDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>.</>
+            })()}
+            {' '}You have <strong>{Array.isArray(tasks) ? tasks.filter(t => !t.done).length : 0} pending</strong> item{(Array.isArray(tasks) ? tasks.filter(t => !t.done).length : 0) !== 1 ? 's' : ''}.
           </p>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ background: 'rgba(255,255,255,0.15)', padding: '3px 8px', borderRadius: '20px', fontSize: '0.65rem', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>
@@ -117,8 +135,22 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-        <button onClick={() => navigate('/license-renewal')} className="btn btn-white welcome-action">Renew License</button>
+        {/* Only show Renew button when expired OR expiring within 30 days */}
+        {(() => {
+          const expStr  = user.licenseExpiryDate || user.license_expiry_date
+          if (!expStr && user.status !== 'active') {
+            return <button onClick={() => navigate('/payments')} className="btn btn-white welcome-action">Renew License</button>
+          }
+          if (expStr) {
+            const daysLeft = Math.ceil((new Date(expStr) - new Date()) / 86400000)
+            if (daysLeft <= 30) {
+              return <button onClick={() => navigate('/payments')} className="btn btn-white welcome-action">{daysLeft < 0 ? 'Renew Now' : 'Renew License'}</button>
+            }
+          }
+          return null
+        })()}
       </div>
+
 
       {/* Main Actionable Content */}
       <div className="dashboard-grid">
