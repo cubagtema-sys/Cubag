@@ -1,9 +1,7 @@
 import os
 import uuid
 import random
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 
 from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
@@ -20,65 +18,28 @@ SUPABASE_KEY  = os.getenv('SUPABASE_SERVICE_KEY', '')
 PHOTO_BUCKET  = os.getenv('SUPABASE_BUCKET', 'public-materials')  # reuse same bucket
 
 def send_verification_email(to_email, token):
-    smtp_host = os.getenv('SMTP_HOST')
-    smtp_port = int(os.getenv('SMTP_PORT', 587))
-    smtp_user = os.getenv('SMTP_USER')
-    smtp_pass = os.getenv('SMTP_PASS')
-    client_url = os.getenv('CLIENT_URL', 'https://cub-production.up.railway.app')
+    resend.api_key = os.getenv('RESEND_API_KEY')
     
-    if not smtp_host or not smtp_user:
-        print("[SMTP] Credentials not configured. Skipping.")
+    if not resend.api_key:
+        print("[Resend] API key not configured. Skipping.")
         return
 
-    msg = MIMEMultipart()
-    msg['From'] = f"CUBAG Support Team <{smtp_user}>"
-    msg['To'] = to_email
-    msg['Subject'] = 'Verify your CUBAG Account'
-
     body = f"Hello,\n\nYour CUBAG verification code is:\n\n{token}\n\nPlease enter this code in the app to complete your registration.\n\nThanks,\nCUBAG Secretariat"
-    msg.attach(MIMEText(body, 'plain'))
 
-    def _try_connect(host, port):
-        if port == 465:
-            s = smtplib.SMTP_SSL(host, port, timeout=15)
-        else:
-            s = smtplib.SMTP(host, port, timeout=15)
-            s.starttls()
-        s.login(smtp_user, smtp_pass)
-        return s
+    params = {
+        "from": "CUBAG Support <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": "Verify your CUBAG Account",
+        "text": body,
+    }
 
     try:
-        print(f"[SMTP] Attempting primary connection: {smtp_host}:{smtp_port}")
-        server = _try_connect(smtp_host, smtp_port)
-        server.send_message(msg)
-        server.quit()
-        print(f"[SMTP] Email sent to {to_email}")
+        email_response = resend.Emails.send(params)
+        print(f"[Resend] Email sent to {to_email}")
         return True
     except Exception as e:
-        print(f"[SMTP] Primary failed: {e}. Trying alternate port/IP...")
-        try:
-            # Try alternate common port
-            alt_port = 465 if smtp_port != 465 else 587
-            print(f"[SMTP] Attempting alternate port: {smtp_host}:{alt_port}")
-            server = _try_connect(smtp_host, alt_port)
-            server.send_message(msg)
-            server.quit()
-            print(f"[SMTP] Email sent via alternate port {alt_port}")
-            return True
-        except Exception as e2:
-            print(f"[SMTP] Alternate port failed: {e2}. Trying IPv4 resolution...")
-            try:
-                import socket
-                ipv4 = socket.getaddrinfo(smtp_host, 587, socket.AF_INET)[0][4][0]
-                print(f"[SMTP] Attempting IPv4 direct: {ipv4}:587")
-                server = _try_connect(ipv4, 587)
-                server.send_message(msg)
-                server.quit()
-                print(f"[SMTP] Email sent via IPv4 fallback")
-                return True
-            except Exception as e3:
-                print(f"[SMTP] All connection paths failed. Last error: {e3}")
-                return False
+        print(f"[Resend] Failed to send email: {e}")
+        return False
 
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
@@ -385,62 +346,30 @@ def update_fcm_token():
 
 
 def send_reset_email(to_email, token):
-    smtp_host = os.getenv('SMTP_HOST')
-    smtp_port = int(os.getenv('SMTP_PORT', 587))
-    smtp_user = os.getenv('SMTP_USER')
-    smtp_pass = os.getenv('SMTP_PASS')
+    resend.api_key = os.getenv('RESEND_API_KEY')
     client_url = os.getenv('CLIENT_URL', 'https://cub-production.up.railway.app')
     
-    if not smtp_host or not smtp_user:
-        print("[SMTP] Credentials not configured for reset. Skipping.")
+    if not resend.api_key:
+        print("[Resend] API key not configured for reset. Skipping.")
         return
 
-    msg = MIMEMultipart()
-    msg['From'] = f"CUBAG Support Team <{smtp_user}>"
-    msg['To'] = to_email
-    msg['Subject'] = 'Reset your CUBAG Password'
-
     reset_link = f"{client_url}/reset-password?token={token}&email={to_email}"
-
     body = f"Hello,\n\nYou requested a password reset. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email.\n\nThanks,\nCUBAG Secretariat"
-    msg.attach(MIMEText(body, 'plain'))
 
-    def _try_connect(host, port):
-        if port == 465:
-            s = smtplib.SMTP_SSL(host, port, timeout=15)
-        else:
-            s = smtplib.SMTP(host, port, timeout=15)
-            s.starttls()
-        s.login(smtp_user, smtp_pass)
-        return s
+    params = {
+        "from": "CUBAG Support <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": "Reset your CUBAG Password",
+        "text": body,
+    }
 
     try:
-        print(f"[SMTP] Attempting primary reset connection: {smtp_host}:{smtp_port}")
-        server = _try_connect(smtp_host, smtp_port)
-        server.send_message(msg)
-        server.quit()
-        print(f"[SMTP] Password reset email sent to {to_email}")
+        email_response = resend.Emails.send(params)
+        print(f"[Resend] Password reset email sent to {to_email}")
+        return True
     except Exception as e:
-        print(f"[SMTP] Primary failed: {e}. Trying alternate path...")
-        try:
-            alt_port = 465 if smtp_port != 465 else 587
-            print(f"[SMTP] Attempting alternate port: {smtp_host}:{alt_port}")
-            server = _try_connect(smtp_host, alt_port)
-            server.send_message(msg)
-            server.quit()
-            print(f"[SMTP] Reset email sent via alternate port {alt_port}")
-        except Exception as e2:
-            print(f"[SMTP] Alternate path failed: {e2}. Trying IPv4...")
-            try:
-                import socket
-                ipv4 = socket.getaddrinfo(smtp_host, 587, socket.AF_INET)[0][4][0]
-                print(f"[SMTP] Attempting IPv4 direct: {ipv4}:587")
-                server = _try_connect(ipv4, 587)
-                server.send_message(msg)
-                server.quit()
-                print(f"[SMTP] Reset email sent via IPv4 fallback")
-            except Exception as e3:
-                print(f"[SMTP] Failed all reset email attempts: {e3}")
+        print(f"[Resend] Failed to send reset email: {e}")
+        return False
 
 
 @auth_bp.route('/forgot-password', methods=['POST'])
