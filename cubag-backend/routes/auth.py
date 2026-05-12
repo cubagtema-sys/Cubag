@@ -372,8 +372,11 @@ def send_reset_email(to_email, token):
         return False
 
 
-@auth_bp.route('/forgot-password', methods=['POST'])
+@auth_bp.route('/forgot-password', methods=['POST', 'OPTIONS'])
 def forgot_password():
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True}), 200
+
     data = request.get_json()
     email = data.get('email')
     if not email:
@@ -410,8 +413,11 @@ def forgot_password():
         conn.close()
 
 
-@auth_bp.route('/reset-password', methods=['POST'])
+@auth_bp.route('/reset-password', methods=['POST', 'OPTIONS'])
 def reset_password():
+    if request.method == 'OPTIONS':
+        return jsonify({'ok': True}), 200
+
     data = request.get_json()
     email = data.get('email')
     token = data.get('code')
