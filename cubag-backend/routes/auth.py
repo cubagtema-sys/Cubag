@@ -185,7 +185,7 @@ def me():
                 cursor.execute("""
                     SELECT id, name, email, phone, company, license_number,
                            member_type, port_of_operation, status, profile_photo,
-                           license_expiry_date
+                           license_expiry_date, role
                     FROM members WHERE id = %s
                 """, (member_id,))
             except Exception:
@@ -193,14 +193,14 @@ def me():
                 try:
                     cursor.execute("""
                         SELECT id, name, email, phone, company, license_number,
-                               member_type, port_of_operation, status, profile_photo
+                               member_type, port_of_operation, status, profile_photo, role
                         FROM members WHERE id = %s
                     """, (member_id,))
                 except Exception:
                     conn.rollback()
                     cursor.execute("""
                         SELECT id, name, email, phone, company, license_number,
-                               member_type, port_of_operation, status
+                               member_type, port_of_operation, status, role
                         FROM members WHERE id = %s
                     """, (member_id,))
             member = cursor.fetchone()

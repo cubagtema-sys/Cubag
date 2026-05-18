@@ -11,7 +11,7 @@ export const mapUser = (backendUser, existingUser = {}) => {
     memberId: backendUser.id || existingUser.id || existingUser.memberId,
     name: backendUser.name || existingUser.name,
     email: backendUser.email || existingUser.email,
-    role: backendUser.member_type || backendUser.role || existingUser.role,
+    role: backendUser.role || backendUser.member_type || existingUser.role,
     status: backendUser.status || existingUser.status,
     photo: photo,
     profile_photo: photo,
