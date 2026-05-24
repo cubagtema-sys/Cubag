@@ -61,9 +61,10 @@ def create_payment():
 
             if existing_pending:
                 payment_id = existing_pending['id']
-                # Update the existing record with the new payment_ref and amount just in case
+                # Update the existing record with the new payment_ref and amount
+                # We also refresh created_at so it shows up as "recent" in the history
                 cursor.execute("""
-                    UPDATE payments SET amount = %s, payment_ref = %s
+                    UPDATE payments SET amount = %s, payment_ref = %s, created_at = NOW()
                     WHERE id = %s
                 """, (amount, payment_ref, payment_id))
             else:
