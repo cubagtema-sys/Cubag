@@ -74,6 +74,19 @@ JWTManager(app)
 from socket_instance import socketio
 socketio.init_app(app)
 
+# Initialize AIS Stream (Beta)
+try:
+    from ais_stream import ais_manager
+    ais_manager.start()
+
+    @socketio.on('track_vessel')
+    def handle_track_vessel(data):
+        mmsi = data.get('mmsi')
+        if mmsi:
+            ais_manager.add_track(mmsi)
+except Exception as e:
+    print(f"[AIS] Failed to start AIS manager: {e}")
+
 # Register blueprints (all under /api)
 app.register_blueprint(auth_bp,          url_prefix='/api/auth')
 app.register_blueprint(members_bp,       url_prefix='/api/members')
