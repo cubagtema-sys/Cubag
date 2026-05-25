@@ -82,6 +82,7 @@ try:
     @socketio.on('track_vessel')
     def handle_track_vessel(data):
         mmsi = data.get('mmsi')
+        print(f"[SOCKET] track_vessel request received for MMSI: {mmsi}")
         if mmsi:
             ais_manager.add_track(mmsi)
 except Exception as e:
