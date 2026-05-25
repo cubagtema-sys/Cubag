@@ -21,25 +21,34 @@ class AISStreamManager:
         self.lock = threading.Lock()
 
     def start(self):
+        print(f"[AIS] Initializing manager with API Key: {AIS_API_KEY[:4]}...{AIS_API_KEY[-4:] if AIS_API_KEY else 'None'}")
         if not AIS_API_KEY:
             print("[AIS] API Key missing. AIS stream will not start.")
             return
 
         if self.is_running:
+            print("[AIS] Manager already running.")
             return
 
         self.is_running = True
         self.thread = threading.Thread(target=self._run_loop, daemon=True)
         self.thread.start()
-        print("[AIS] Background thread started.")
+        print("[AIS] Background thread successfully started.")
 
     def add_track(self, mmsi):
         if not mmsi: return
+        mmsi_str = str(mmsi).strip()
         with self.lock:
-            self.tracked_mmsis.add(str(mmsi))
+            if mmsi_str in self.tracked_mmsis:
+                print(f"[AIS] Already tracking MMSI: {mmsi_str}")
+                return
+            self.tracked_mmsis.add(mmsi_str)
+
+        print(f"[AIS] New global tracking request for MMSI: {mmsi_str}")
         if self.loop and self.websocket:
-            print(f"[AIS] Manually tracking MMSI: {mmsi}")
             asyncio.run_coroutine_threadsafe(self._update_subscription(), self.loop)
+        else:
+            print("[AIS] Cannot update subscription yet - websocket not connected.")
 
     def _run_loop(self):
         self.loop = asyncio.new_event_loop()
