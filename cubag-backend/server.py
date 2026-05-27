@@ -1,6 +1,3 @@
-import eventlet
-eventlet.monkey_patch()
-
 import os
 import json
 import logging
@@ -123,9 +120,9 @@ def serve_spa(path):
 try:
     init_db()
 except Exception as e:
-    logger.error(f"DB init error: {e}")
+    logger.error(f"DB init failed (non-fatal): {e}")
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
     logger.info(f"Running on port {port}")
-    socketio.run(app, host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)

@@ -6,7 +6,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_db():
-    """Get a new database connection."""
+    """Get a new database connection, supporting DATABASE_URL or individual params."""
+    db_url = os.getenv('DATABASE_URL')
+    if db_url:
+        return psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+
     return psycopg2.connect(
         host=os.getenv('DB_HOST', 'localhost'),
         port=int(os.getenv('DB_PORT', 5432)),
