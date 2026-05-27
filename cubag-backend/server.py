@@ -3,6 +3,7 @@ eventlet.monkey_patch()
 
 import os
 import json
+import logging
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -10,6 +11,12 @@ from dotenv import load_dotenv
 from datetime import timedelta
 import firebase_admin
 from firebase_admin import credentials
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info("Starting CUBAG Backend...")
 
 from config.db import init_db
 from routes.auth import auth_bp
@@ -24,46 +31,36 @@ load_dotenv()
 
 # ── Resolve React build path ─────────────────────────────────────────────────
 STATIC_DIR = os.path.join(os.path.dirname(__file__), '..', 'cubag-react', 'dist')
-# Fallback: if deployed with build output right next to the backend
 if not os.path.isdir(STATIC_DIR):
     STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
 if not os.path.isdir(STATIC_DIR):
     STATIC_DIR = os.path.join(os.path.dirname(__file__), 'dist')
 
-# Create Flask app — serve React build as static files
+# Create Flask app
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='')
 app.url_map.strict_slashes = False
 
-import json
-
 # Initialize Firebase Admin
 try:
-    # Check multiple possible environment variable names
     firebase_json_env = os.getenv('FIREBASE_CREDENTIALS_JSON') or os.getenv('FIREBASE_SERVICE_ACCOUNT')
     cred_path = os.getenv('FIREBASE_CREDENTIALS', 'planning-with-ai-a2368-firebase-adminsdk-fbsvc-3f0078de77.json')
     
     if firebase_json_env:
-        # Load directly from environment variable string (for Railway deployment)
         try:
             cred_dict = json.loads(firebase_json_env)
             cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
-            print("Firebase Admin initialized successfully from ENV.")
-        except json.JSONDecodeError:
-            print("ERROR: FIREBASE_CREDENTIALS_JSON contains invalid JSON.")
+            logger.info("Firebase Admin initialized from ENV.")
         except Exception as e:
-            print(f"ERROR initializing Firebase from ENV: {e}")
+            logger.error(f"Error initializing Firebase from ENV: {e}")
     elif os.path.exists(cred_path):
-        # Load from file (for local development)
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
-        print(f"Firebase Admin initialized successfully from FILE: {cred_path}")
+        logger.info(f"Firebase Admin initialized from FILE: {cred_path}")
     else:
-        print(f"Firebase credentials not found in ENV or FILE. Push notifications will not work.")
-        # Debug: list keys (not values) to help user find the right one
-        print(f"Available ENV keys: {list(os.environ.keys())}")
+        logger.warning("Firebase credentials not found.")
 except Exception as e:
-    print(f"Failed to initialize Firebase Admin: {e}")
+    logger.error(f"Failed to initialize Firebase Admin: {e}")
 
 # Config
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'cubag-secret')
@@ -71,33 +68,14 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'cubag-jwt-secret')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 604800)))
 
 # Extensions
-CORS(app, origins=[os.getenv('CLIENT_URL', 'https://cub-production.up.railway.app'), 'https://cub-production.up.railway.app', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'capacitor://localhost', 'http://localhost', 'https://localhost'])
+CORS(app, origins="*") # Allow all for now to eliminate CORS issues during debugging
 JWTManager(app)
 
 # Initialize SocketIO
 from socket_instance import socketio
 socketio.init_app(app)
 
-# Initialize Background Workers (Beta) - TEMPORARILY DISABLED FOR STABILITY
-"""
-try:
-    from ais_stream import ais_manager
-    ais_manager.start()
-
-    from routes.news import start_news_worker
-    start_news_worker()
-
-    @socketio.on('track_vessel')
-    def handle_track_vessel(data):
-        mmsi = data.get('mmsi')
-        print(f"[SOCKET] track_vessel request received for MMSI: {mmsi}")
-        if mmsi:
-            ais_manager.add_track(mmsi)
-except Exception as e:
-    print(f"[Init] Failed to start background workers: {e}")
-"""
-
-# Register blueprints (all under /api)
+# Register blueprints
 app.register_blueprint(auth_bp,          url_prefix='/api/auth')
 app.register_blueprint(members_bp,       url_prefix='/api/members')
 app.register_blueprint(announcements_bp, url_prefix='/api/announcements')
@@ -112,6 +90,9 @@ from routes.messages import messages_bp
 from routes.tickets import tickets_bp
 from routes.settings import settings_bp
 from routes.intelligence import intelligence_bp
+from routes.uploads import uploads_bp
+from routes.public_materials import public_materials_bp
+from routes.news import news_bp
 
 app.register_blueprint(admin_bp,         url_prefix='/api/admin')
 app.register_blueprint(schedules_bp,     url_prefix='/api/schedules')
@@ -119,10 +100,6 @@ app.register_blueprint(messages_bp,      url_prefix='/api/messages')
 app.register_blueprint(tickets_bp,       url_prefix='/api/tickets')
 app.register_blueprint(settings_bp,      url_prefix='/api/settings')
 app.register_blueprint(intelligence_bp,  url_prefix='/api/intelligence')
-
-from routes.uploads import uploads_bp
-from routes.public_materials import public_materials_bp
-from routes.news import news_bp
 app.register_blueprint(uploads_bp,          url_prefix='/api/uploads')
 app.register_blueprint(public_materials_bp, url_prefix='/api/public-materials')
 app.register_blueprint(news_bp,             url_prefix='/api/news')
@@ -131,32 +108,24 @@ app.register_blueprint(news_bp,             url_prefix='/api/news')
 def health():
     return {'status': 'CUBAG API is running'}, 200
 
-
-# ── SPA catch-all: serve React's index.html for any non-API route ─────────
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_spa(path):
-    # If the path matches an actual file in the build (JS, CSS, images), serve it
     full_path = os.path.join(app.static_folder, path)
     if path and os.path.isfile(full_path):
         return send_from_directory(app.static_folder, path)
-    # Otherwise serve index.html so React Router handles the route
     index_path = os.path.join(app.static_folder, 'index.html')
     if os.path.isfile(index_path):
         return send_from_directory(app.static_folder, 'index.html')
-    # No build found — return API info
-    return {'message': 'CUBAG API is running. Frontend build not found at this location.'}, 200
+    return {'message': 'CUBAG API is running. Frontend build not found.'}, 200
 
-
-# Run DB migrations on startup (works with both gunicorn and direct python)
+# Initialize DB
 try:
     init_db()
 except Exception as e:
-    print(f"[CRITICAL] Failed to initialize database: {e}")
+    logger.error(f"DB init error: {e}")
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
-    print(f"[*] CUBAG Flask API running on http://0.0.0.0:{port}")
-    # Use socketio.run instead of app.run for real-time support
-    socketio.run(app, host='0.0.0.0', port=port, debug=True, allow_unsafe_werkzeug=True)
-
+    logger.info(f"Running on port {port}")
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)
