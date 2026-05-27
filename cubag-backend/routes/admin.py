@@ -37,8 +37,11 @@ def get_dashboard_stats():
             """)
             recent_members = cursor.fetchall()
             for m in recent_members:
-                if m.get('created_at'):
-                    m['created_at'] = m['created_at'].isoformat()
+                if m.get('created_at') and not isinstance(m['created_at'], str):
+                    try:
+                        m['created_at'] = m['created_at'].isoformat()
+                    except:
+                        m['created_at'] = str(m['created_at'])
 
         return jsonify({
             'kpis': {
