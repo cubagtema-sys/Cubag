@@ -9,8 +9,7 @@ psycopg2-binary
 gunicorn==22.0.0
 firebase-admin
 Flask-SocketIO
-gevent
-gevent-websocket
-setuptools
-resend
+eventlet
 websocket-client
+resend
+eventlet

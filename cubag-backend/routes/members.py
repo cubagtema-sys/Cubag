@@ -40,10 +40,11 @@ def get_all_members_admin():
             result = []
             for m in members:
                 d = dict(m)
-                if d.get('license_expiry_date') and not isinstance(d['license_expiry_date'], str):
-                    d['license_expiry_date'] = str(d['license_expiry_date'])
-                if d.get('created_at') and not isinstance(d['created_at'], str):
-                    d['created_at'] = str(d['created_at'])
+                for key, value in list(d.items()):
+                    if hasattr(value, 'isoformat'):
+                        d[key] = value.isoformat()
+                    elif hasattr(value, 'strftime'):
+                        d[key] = str(value)
                 result.append(d)
         return jsonify(result), 200
     except Exception as e:
