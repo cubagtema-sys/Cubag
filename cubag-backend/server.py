@@ -78,10 +78,13 @@ JWTManager(app)
 from socket_instance import socketio
 socketio.init_app(app)
 
-# Initialize AIS Stream (Beta)
+# Initialize Background Workers (Beta)
 try:
     from ais_stream import ais_manager
     ais_manager.start()
+
+    from routes.news import start_news_worker
+    start_news_worker()
 
     @socketio.on('track_vessel')
     def handle_track_vessel(data):
@@ -90,7 +93,7 @@ try:
         if mmsi:
             ais_manager.add_track(mmsi)
 except Exception as e:
-    print(f"[AIS] Failed to start AIS manager: {e}")
+    print(f"[Init] Failed to start background workers: {e}")
 
 # Register blueprints (all under /api)
 app.register_blueprint(auth_bp,          url_prefix='/api/auth')

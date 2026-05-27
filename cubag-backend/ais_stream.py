@@ -103,6 +103,7 @@ class AISStreamManager:
         if not mmsi:
             return
 
+        now_str = datetime.now(timezone.utc).isoformat()
         vessel = self.active_vessels.get(mmsi, {
             'mmsi': mmsi,
             'name': ship_name,
@@ -110,7 +111,8 @@ class AISStreamManager:
             'status': 'Underway',
             'lat': metadata.get('Latitude'),
             'lng': metadata.get('Longitude'),
-            'last_update': datetime.now(timezone.utc).isoformat()
+            'last_update': now_str,
+            'last_emit': 0
         })
 
         if msg_type == "PositionReport":
@@ -119,7 +121,7 @@ class AISStreamManager:
             vessel['lng'] = pos.get('Longitude')
             vessel['speed'] = pos.get('Sog')
             vessel['course'] = pos.get('Cog')
-            vessel['last_update'] = datetime.now(timezone.utc).isoformat()
+            vessel['last_update'] = now_str
 
         elif msg_type == "ShipStaticData":
             static = msg['Message']['ShipStaticData']
@@ -127,10 +129,15 @@ class AISStreamManager:
             vessel['type'] = self._decode_ship_type(static.get('Type'))
             vessel['destination'] = static.get('Destination', 'Unknown').strip()
             vessel['eta'] = self._format_eta(static.get('Eta'))
-            vessel['last_update'] = datetime.now(timezone.utc).isoformat()
+            vessel['last_update'] = now_str
 
         self.active_vessels[mmsi] = vessel
-        socketio.emit('vessel_update', vessel)
+
+        # Throttle emissions: only broadcast update for a ship once every 10 seconds
+        curr_ts = time.time()
+        if curr_ts - vessel.get('last_emit', 0) > 10:
+            vessel['last_emit'] = curr_ts
+            socketio.emit('vessel_update', vessel)
 
     def _decode_ship_type(self, type_id):
         if not type_id: return "Unknown"

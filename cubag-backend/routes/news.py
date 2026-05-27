@@ -166,10 +166,11 @@ def _cache_worker():
             print(f"[NewsCache] Worker error: {e}")
         _time.sleep(600)  # 10 minutes
 
-# Start the background worker thread once on import
-_worker_thread = threading.Thread(target=_cache_worker, daemon=True, name='news-cache-worker')
-_worker_thread.start()
-
+def start_news_worker():
+    """Start the background worker thread."""
+    worker = threading.Thread(target=_cache_worker, daemon=True, name='news-cache-worker')
+    worker.start()
+    print("[NewsCache] Background worker started.")
 
 @news_bp.route('/global', methods=['GET'])
 def get_global_news():
