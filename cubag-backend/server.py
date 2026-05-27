@@ -78,7 +78,8 @@ JWTManager(app)
 from socket_instance import socketio
 socketio.init_app(app)
 
-# Initialize Background Workers (Beta)
+# Initialize Background Workers (Beta) - TEMPORARILY DISABLED FOR STABILITY
+"""
 try:
     from ais_stream import ais_manager
     ais_manager.start()
@@ -94,6 +95,7 @@ try:
             ais_manager.add_track(mmsi)
 except Exception as e:
     print(f"[Init] Failed to start background workers: {e}")
+"""
 
 # Register blueprints (all under /api)
 app.register_blueprint(auth_bp,          url_prefix='/api/auth')
