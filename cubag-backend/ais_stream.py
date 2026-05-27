@@ -1,64 +1,73 @@
-import asyncio
 import json
 import os
 import threading
-import websockets
+import time
+import websocket
 from datetime import datetime, timezone
 from socket_instance import socketio
 
 AIS_API_KEY = os.getenv('AIS_API_KEY')
-# Bounding box for Ghana region (approx)
 GHANA_BBOX = [[[4.0, -4.0], [6.5, 2.0]]]
 
 class AISStreamManager:
     def __init__(self):
-        self.loop = None
         self.thread = None
         self.active_vessels = {}
         self.is_running = False
         self.tracked_mmsis = set()
-        self.websocket = None
+        self.ws = None
         self.lock = threading.Lock()
 
     def start(self):
-        print(f"[AIS] Initializing manager with API Key: {AIS_API_KEY[:4]}...{AIS_API_KEY[-4:] if AIS_API_KEY else 'None'}")
         if not AIS_API_KEY:
             print("[AIS] API Key missing. AIS stream will not start.")
             return
 
         if self.is_running:
-            print("[AIS] Manager already running.")
             return
 
         self.is_running = True
-        self.thread = threading.Thread(target=self._run_loop, daemon=True)
+        self.thread = threading.Thread(target=self._run_forever, daemon=True)
         self.thread.start()
-        print("[AIS] Background thread successfully started.")
+        print("[AIS] Synchronous background thread started.")
 
     def add_track(self, mmsi):
         if not mmsi: return
         mmsi_str = str(mmsi).strip()
         with self.lock:
             if mmsi_str in self.tracked_mmsis:
-                print(f"[AIS] Already tracking MMSI: {mmsi_str}")
                 return
             self.tracked_mmsis.add(mmsi_str)
 
-        print(f"[AIS] New global tracking request for MMSI: {mmsi_str}")
-        if self.loop and self.websocket:
-            asyncio.run_coroutine_threadsafe(self._update_subscription(), self.loop)
-        else:
-            print("[AIS] Cannot update subscription yet - websocket not connected.")
+        print(f"[AIS] Requesting track for MMSI: {mmsi_str}")
+        if self.ws and self.ws.sock and self.ws.sock.connected:
+            self._send_subscription(self.ws)
 
-    def _run_loop(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_until_complete(self._connect_ais_stream())
+    def _run_forever(self):
+        while self.is_running:
+            try:
+                print("[AIS] Connecting to stream...")
+                self.ws = websocket.WebSocketApp(
+                    "wss://stream.aisstream.io/v0/stream",
+                    on_open=self._on_open,
+                    on_message=self._on_message,
+                    on_error=self._on_error,
+                    on_close=self._on_close
+                )
+                self.ws.run_forever(ping_interval=30, ping_timeout=10)
+            except Exception as e:
+                print(f"[AIS] Manager error: {e}")
 
-    async def _update_subscription(self):
-        if not self.websocket: return
+            print("[AIS] Disconnected. Retrying in 10s...")
+            time.sleep(10)
+
+    def _on_open(self, ws):
+        print("[AIS] WebSocket Connected.")
+        self._send_subscription(ws)
+
+    def _send_subscription(self, ws):
         with self.lock:
-            mmsi_list = list(self.tracked_mmsis)[:50] # API limit 50
+            mmsi_list = list(self.tracked_mmsis)[:50]
 
         subscribe_message = {
             "APIKey": AIS_API_KEY,
@@ -67,32 +76,23 @@ class AISStreamManager:
         }
         if mmsi_list:
             subscribe_message["FiltersShipMMSI"] = mmsi_list
-            # Expand to worldwide if tracking specific ships outside Ghana
             subscribe_message["BoundingBoxes"] = [[[-90, -180], [90, 180]]]
 
-        await self.websocket.send(json.dumps(subscribe_message))
-        print(f"[AIS] Subscription updated. Total tracked: {len(mmsi_list)}")
+        ws.send(json.dumps(subscribe_message))
+        print(f"[AIS] Subscription sent (Ghana + {len(mmsi_list)} specific)")
 
-    async def _connect_ais_stream(self):
-        retry_delay = 5
-        while self.is_running:
-            try:
-                print(f"[AIS] Connecting to AIS Stream...")
-                async with websockets.connect("wss://stream.aisstream.io/v0/stream") as websocket:
-                    self.websocket = websocket
-                    await self._update_subscription()
+    def _on_message(self, ws, message_json):
+        try:
+            msg = json.loads(message_json)
+            self._handle_ais_message(msg)
+        except Exception as e:
+            print(f"[AIS] Message parse error: {e}")
 
-                    async for message_json in websocket:
-                        message = json.loads(message_json)
-                        self._handle_ais_message(message)
+    def _on_error(self, ws, error):
+        print(f"[AIS] WebSocket Error: {error}")
 
-                    self.websocket = None
-
-            except Exception as e:
-                self.websocket = None
-                print(f"[AIS] Connection error: {e}. Retrying in {retry_delay}s...")
-                await asyncio.sleep(retry_delay)
-                retry_delay = min(retry_delay * 2, 60)
+    def _on_close(self, ws, close_status_code, close_msg):
+        print(f"[AIS] WebSocket Closed: {close_msg}")
 
     def _handle_ais_message(self, msg):
         msg_type = msg.get("MessageType")
@@ -103,7 +103,6 @@ class AISStreamManager:
         if not mmsi:
             return
 
-        # Prepare a unified vessel object
         vessel = self.active_vessels.get(mmsi, {
             'mmsi': mmsi,
             'name': ship_name,
@@ -130,10 +129,7 @@ class AISStreamManager:
             vessel['eta'] = self._format_eta(static.get('Eta'))
             vessel['last_update'] = datetime.now(timezone.utc).isoformat()
 
-        # Update cache
         self.active_vessels[mmsi] = vessel
-
-        # Broadcast to all connected socket.io clients
         socketio.emit('vessel_update', vessel)
 
     def _decode_ship_type(self, type_id):
@@ -147,14 +143,10 @@ class AISStreamManager:
     def _format_eta(self, eta_obj):
         if not eta_obj: return "Unknown"
         try:
-            m = eta_obj.get('Month', 0)
-            d = eta_obj.get('Day', 0)
-            h = eta_obj.get('Hour', 0)
-            min = eta_obj.get('Minute', 0)
+            m, d, h, mn = eta_obj.get('Month', 0), eta_obj.get('Day', 0), eta_obj.get('Hour', 0), eta_obj.get('Minute', 0)
             if m == 0 or d == 0: return "Unknown"
-            return f"{d}/{m} {h:02d}:{min:02d} UTC"
+            return f"{d}/{m} {h:02d}:{mn:02d} UTC"
         except:
             return "Unknown"
 
-# Global instance
 ais_manager = AISStreamManager()

@@ -13,4 +13,4 @@ gevent
 gevent-websocket
 setuptools
 resend
-websockets
+websocket-client
