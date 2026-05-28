@@ -33,13 +33,16 @@ class AISStreamManager:
 
     def add_track(self, mmsi):
         if not mmsi: return
-        mmsi_str = str(mmsi).strip()
-        with self.lock:
-            if mmsi_str in self.tracked_mmsis:
-                return
-            self.tracked_mmsis.add(mmsi_str)
+        try:
+            mmsi_int = int(mmsi)
+            with self.lock:
+                if mmsi_int in self.tracked_mmsis:
+                    return
+                self.tracked_mmsis.add(mmsi_int)
+            print(f"[AIS] Now tracking MMSI: {mmsi_int}")
+        except:
+            return
 
-        print(f"[AIS] Requesting track for MMSI: {mmsi_str}")
         if self.ws and self.ws.sock and self.ws.sock.connected:
             self._send_subscription(self.ws)
 
@@ -66,6 +69,7 @@ class AISStreamManager:
         self._send_subscription(ws)
 
     def _send_subscription(self, ws):
+        # Always track Ghana by default
         subscribe_message = {
             "APIKey": AIS_API_KEY,
             "BoundingBoxes": GHANA_BBOX,
@@ -73,15 +77,17 @@ class AISStreamManager:
         }
 
         with self.lock:
-            mmsi_list = list(self.tracked_mmsis)[:50]
+            # Send MMSIs as integers (required by protocol)
+            mmsi_list = [int(m) for m in list(self.tracked_mmsis)[:50]]
 
         if mmsi_list:
             subscribe_message["FiltersShipMMSI"] = mmsi_list
+            # Expand to worldwide for these specific vessels
             subscribe_message["BoundingBoxes"] = [[[-90, -180], [90, 180]]]
 
         try:
             ws.send(json.dumps(subscribe_message))
-            print(f"[AIS] Subscription sent (Ghana + {len(mmsi_list)} tracks)")
+            print(f"[AIS] Subscription sent (Ghana + {len(mmsi_list)} live filters)")
         except Exception as e:
             print(f"[AIS] Failed to send subscription: {e}")
 
