@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
 from config.db import get_db
 
 admin_bp = Blueprint('admin', __name__)
