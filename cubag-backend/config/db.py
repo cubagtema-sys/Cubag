@@ -50,7 +50,8 @@ def init_db():
                 ALTER TABLE members 
                 ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE,
                 ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255),
-                ADD COLUMN IF NOT EXISTS fcm_token VARCHAR(255);
+                ADD COLUMN IF NOT EXISTS fcm_token VARCHAR(255),
+                ADD COLUMN IF NOT EXISTS license_expiry_date DATE;
             """)
 
             # OTP Codes table for pre-registration verification
