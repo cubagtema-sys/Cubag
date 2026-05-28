@@ -66,7 +66,6 @@ class AISStreamManager:
         self._send_subscription(ws)
 
     def _send_subscription(self, ws):
-        # Always track Ghana by default
         subscribe_message = {
             "APIKey": AIS_API_KEY,
             "BoundingBoxes": GHANA_BBOX,
@@ -78,7 +77,6 @@ class AISStreamManager:
 
         if mmsi_list:
             subscribe_message["FiltersShipMMSI"] = mmsi_list
-            # Expand to worldwide for these specific vessels
             subscribe_message["BoundingBoxes"] = [[[-90, -180], [90, 180]]]
 
         try:
@@ -114,32 +112,58 @@ class AISStreamManager:
             'mmsi': mmsi,
             'name': ship_name,
             'type': 'Unknown',
-            'status': 'Underway',
+            'status': 'Unknown',
             'lat': metadata.get('Latitude'),
             'lng': metadata.get('Longitude'),
             'last_update': now_str,
-            'last_emit': 0
+            'last_emit': 0,
+            'imo': '—',
+            'callsign': '—',
+            'flag': 'Unknown',
+            'length': '—',
+            'width': '—',
+            'speed': 0,
+            'course': '—',
+            'heading': '—',
+            'rot': '—',
+            'draught': '—',
+            'destination': '—',
+            'eta': '—',
+            'region': metadata.get('Area', 'Global')
         })
 
         if msg_type == "PositionReport":
             pos = msg['Message']['PositionReport']
             vessel['lat'] = pos.get('Latitude')
             vessel['lng'] = pos.get('Longitude')
-            vessel['speed'] = pos.get('Sog')
-            vessel['course'] = pos.get('Cog')
+            vessel['speed'] = pos.get('Sog', 0)
+            vessel['course'] = pos.get('Cog', '—')
+            vessel['heading'] = pos.get('TrueHeading', '—')
+            vessel['rot'] = pos.get('Rot', '—')
+            vessel['status'] = self._decode_nav_status(pos.get('NavigationalStatus'))
             vessel['last_update'] = now_str
 
         elif msg_type == "ShipStaticData":
             static = msg['Message']['ShipStaticData']
             vessel['name'] = static.get('Name', vessel['name']).strip()
+            vessel['imo'] = static.get('Imo', '—')
+            vessel['callsign'] = static.get('CallSign', '—').strip()
             vessel['type'] = self._decode_ship_type(static.get('Type'))
-            vessel['destination'] = static.get('Destination', 'Unknown').strip()
+            vessel['destination'] = static.get('Destination', '—').strip()
             vessel['eta'] = self._format_eta(static.get('Eta'))
+            vessel['draught'] = static.get('Draught', '—')
+
+            # Dimensions
+            dim = static.get('Dimension', {})
+            a, b, c, d = dim.get('A', 0), dim.get('B', 0), dim.get('C', 0), dim.get('D', 0)
+            if a or b: vessel['length'] = a + b
+            if c or d: vessel['width'] = c + d
+
             vessel['last_update'] = now_str
 
         self.active_vessels[mmsi] = vessel
 
-        # Throttle emissions: only broadcast update for a ship once every 10 seconds
+        # Throttle emissions
         curr_ts = time.time()
         if curr_ts - vessel.get('last_emit', 0) > 10:
             vessel['last_emit'] = curr_ts
@@ -153,13 +177,28 @@ class AISStreamManager:
         if 30 <= type_id <= 30: return "Fishing"
         return f"Ship ({type_id})"
 
+    def _decode_nav_status(self, status_id):
+        statuses = {
+            0: "Underway using Engine",
+            1: "At Anchor",
+            2: "Not Under Command",
+            3: "Restricted Manoeuvrability",
+            4: "Constrained by Draught",
+            5: "Moored",
+            6: "Aground",
+            7: "Engaged in Fishing",
+            8: "Underway Sailing",
+            15: "Unknown"
+        }
+        return statuses.get(status_id, f"Other ({status_id})")
+
     def _format_eta(self, eta_obj):
-        if not eta_obj: return "Unknown"
+        if not eta_obj: return "—"
         try:
             m, d, h, mn = eta_obj.get('Month', 0), eta_obj.get('Day', 0), eta_obj.get('Hour', 0), eta_obj.get('Minute', 0)
-            if m == 0 or d == 0: return "Unknown"
-            return f"{d}/{m} {h:02d}:{mn:02d} UTC"
+            if m == 0 or d == 0: return "—"
+            return f"2026-{m:02d}-{d:02d} {h:02d}:{mn:02d} UTC"
         except:
-            return "Unknown"
+            return "—"
 
 ais_manager = AISStreamManager()
