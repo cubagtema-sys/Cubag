@@ -13,6 +13,9 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="format-detection" content="telephone=no" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <title>CUBAG — Enterprise Mobility Platform</title>
     <style>
       #splash-screen {
@@ -36,7 +39,7 @@
       }
       .splash-text {
         margin-top: 24px;
-        font-family: 'Outfit', sans-serif;
+        font-family: system-ui, -apple-system, sans-serif;
         font-weight: 800;
         font-size: 1.5rem;
         color: #f08232;
@@ -78,10 +81,19 @@
         visibility: hidden;
         pointer-events: none;
       }
+      /* Prevent icon text from flashing before font loads */
+      .material-symbols-outlined {
+        font-display: block;
+        color: transparent; /* Hide text color initially */
+        transition: color 0.2s;
+      }
+      body.loaded .material-symbols-outlined {
+        color: inherit; /* Show color once app is loaded */
+      }
     </style>
-    <script type="module" crossorigin src="/assets/index-g9B3sICt.js"></script>
+    <script type="module" crossorigin src="/assets/index-WIad2VzH.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/chunk-CilyBKbf.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-ikv0jjfr.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-BrpBrF2t.css">
   </head>
   <body>
     <div id="splash-screen">
