@@ -105,75 +105,94 @@ class AISStreamManager:
         print(f"[AIS] WebSocket Closed: {close_msg}")
 
     def _handle_ais_message(self, msg):
-        msg_type = msg.get("MessageType")
-        metadata = msg.get("Metadata", {})
-        ship_name = metadata.get("VesselName", "Unknown").strip()
-        mmsi = metadata.get("MMSI")
+        try:
+            msg_type = msg.get("MessageType")
+            metadata = msg.get("Metadata", {})
+            ship_name = metadata.get("VesselName", "Unknown").strip()
+            mmsi = metadata.get("MMSI")
 
-        if not mmsi:
-            return
+            if not mmsi:
+                return
 
-        now_str = datetime.now(timezone.utc).isoformat()
-        vessel = self.active_vessels.get(mmsi, {
-            'mmsi': mmsi,
-            'name': ship_name,
-            'type': 'Unknown',
-            'status': 'Unknown',
-            'lat': metadata.get('Latitude'),
-            'lng': metadata.get('Longitude'),
-            'last_update': now_str,
-            'last_emit': 0,
-            'imo': '—',
-            'callsign': '—',
-            'flag': 'Unknown',
-            'length': '—',
-            'width': '—',
-            'speed': 0,
-            'course': '—',
-            'heading': '—',
-            'rot': '—',
-            'draught': '—',
-            'destination': '—',
-            'eta': '—',
-            'region': metadata.get('Area', 'Global')
-        })
+            now_str = datetime.now(timezone.utc).isoformat()
 
-        if msg_type == "PositionReport":
-            pos = msg['Message']['PositionReport']
-            vessel['lat'] = pos.get('Latitude')
-            vessel['lng'] = pos.get('Longitude')
-            vessel['speed'] = pos.get('Sog', 0)
-            vessel['course'] = pos.get('Cog', '—')
-            vessel['heading'] = pos.get('TrueHeading', '—')
-            vessel['rot'] = pos.get('Rot', '—')
-            vessel['status'] = self._decode_nav_status(pos.get('NavigationalStatus'))
-            vessel['last_update'] = now_str
+            with self.lock:
+                vessel = self.active_vessels.get(mmsi, {
+                    'mmsi': mmsi,
+                    'name': ship_name,
+                    'type': 'Unknown',
+                    'status': 'Unknown',
+                    'lat': metadata.get('Latitude'),
+                    'lng': metadata.get('Longitude'),
+                    'last_update': now_str,
+                    'last_emit': 0,
+                    'imo': '—',
+                    'callsign': '—',
+                    'flag': self._get_flag_by_mmsi(mmsi),
+                    'length': '—',
+                    'width': '—',
+                    'speed': 0,
+                    'course': '—',
+                    'heading': '—',
+                    'rot': '—',
+                    'draught': '—',
+                    'destination': '—',
+                    'eta': '—',
+                    'region': 'Detecting...'
+                })
 
-        elif msg_type == "ShipStaticData":
-            static = msg['Message']['ShipStaticData']
-            vessel['name'] = static.get('Name', vessel['name']).strip()
-            vessel['imo'] = static.get('Imo', '—')
-            vessel['callsign'] = static.get('CallSign', '—').strip()
-            vessel['type'] = self._decode_ship_type(static.get('Type'))
-            vessel['destination'] = static.get('Destination', '—').strip()
-            vessel['eta'] = self._format_eta(static.get('Eta'))
-            vessel['draught'] = static.get('Draught', '—')
+                if msg_type == "PositionReport":
+                    pos = msg['Message']['PositionReport']
+                    vessel['lat'] = pos.get('Latitude')
+                    vessel['lng'] = pos.get('Longitude')
+                    vessel['speed'] = pos.get('Sog', 0)
+                    vessel['course'] = pos.get('Cog', '—')
+                    vessel['heading'] = pos.get('TrueHeading', '—')
+                    vessel['rot'] = pos.get('Rot', '—')
+                    vessel['status'] = self._decode_nav_status(pos.get('NavigationalStatus'))
+                    vessel['region'] = self._estimate_region(vessel['lat'], vessel['lng'])
+                    vessel['last_update'] = now_str
 
-            # Dimensions
-            dim = static.get('Dimension', {})
-            a, b, c, d = dim.get('A', 0), dim.get('B', 0), dim.get('C', 0), dim.get('D', 0)
-            if a or b: vessel['length'] = a + b
-            if c or d: vessel['width'] = c + d
+                elif msg_type == "ShipStaticData":
+                    static = msg['Message']['ShipStaticData']
+                    vessel['name'] = static.get('Name', vessel['name']).strip()
+                    vessel['imo'] = static.get('Imo', '—')
+                    vessel['callsign'] = static.get('CallSign', '—').strip()
+                    vessel['type'] = self._decode_ship_type(static.get('Type'))
+                    vessel['destination'] = static.get('Destination', '—').strip()
+                    vessel['eta'] = self._format_eta(static.get('Eta'))
+                    vessel['draught'] = static.get('Draught', '—')
 
-            vessel['last_update'] = now_str
+                    dim = static.get('Dimension', {})
+                    a, b, c, d = dim.get('A', 0), dim.get('B', 0), dim.get('C', 0), dim.get('D', 0)
+                    if a or b: vessel['length'] = a + b
+                    if c or d: vessel['width'] = c + d
 
-        self.active_vessels[mmsi] = vessel
+                    vessel['last_update'] = now_str
 
-        # Throttle emissions
-        curr_ts = time.time()
-        if curr_ts - vessel.get('last_emit', 0) > 10:
-            vessel['last_emit'] = curr_ts
-            socketio.emit('vessel_update', vessel)
+                self.active_vessels[mmsi] = vessel
+
+                # Throttle emissions
+                curr_ts = time.time()
+                if curr_ts - vessel.get('last_emit', 0) > 5:
+                    vessel['last_emit'] = curr_ts
+                    socketio.emit('vessel_update', vessel)
+        except Exception as e:
+            print(f"[AIS] Handle Error: {e}")
+
+    def _get_flag_by_mmsi(self, mmsi):
+        m = str(mmsi)
+        if m.startswith('247'): return 'ITALY'
+        if m.startswith('636'): return 'LIBERIA'
+        if m.startswith('477'): return 'HONG KONG'
+        if m.startswith('563'): return 'SINGAPORE'
+        return 'Unknown'
+
+    def _estimate_region(self, lat, lng):
+        if not lat or not lng: return "Global network"
+        if 4 <= lat <= 7 and -4 <= lng <= 2: return "Ghana Coastal Waters"
+        if lat > 0 and -100 < lng < -60: return "US East Coast"
+        return "International Waters"
 
     def _decode_ship_type(self, type_id):
         if not type_id: return "Unknown"
