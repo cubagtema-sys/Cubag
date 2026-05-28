@@ -72,6 +72,23 @@ JWTManager(app)
 from socket_instance import socketio
 socketio.init_app(app)
 
+# Initialize Background Workers (Beta)
+try:
+    from ais_stream import ais_manager
+    ais_manager.start()
+
+    from routes.news import start_news_worker
+    start_news_worker()
+
+    @socketio.on('track_vessel')
+    def handle_track_vessel(data):
+        mmsi = data.get('mmsi')
+        logger.info(f"[SOCKET] track_vessel request received for MMSI: {mmsi}")
+        if mmsi:
+            ais_manager.add_track(mmsi)
+except Exception as e:
+    logger.error(f"[Init] Failed to start background workers: {e}")
+
 # Register blueprints
 app.register_blueprint(auth_bp,          url_prefix='/api/auth')
 app.register_blueprint(members_bp,       url_prefix='/api/members')
