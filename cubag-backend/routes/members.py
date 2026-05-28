@@ -29,12 +29,19 @@ def get_all_members_admin():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # Join with payments to get the LATEST payment reference for each member
             cursor.execute("""
-                SELECT id, name, email, phone, company, member_type,
-                       port_of_operation, license_number, status, created_at,
-                       payment_ref, fcm_token, license_expiry_date
-                FROM members
-                ORDER BY created_at DESC
+                SELECT m.id, m.name, m.email, m.phone, m.company, m.member_type,
+                       m.port_of_operation, m.license_number, m.status, m.created_at,
+                       COALESCE(m.payment_ref, (
+                           SELECT p.payment_ref
+                           FROM payments p
+                           WHERE p.member_id = m.id AND p.payment_ref IS NOT NULL AND p.payment_ref != ''
+                           ORDER BY p.created_at DESC LIMIT 1
+                       )) as payment_ref,
+                       m.fcm_token, m.license_expiry_date
+                FROM members m
+                ORDER BY m.created_at DESC
             """)
             members = cursor.fetchall()
             result = []
