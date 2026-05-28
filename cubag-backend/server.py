@@ -13,7 +13,7 @@ from firebase_admin import credentials
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-logger.info("Starting CUBAG Backend...")
+logger.info("Starting CUBAG Production Backend...")
 
 from config.db import init_db
 from routes.auth import auth_bp
@@ -83,7 +83,7 @@ try:
     @socketio.on('track_vessel')
     def handle_track_vessel(data):
         mmsi = data.get('mmsi')
-        logger.info(f"[SOCKET] track_vessel request received for MMSI: {mmsi}")
+        logger.info(f"[AIS] Search request for MMSI: {mmsi}")
         if mmsi:
             ais_manager.add_track(mmsi)
 except Exception as e:
