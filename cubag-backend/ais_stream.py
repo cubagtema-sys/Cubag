@@ -66,20 +66,26 @@ class AISStreamManager:
         self._send_subscription(ws)
 
     def _send_subscription(self, ws):
-        with self.lock:
-            mmsi_list = list(self.tracked_mmsis)[:50]
-
+        # Always track Ghana by default
         subscribe_message = {
             "APIKey": AIS_API_KEY,
             "BoundingBoxes": GHANA_BBOX,
             "FilterMessageTypes": ["PositionReport", "ShipStaticData"]
         }
+
+        with self.lock:
+            mmsi_list = list(self.tracked_mmsis)[:50]
+
         if mmsi_list:
             subscribe_message["FiltersShipMMSI"] = mmsi_list
+            # Expand to worldwide for these specific vessels
             subscribe_message["BoundingBoxes"] = [[[-90, -180], [90, 180]]]
 
-        ws.send(json.dumps(subscribe_message))
-        print(f"[AIS] Subscription sent (Ghana + {len(mmsi_list)} specific)")
+        try:
+            ws.send(json.dumps(subscribe_message))
+            print(f"[AIS] Subscription sent (Ghana + {len(mmsi_list)} tracks)")
+        except Exception as e:
+            print(f"[AIS] Failed to send subscription: {e}")
 
     def _on_message(self, ws, message_json):
         try:
