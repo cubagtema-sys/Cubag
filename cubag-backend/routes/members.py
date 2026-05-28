@@ -316,13 +316,6 @@ def get_public_directory():
             """)
             companies = cursor.fetchall()
             
-            # If the database is empty during dev, provide fallback mock data
-            if not companies:
-                return jsonify([
-                    { 'id': 1, 'name': 'Tema Logistics Agency', 'type': 'Corporate Agency', 'location': 'Tema Port', 'phone': '+233 50 123 4567', 'email': 'contact@temalogistics.com.gh', 'rating': '4.8' },
-                    { 'id': 2, 'name': 'Accra Freight Forwarders', 'type': 'Corporate Agency', 'location': 'KIA, Accra', 'phone': '+233 24 987 6543', 'email': 'info@accrafreight.com', 'rating': '4.9' },
-                ]), 200
-
         return jsonify(companies), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
