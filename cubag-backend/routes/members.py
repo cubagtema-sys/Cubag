@@ -40,15 +40,23 @@ def get_all_members_admin():
             result = []
             for m in members:
                 d = dict(m)
+                # Ultra-defensive serialization
                 for key, value in list(d.items()):
                     if hasattr(value, 'isoformat'):
                         d[key] = value.isoformat()
                     elif hasattr(value, 'strftime'):
                         d[key] = str(value)
+                    elif value is None:
+                        d[key] = None
+                    elif not isinstance(value, (str, int, float, bool, list, dict)):
+                        d[key] = str(value)
                 result.append(d)
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        import traceback
+        print(f"[Admin Members Error] {e}")
+        print(traceback.format_exc())
+        return jsonify({'message': f"Server error fetching members: {str(e)}"}), 500
     finally:
         conn.close()
 
