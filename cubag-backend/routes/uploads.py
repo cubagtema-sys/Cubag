@@ -1,51 +1,72 @@
 import os
 import uuid
-from flask import Blueprint, jsonify, request, send_from_directory
+import requests
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
-from werkzeug.utils import secure_filename
 
 uploads_bp = Blueprint('uploads', __name__)
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'images')
-ALLOWED = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'pdf'}
-MAX_SIZE_MB = 15
+# ─── Supabase Configuration ──────────────────────────────────────────────────
+SUPABASE_URL    = os.getenv('SUPABASE_URL', '')
+SUPABASE_KEY    = os.getenv('SUPABASE_SERVICE_KEY', '')
+SUPABASE_BUCKET = os.getenv('SUPABASE_BUCKET', 'public-materials')
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
+ALLOWED = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'}
+MAX_SIZE_MB = 10
 
 def allowed(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED
-
 
 @uploads_bp.route('/image', methods=['POST'])
 @jwt_required()
 def upload_image():
     """
-    Accepts a multipart/form-data file upload under the key 'image'.
-    Returns { url: '/api/uploads/images/<filename>' }
+    Uploads an image to Supabase Storage and returns the public URL.
+    This ensures images are permanent in production (Railway).
     """
     file = request.files.get('image')
     if not file or not file.filename:
         return jsonify({'message': 'No file provided'}), 400
 
     if not allowed(file.filename):
-        return jsonify({'message': 'File type not allowed. Use PNG, JPG, JPEG, GIF, WEBP, AVIF or PDF.'}), 400
+        return jsonify({'message': 'File type not allowed. Use PNG, JPG, JPEG, GIF, WEBP or AVIF.'}), 400
 
-    # Check file size before saving
-    file.seek(0, 2)          # Seek to end
+    # Size check
+    file.seek(0, 2)
     size_mb = file.tell() / (1024 * 1024)
-    file.seek(0)             # Reset
+    file.seek(0)
     if size_mb > MAX_SIZE_MB:
         return jsonify({'message': f'File too large. Max {MAX_SIZE_MB}MB.'}), 413
 
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return jsonify({'message': 'Cloud storage not configured.'}), 500
+
     ext = file.filename.rsplit('.', 1)[1].lower()
-    safe_name = f"{uuid.uuid4().hex}.{ext}"
-    file.save(os.path.join(UPLOAD_DIR, safe_name))
+    safe_name = f"survey_{uuid.uuid4().hex}.{ext}"
+    file_bytes = file.read()
+    content_type = file.content_type or 'image/jpeg'
 
-    return jsonify({'url': f'/api/uploads/images/{safe_name}'}), 201
+    # Upload to Supabase Storage
+    storage_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{safe_name}"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": content_type,
+        "x-upsert": "true",
+    }
 
+    try:
+        resp = requests.post(storage_url, data=file_bytes, headers=headers, timeout=30)
+        if resp.status_code not in (200, 201):
+            return jsonify({'message': f'Cloud upload failed: {resp.text}'}), 500
+
+        public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{safe_name}"
+        return jsonify({'url': public_url}), 201
+
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 
 @uploads_bp.route('/images/<filename>', methods=['GET'])
 def serve_image(filename):
-    """Public endpoint to serve uploaded images."""
-    return send_from_directory(UPLOAD_DIR, filename)
+    """Legacy endpoint for local images - redirects to Supabase or returns 404"""
+    return jsonify({'message': 'Local storage is disabled in production. Please re-upload your image.'}), 404
