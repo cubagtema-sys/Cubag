@@ -289,9 +289,9 @@ export default function Register() {
                   <CustomSelect label="Primary Port of Operation" options={portOptions} value={formData.portOfOperation} onChange={v => setFormData({...formData, portOfOperation: v})} icon="anchor" />
                 </div>
 
-                <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                  <button type="button" onClick={() => setStep(1)} className="btn btn-outline" style={{ flex: 1 }}>Back</button>
-                  <button type="button" onClick={goToStep3} disabled={isLoading} className="btn btn-primary" style={{ flex: 2 }}>
+                <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => setStep(1)} className="btn btn-outline" style={{ flex: 1, minWidth: '100px' }}>Back</button>
+                  <button type="button" onClick={goToStep3} disabled={isLoading} className="btn btn-primary" style={{ flex: 2, minWidth: '160px' }}>
                     {isLoading ? 'Sending Code...' : 'Verify Email'}
                   </button>
                 </div>
@@ -320,9 +320,9 @@ export default function Register() {
                   />
                 </div>
                 
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="button" onClick={() => setStep(2)} className="btn btn-outline" style={{ flex: 1 }}>Back</button>
-                  <button type="button" disabled={isLoading} onClick={handleVerifyOTP} className="btn btn-primary" style={{ flex: 2 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => setStep(2)} className="btn btn-outline" style={{ flex: 1, minWidth: '100px' }}>Back</button>
+                  <button type="button" disabled={isLoading} onClick={handleVerifyOTP} className="btn btn-primary" style={{ flex: 2, minWidth: '160px' }}>
                     {isLoading ? 'Verifying...' : 'Verify Code'}
                   </button>
                 </div>

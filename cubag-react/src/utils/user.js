@@ -4,6 +4,15 @@
 export const mapUser = (backendUser, existingUser = {}) => {
   const photo = backendUser.profile_photo || backendUser.photo || existingUser.photo || null;
 
+  // Normalize role to lowercase for consistent comparison
+  let role = (backendUser.role || existingUser.role || backendUser.member_type || 'member').toLowerCase();
+
+  // Force 'admin' role for specific administrative accounts
+  const email = (backendUser.email || existingUser.email || '').toLowerCase();
+  if (email === 'admin@cubag.com' || role === 'admin') {
+    role = 'admin';
+  }
+
   const mapped = {
     ...existingUser,
     ...backendUser,
@@ -11,7 +20,7 @@ export const mapUser = (backendUser, existingUser = {}) => {
     memberId: backendUser.id || existingUser.id || existingUser.memberId,
     name: backendUser.name || existingUser.name,
     email: backendUser.email || existingUser.email,
-    role: backendUser.role || backendUser.member_type || existingUser.role,
+    role: role,
     status: backendUser.status || existingUser.status,
     photo: photo,
     profile_photo: photo,

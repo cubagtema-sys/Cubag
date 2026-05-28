@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import CustomSelect from '../components/CustomSelect'
 import useAutoRefresh from '../hooks/useAutoRefresh'
@@ -13,6 +14,7 @@ const REASON_OPTIONS = [
 ]
 
 export default function Payments() {
+  const navigate = useNavigate()
   const [payStep, setPayStep] = useState(1)
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
@@ -281,7 +283,7 @@ export default function Payments() {
                   {isAmountFixed && <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}><span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>lock</span> Standard fee applies for this category.</p>}
                 </div>
 
-                <button className="btn btn-primary btn-lg" disabled={!reason || !amount} onClick={() => setPayStep(2)} style={{ justifyContent: 'center', height: 56, fontSize: '1rem', borderRadius: 14, boxShadow: '0 8px 20px rgba(240,130,50,0.2)' }}>
+                <button className="btn btn-primary btn-lg" disabled={!reason || !amount || parseFloat(amount) <= 0} onClick={() => setPayStep(2)} style={{ justifyContent: 'center', height: 56, fontSize: '1rem', borderRadius: 14, boxShadow: '0 8px 20px rgba(240,130,50,0.2)' }}>
                   Continue to Methods <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>arrow_forward</span>
                 </button>
               </div>
@@ -327,8 +329,8 @@ export default function Payments() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
-                  <button className="btn btn-outline" onClick={() => setPayStep(1)} style={{ flex: 1, height: 52, borderRadius: 12 }}>Back</button>
+                <div style={{ display: 'flex', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+                  <button className="btn btn-outline" onClick={() => setPayStep(1)} style={{ flex: 1, height: 52, borderRadius: 12, minWidth: '80px' }}>Back</button>
                   <button
                     className="btn btn-primary"
                     disabled={(method === 'momo' && !momoDetails.phone) || (method === 'bank' && !bankDetails.transactionId)}
@@ -342,7 +344,7 @@ export default function Payments() {
                       }
                       setPayStep(3)
                     }}
-                    style={{ flex: 2, height: 52, borderRadius: 12, fontSize: '0.9rem', fontWeight: 800 }}
+                    style={{ flex: 2, height: 52, borderRadius: 12, fontSize: '0.9rem', fontWeight: 800, minWidth: '160px' }}
                   >
                     Review Summary
                   </button>
@@ -369,11 +371,11 @@ export default function Payments() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button className="btn btn-outline" onClick={() => setPayStep(2)} disabled={loading} style={{ flex: 1, height: 52, borderRadius: 12 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <button className="btn btn-outline" onClick={() => setPayStep(2)} disabled={loading} style={{ flex: 1, height: 52, borderRadius: 12, minWidth: '60px' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>arrow_back</span>
                   </button>
-                  <button className="btn btn-primary" onClick={handlePayment} disabled={loading} style={{ flex: 3, height: 52, justifyContent: 'center', fontSize: '1rem', fontWeight: 900, borderRadius: 12, opacity: loading ? 0.6 : 1 }}>
+                  <button className="btn btn-primary" onClick={handlePayment} disabled={loading} style={{ flex: 3, height: 52, justifyContent: 'center', fontSize: '1rem', fontWeight: 900, borderRadius: 12, opacity: loading ? 0.6 : 1, minWidth: '200px' }}>
                     {loading ? 'Processing...' : method === 'momo' ? 'Initiate Payment' : 'Confirm Payment'}
                   </button>
                 </div>
@@ -493,7 +495,10 @@ export default function Payments() {
 
             <button
               className="btn btn-primary btn-lg"
-              onClick={() => setShowSuccess(false)}
+              onClick={() => {
+                setShowSuccess(false);
+                navigate('/payment-history');
+              }}
               style={{
                 width: '100%', height: 52, fontSize: '1rem', fontWeight: 800,
                 borderRadius: 14, background: 'linear-gradient(135deg, #10b981, #059669)',
@@ -501,8 +506,16 @@ export default function Payments() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>done_all</span>
-              Done
+              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>receipt_long</span>
+              View Payment History
+            </button>
+
+            <button
+              className="btn btn-ghost"
+              onClick={() => setShowSuccess(false)}
+              style={{ width: '100%', marginTop: 12, color: 'var(--text-muted)' }}
+            >
+              Close
             </button>
 
             <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 16 }}>A receipt has been sent to your email</p>

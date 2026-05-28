@@ -1,60 +1,81 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
-    totalMembers: 0,
-    pendingLicenses: 0,
+    total_members: 0,
+    active_members: 0,
     revenue: 0,
-    openTickets: 0
+    pending_members: 0,
+    open_tickets: 0
   })
+  const [recentMembers, setRecentMembers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const navigate = useNavigate()
+
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const token = localStorage.getItem('cubag_token')
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/dashboard`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.kpis) setStats(data.kpis)
+        if (data.recent_members) setRecentMembers(data.recent_members)
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        setError(errData.message || `API Error: ${res.status}`)
+        if (res.status === 401 || res.status === 403) navigate('/login')
+      }
+    } catch (e) {
+      console.error('Failed to fetch dashboard stats', e)
+      setError("Network error. Please check your connection.")
+    } finally {
+      setLoading(false)
+    }
+  }, [navigate])
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const token = localStorage.getItem('cubag_token')
-        const authHeader = { 'Authorization': `Bearer ${token}` }
-
-        const memRes = await fetch(`${import.meta.env.VITE_API_URL}/members/admin/all`, { headers: authHeader })
-        let members = []
-        if (memRes.ok) members = await memRes.json()
-
-        const payRes = await fetch(`${import.meta.env.VITE_API_URL}/payments/admin/all`, { headers: authHeader })
-        let payments = { kpis: { revenue: 0, pending: 0 } }
-        if (payRes.ok) payments = await payRes.json()
-
-        const ticketRes = await fetch(`${import.meta.env.VITE_API_URL}/tickets/admin/all`, { headers: authHeader })
-        let openTickets = 0
-        if (ticketRes.ok) {
-          const ticketData = await ticketRes.json()
-          openTickets = Array.isArray(ticketData) ? ticketData.filter(t => t.status === 'open' || t.status === 'Open').length : 0
-        }
-
-        setStats({
-          totalMembers: members.length,
-          pendingLicenses: members.filter(m => m.status === 'pending').length,
-          revenue: payments.kpis.revenue || 0,
-          openTickets
-        })
-      } catch (e) {
-        console.error('Failed to fetch dashboard stats', e)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchDashboardData()
-  }, [])
+  }, [fetchDashboardData])
 
   return (
     <AppLayout title="Admin Hub">
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
         {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Admin Hub</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Overview of association health and member activities.</p>
+        <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Admin Hub</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Overview of association health and member activities.</p>
+          </div>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={fetchDashboardData}
+            disabled={loading}
+            style={{ borderRadius: '50%', width: 40, height: 40, padding: 0, justifyContent: 'center' }}
+          >
+            <span className={`material-symbols-outlined ${loading ? 'spin' : ''}`}>refresh</span>
+          </button>
+        </div>
+
+        {error && (
+          <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 12, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>error</span>
+            {error}
+          </div>
+        )}
+
+        {/* Debug Info (Hidden in production usually, but shown here for verification) */}
+        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', background: 'var(--bg-base)', padding: '4px 10px', borderRadius: 6, alignSelf: 'flex-start', border: '1px solid var(--border-subtle)' }}>
+           Admin Session: <strong>{localStorage.getItem('cubag_user') ? JSON.parse(localStorage.getItem('cubag_user')).email : 'None'}</strong> |
+           Role: <strong>{localStorage.getItem('cubag_user') ? JSON.parse(localStorage.getItem('cubag_user')).role : 'None'}</strong>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
@@ -64,48 +85,80 @@ export default function AdminDashboard() {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Platform Health</h2>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {/* Metric 1 */}
-              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#fff' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+              {/* Total Members */}
+              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#fff', borderBottom: '3px solid var(--brand-primary)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(240, 130, 50, 0.1)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>group</span>
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {loading ? '...' : stats.totalMembers}
+                  {loading ? '...' : (stats.total_members || 0)}
                 </div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Members</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Total Users</div>
               </div>
 
-              {/* Metric 2 */}
-              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#fff' }}>
+              {/* Active Members */}
+              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#fff', borderBottom: '3px solid #10b981' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>verified_user</span>
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                  {loading ? '...' : (stats.active_members || 0)}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Active Licenses</div>
+              </div>
+
+              {/* Pending Approvals */}
+              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#fff', borderBottom: '3px solid #f59e0b' }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>pending_actions</span>
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {loading ? '...' : stats.pendingLicenses}
+                  {loading ? '...' : stats.pending_members}
                 </div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Pending</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Pending Approval</div>
               </div>
 
-              {/* Metric 3 */}
-              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#fff' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>support_agent</span>
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {loading ? '...' : stats.openTickets}
-                </div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Tickets</div>
-              </div>
-
-              {/* Metric 4 */}
-              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#fff' }}>
+              {/* Revenue */}
+              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#fff', borderBottom: '3px solid #3b82f6' }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>payments</span>
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, marginTop: 4 }}>
-                  {loading ? '...' : `GHS ${stats.revenue >= 1000 ? (stats.revenue/1000).toFixed(1)+'k' : stats.revenue}`}
+                  {loading ? '...' : `₵${stats.revenue >= 1000 ? (stats.revenue/1000).toFixed(1)+'k' : stats.revenue}`}
                 </div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Dues</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Revenue</div>
+              </div>
+            </div>
+
+            {/* Recent Activity Table */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Recent Registrations</h3>
+                <Link to="/admin/members" style={{ fontSize: '0.75rem', fontWeight: 700 }}>View All</Link>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ background: 'var(--bg-base)', textAlign: 'left' }}>
+                    <tr>
+                      <th style={{ padding: '10px 20px', fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Name</th>
+                      <th style={{ padding: '10px 20px', fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Type</th>
+                      <th style={{ padding: '10px 20px', fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'right' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentMembers.length === 0 ? (
+                      <tr><td colSpan="3" style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>No recent registrations</td></tr>
+                    ) : recentMembers.map(m => (
+                      <tr key={m.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                        <td style={{ padding: '12px 20px', fontSize: '0.85rem', fontWeight: 600 }}>{m.name}</td>
+                        <td style={{ padding: '12px 20px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{m.member_type}</td>
+                        <td style={{ padding: '12px 20px', textAlign: 'right' }}>
+                          <span className={`badge badge-${m.status === 'active' ? 'success' : m.status === 'pending' ? 'warning' : 'danger'}`} style={{ fontSize: '0.6rem' }}>{m.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -120,7 +173,16 @@ export default function AdminDashboard() {
                 <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: '#f59e0b' }}>fact_check</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Licenses</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Review renewals</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Review renewals & expiries</div>
+                </div>
+                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: 'var(--border-strong)' }}>arrow_forward</span>
+              </Link>
+
+              <Link to="/admin/members" className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', transition: 'all 0.2s', borderLeft: '3px solid var(--brand-primary)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}>group</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Member Directory</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Manage all registered accounts</div>
                 </div>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: 'var(--border-strong)' }}>arrow_forward</span>
               </Link>
@@ -128,8 +190,8 @@ export default function AdminDashboard() {
               <Link to="/admin/tasks" className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', transition: 'all 0.2s', borderLeft: '3px solid #3b82f6' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: '#3b82f6' }}>assignment_add</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Compliance</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Assign duties</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Compliance & Tasks</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Assign and verify duties</div>
                 </div>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: 'var(--border-strong)' }}>arrow_forward</span>
               </Link>
@@ -137,8 +199,8 @@ export default function AdminDashboard() {
               <Link to="/admin/announcements" className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', transition: 'all 0.2s', borderLeft: '3px solid #10b981' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: '#10b981' }}>campaign</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Broadcast</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Send system alerts</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Broadcast Alerts</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Send push notifications</div>
                 </div>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: 'var(--border-strong)' }}>arrow_forward</span>
               </Link>
@@ -146,26 +208,8 @@ export default function AdminDashboard() {
               <Link to="/admin/cargo-schedules" className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', transition: 'all 0.2s', borderLeft: '3px solid #8b5cf6' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: '#8b5cf6' }}>local_shipping</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Logistics</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Update schedules</div>
-                </div>
-                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: 'var(--border-strong)' }}>arrow_forward</span>
-              </Link>
-
-              <Link to="/admin/fees" className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', transition: 'all 0.2s', borderLeft: '3px solid #f97316' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: '#f97316' }}>request_quote</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Platform Fees</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Configure fees</div>
-                </div>
-                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: 'var(--border-strong)' }}>arrow_forward</span>
-              </Link>
-
-              <Link to="/admin/payment-settings" className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', transition: 'all 0.2s', borderLeft: '3px solid #0ea5e9' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: '#0ea5e9' }}>payments</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Payments</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Manage accounts</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Logistics Master</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Update vanning schedules</div>
                 </div>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: 'var(--border-strong)' }}>arrow_forward</span>
               </Link>
@@ -173,8 +217,8 @@ export default function AdminDashboard() {
               <Link to="/admin/payments" className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', transition: 'all 0.2s', borderLeft: '3px solid #10b981' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: '#10b981' }}>account_balance_wallet</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Financials</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Control Center</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Revenue Control</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Audit and confirm payments</div>
                 </div>
                 <span className="material-symbols-outlined" style={{ fontSize: '1.1rem', color: 'var(--border-strong)' }}>arrow_forward</span>
               </Link>

@@ -1,41 +1,38 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
+import { useSocket } from '../hooks/useSocket'
 
 const API_URL = import.meta.env.VITE_API_URL
 
 export default function VesselMovements() {
-  const [vessels, setVessels] = useState([])
+  const [vessels, setVessels] = useState({})
   const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const socket = useSocket()
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true)
-        const res = await fetch(`${API_URL}/vessels`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` } })
-        if (res.ok) {
-          const data = await res.json()
-          setVessels(data)
-        } else {
-          // Fallback mock for demo if backend not ready
-          setVessels([
-            { id: 1, name: 'MSC ANIELLO', type: 'Container Ship', eta: 'Today, 14:00', status: 'In Port', status_color: 'success', lat: 5.62, lng: -0.01 },
-            { id: 2, name: 'MAERSK TEMA', type: 'Container Ship', eta: 'Tomorrow, 08:00', status: 'Arriving', status_color: 'warning', lat: 5.4, lng: -0.2 },
-            { id: 3, name: 'CMA CGM DAKAR', type: 'Cargo', eta: 'Oct 24, 18:00', status: 'Delayed', status_color: 'danger', lat: 5.1, lng: -0.5 }
-          ])
-        }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
-  }, [])
+    if (!socket) return
 
-  const filteredVessels = vessels.filter(v => 
-    v.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    v.status.toLowerCase().includes(searchTerm.toLowerCase())
+    socket.on('vessel_update', (vessel) => {
+      setVessels(prev => ({
+        ...prev,
+        [vessel.mmsi]: vessel
+      }))
+    })
+
+    return () => {
+      socket.off('vessel_update')
+    }
+  }, [socket])
+
+  const vesselList = Object.values(vessels).sort((a, b) =>
+    new Date(b.last_update) - new Date(a.last_update)
+  )
+
+  const filteredVessels = vesselList.filter(v =>
+    (v.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (v.mmsi || '').toString().includes(searchTerm) ||
+    (v.destination || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -44,54 +41,83 @@ export default function VesselMovements() {
         
         {/* Page Title for Content */}
         <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Vessel Movements</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Real-time maritime tracking at Ghana's major ports.</p>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Live Vessel Tracking</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Real-time AIS tracking for vessels in the Ghana region.</p>
         </div>
 
         <div style={{ position: 'relative' }}>
           <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: 12, color: 'var(--text-muted)', fontSize: '1.2rem' }}>search</span>
           <input 
             type="text" 
-            placeholder="Search vessels by name..." autoComplete="off"
+            placeholder="Search by vessel name, MMSI or destination..." autoComplete="off"
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '12px 16px 12px 42px', borderRadius: 10, border: '1.5px solid var(--border-subtle)', outline: 'none', fontSize: '0.9rem' }}
+            onChange={e => {
+              const val = e.target.value
+              setSearchTerm(val)
+              // If user types a 9-digit MMSI, tell the backend to track it globally
+              if (/^\d{9}$/.test(val) && socket) {
+                socket.emit('track_vessel', { mmsi: val })
+              }
+            }}
+            style={{ width: '100%', padding: '12px 16px 12px 42px', borderRadius: 10, border: '1.5px solid var(--border-subtle)', outline: 'none', fontSize: '0.9rem', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
           />
         </div>
 
-        {/* Live Map Area */}
-        <div style={{ height: 200, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-subtle)', position: 'relative' }}>
-          <iframe 
-            width="100%" 
-            height="100%" 
-            frameBorder="0" 
-            scrolling="no" 
-            marginHeight="0" 
-            marginWidth="0" 
-            src="https://www.openstreetmap.org/export/embed.html?bbox=-0.08,5.55,0.02,5.65&layer=mapnik&marker=5.6,-0.02" 
-            style={{ border: 'none' }}
-          ></iframe>
-          <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(255,255,255,0.9)', padding: '4px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-            <span className="live-dot"></span> Live GPS Track
-          </div>
+        {/* Status bar */}
+        <div style={{ padding: '8px 12px', background: 'rgba(240,130,50,0.05)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(240,130,50,0.1)' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase' }}>
+            {socket ? '● Live AIS Stream Connected' : '○ Connecting to AIS...'}
+          </span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            {vesselList.length} vessels in range
+          </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {filteredVessels.length > 0 ? filteredVessels.map((v, i) => (
-            <div key={v.id || i} style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 12, border: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, background: 'rgba(240,130,50,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
-                  <span className="material-symbols-outlined">directions_boat</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 40 }}>
+          {filteredVessels.length > 0 ? filteredVessels.map((v) => (
+            <div key={v.mmsi} className="feed-card" style={{ padding: 16, borderRadius: 12, border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, background: 'rgba(240,130,50,0.1)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
+                    <span className="material-symbols-outlined">directions_boat</span>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>{v.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>MMSI: {v.mmsi} • {v.type}</div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{v.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{v.type} • ETA {v.eta}</div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--brand-success)' }}>{v.speed ? `${v.speed} kn` : 'At Anchor'}</div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{new Date(v.last_update).toLocaleTimeString()}</div>
                 </div>
               </div>
-              <span className={`badge badge-${v.status_color || 'info'}`}>{v.status}</span>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '10px', background: 'var(--bg-base)', borderRadius: 8 }}>
+                <div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Destination</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{v.destination || 'N/A'}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>ETA</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{v.eta || 'N/A'}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Pos: {v.lat?.toFixed(4)}, {v.lng?.toFixed(4)}
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => window.open(`https://www.marinetraffic.com/en/ais/details/ships/mmsi:${v.mmsi}`)}>
+                  View Details
+                </button>
+              </div>
             </div>
           )) : (
-            <div style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>No vessels matching "{searchTerm}"</div>
+            <div className="card" style={{ padding: 60, textAlign: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: 'var(--border-default)', marginBottom: 16 }}>sailing</span>
+              <h3>No vessels in range</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 8 }}>Waiting for live AIS data from the Gulf of Guinea...</p>
+            </div>
           )}
         </div>
         

@@ -107,9 +107,19 @@ export default function PaymentHistory() {
       <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Page Title */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Transaction History</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Review and download receipts for all payments.</p>
+        <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Transaction History</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Review and download receipts for all payments.</p>
+          </div>
+          <button
+            className="icon-btn"
+            onClick={() => { setLoading(true); fetchPayments(); }}
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', width: 40, height: 40, borderRadius: '50%' }}
+            title="Refresh History"
+          >
+            <span className={`material-symbols-outlined ${loading ? 'spin' : ''}`}>refresh</span>
+          </button>
         </div>
 
         {/* ── KPI Cards — stacked vertically so values never truncate ── */}

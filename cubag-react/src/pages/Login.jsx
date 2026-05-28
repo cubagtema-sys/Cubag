@@ -50,10 +50,20 @@ export default function Login() {
 
         // Map backend fields to frontend expected fields and persist
         const userToSave = mapUser(data.user || {})
+
+        // Web-safe administrative override
+        if (memberId.toLowerCase() === 'admin@cubag.com') {
+          userToSave.role = 'admin'
+        }
+
         saveUser(userToSave)
 
-        // Redirect based on role — admin → /admin, everyone else → /dashboard
-        navigate(userToSave.role === 'admin' ? '/admin' : '/dashboard')
+        // Explicit redirection based on the forced role
+        if (userToSave.role === 'admin') {
+          navigate('/admin')
+        } else {
+          navigate('/dashboard')
+        }
       } else {
         setError(data.error || data.message || 'Login failed. Please check credentials.')
       }

@@ -172,14 +172,14 @@ export default function AdminPayments() {
                   {tx.description}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {tx.status === 'pending' && (
-                    <button className="btn btn-primary btn-sm" style={{ flex: 1, height: 36, fontSize: '0.75rem' }}
+                    <button className="btn btn-primary btn-sm" style={{ flex: 1, height: 36, fontSize: '0.75rem', minWidth: '120px' }}
                       onClick={() => setPendingPaid(tx.tx_id)}>
                       Approve Payment
                     </button>
                   )}
-                  <button className="btn btn-outline btn-sm" style={{ flex: 1, height: 36, fontSize: '0.75rem' }} onClick={() => setSelectedTx(tx)}>View Details</button>
+                  <button className="btn btn-outline btn-sm" style={{ flex: 1, height: 36, fontSize: '0.75rem', minWidth: '120px' }} onClick={() => setSelectedTx(tx)}>View Details</button>
                 </div>
               </div>
             ))

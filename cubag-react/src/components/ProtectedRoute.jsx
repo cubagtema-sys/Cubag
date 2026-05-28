@@ -32,10 +32,19 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
 
   try {
     const user = JSON.parse(userRaw)
-    if (adminOnly && user.role !== 'admin') {
+    const userRole = (user.role || '').toLowerCase()
+    const userEmail = (user.email || '').toLowerCase()
+
+    // Administrative override: if it's the master admin email, allow access to anything
+    const isMasterAdmin = userEmail === 'admin@cubag.com' || userEmail === 'kelvinvandyck2@gmail.com'
+    const isAdmin = userRole === 'admin' || isMasterAdmin
+
+    if (adminOnly && !isAdmin) {
+      console.warn(`[ProtectedRoute] Denied access to admin route for user: ${userEmail} (Role: ${userRole})`)
       return <Navigate to="/dashboard" replace />
     }
-  } catch {
+  } catch (err) {
+    console.error(`[ProtectedRoute] Error parsing user session:`, err)
     return <Navigate to="/login" replace />
   }
 

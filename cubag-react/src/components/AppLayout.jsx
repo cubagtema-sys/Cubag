@@ -36,6 +36,12 @@ export default function AppLayout({ children, title, hideSearch }) {
           const me = await res.json()
           const currentUser = getStoredUser()
           const updatedUser = mapUser(me, currentUser || {})
+
+          // Ensure we never downgrade an admin role during background fetch
+          if (currentUser?.role === 'admin' && updatedUser.role !== 'admin') {
+             updatedUser.role = 'admin'
+          }
+
           if (JSON.stringify(currentUser) !== JSON.stringify(updatedUser)) {
             saveUser(updatedUser)
           }
