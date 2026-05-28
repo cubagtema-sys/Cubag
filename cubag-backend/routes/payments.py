@@ -263,8 +263,10 @@ def verify_payment_manually(reference):
     if request.method == 'OPTIONS':
         return jsonify({'ok': True}), 200
 
+    if not reference or reference.lower() == 'n/a' or reference.lower() == 'pending':
+        return jsonify({'message': 'Invalid reference code', 'status': 'error'}), 200
+
     try:
-        # Paystack uses /transaction/verify for all charge references
         ps_res = requests.get(
             f'https://api.paystack.co/transaction/verify/{reference}',
             headers=_paystack_headers(),
@@ -273,27 +275,37 @@ def verify_payment_manually(reference):
         ps_data = ps_res.json()
 
         if not ps_data.get('status'):
-            # Transaction may not be finalized yet — return pending, not 404
-            return jsonify({'message': 'Transaction pending', 'status': 'pending'}), 200
+            return jsonify({'message': 'Reference not found on Paystack', 'status': 'not_found'}), 200
 
         ps_payload = ps_data.get('data', {})
         ps_status = ps_payload.get('status', 'pending')
 
         if ps_status == 'success':
+            # 1. Try to get ID from metadata
             payment_id = ps_payload.get('metadata', {}).get('payment_id')
-            _mark_payment_as_paid(payment_id)
-            return jsonify({'message': 'Payment verified', 'status': 'success'}), 200
-        elif ps_status in ('failed', 'abandoned', 'reversed', 'declined', 'cancelled', 'canceled'):
-            payment_id = ps_payload.get('metadata', {}).get('payment_id')
-            if payment_id:
-                _mark_payment_as_failed(payment_id)
-            return jsonify({'message': 'Payment failed or declined', 'status': 'failed'}), 200
 
-        return jsonify({'message': 'Payment processing', 'status': ps_status}), 200
+            # 2. Fallback: Lookup payment by reference if metadata is missing
+            if not payment_id:
+                conn = get_db()
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id FROM payments WHERE payment_ref = %s", (reference,))
+                    row = cursor.fetchone()
+                    if row: payment_id = row['id']
+                conn.close()
+
+            if payment_id:
+                _mark_payment_as_paid(payment_id)
+                return jsonify({'message': 'Payment verified and updated!', 'status': 'success'}), 200
+            else:
+                return jsonify({'message': 'Payment success on Paystack, but could not link to member record.', 'status': 'orphan_success'}), 200
+
+        elif ps_status in ('failed', 'abandoned', 'reversed', 'declined', 'cancelled'):
+            return jsonify({'message': f'Payment {ps_status}', 'status': 'failed'}), 200
+
+        return jsonify({'message': f'Transaction state: {ps_status.replace("_", " ")}', 'status': ps_status}), 200
     except Exception as e:
         print(f'[ERROR] verify_payment_manually: {e}')
-        # Return pending instead of 500 so frontend doesn't break
-        return jsonify({'message': 'Checking...', 'status': 'pending'}), 200
+        return jsonify({'message': 'Verification service temporarily unavailable', 'status': 'pending'}), 200
 
 
 def _mark_payment_as_failed(payment_id):
