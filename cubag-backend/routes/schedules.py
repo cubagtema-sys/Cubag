@@ -6,10 +6,14 @@ schedules_bp = Blueprint('schedules', __name__)
 
 @schedules_bp.route('/', methods=['GET'])
 def get_schedules():
+    schedule_type = request.args.get('type')
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM schedules ORDER BY created_at DESC")
+            if schedule_type:
+                cursor.execute("SELECT * FROM schedules WHERE type = %s ORDER BY created_at DESC", (schedule_type,))
+            else:
+                cursor.execute("SELECT * FROM schedules ORDER BY created_at DESC")
             data = cursor.fetchall()
         return jsonify(data), 200
     except Exception as e:
