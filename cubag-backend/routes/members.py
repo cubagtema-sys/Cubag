@@ -343,3 +343,21 @@ def get_member(member_id):
         return jsonify(member), 200
     finally:
         conn.close()
+
+@members_bp.route('/verify/<int:member_id>', methods=['GET'])
+def verify_member_public(member_id):
+    """Publicly verify a member's credentials by their ID."""
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT name, company, member_type, port_of_operation,
+                       status, profile_photo, license_number
+                FROM members WHERE id = %s
+            """, (member_id,))
+            member = cursor.fetchone()
+        if not member:
+            return jsonify({'message': 'Invalid member ID'}), 404
+        return jsonify(dict(member)), 200
+    finally:
+        conn.close()
