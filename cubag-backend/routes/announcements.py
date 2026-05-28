@@ -9,16 +9,51 @@ announcements_bp = Blueprint('announcements', __name__)
 @announcements_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_announcements():
+    user_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                SELECT * FROM announcements
-                WHERE deleted_at IS NULL
-                ORDER BY created_at DESC
-            """)
+                SELECT a.*,
+                       (ar.member_id IS NOT NULL) AS is_read
+                FROM announcements a
+                LEFT JOIN announcement_reads ar ON a.id = ar.announcement_id AND ar.member_id = %s
+                WHERE a.deleted_at IS NULL
+                ORDER BY a.created_at DESC
+            """, (user_id,))
             data = cursor.fetchall()
         return jsonify(data), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+# ─── POST /mark-read — Mark specific or all announcements as read ────────────
+@announcements_bp.route('/mark-read', methods=['POST'])
+@jwt_required()
+def mark_read():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    ann_id = data.get('announcement_id') # single ID or None for "all"
+
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            if ann_id:
+                cursor.execute("""
+                    INSERT INTO announcement_reads (member_id, announcement_id)
+                    VALUES (%s, %s)
+                    ON CONFLICT DO NOTHING
+                """, (user_id, ann_id))
+            else:
+                # Mark all as read
+                cursor.execute("""
+                    INSERT INTO announcement_reads (member_id, announcement_id)
+                    SELECT %s, id FROM announcements WHERE deleted_at IS NULL
+                    ON CONFLICT DO NOTHING
+                """, (user_id,))
+            conn.commit()
+        return jsonify({'message': 'Marked as read'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:

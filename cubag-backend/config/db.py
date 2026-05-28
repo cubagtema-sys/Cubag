@@ -250,6 +250,18 @@ def init_db():
                 )
             """)
 
+            # Tracking which user has read which announcement (Cross-device sync)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS announcement_reads (
+                    member_id INT NOT NULL,
+                    announcement_id INT NOT NULL,
+                    read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (member_id, announcement_id),
+                    FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+                    FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE
+                )
+            """)
+
         conn.commit()
         print("[OK] Database tables initialised successfully.")
     except Exception as e:

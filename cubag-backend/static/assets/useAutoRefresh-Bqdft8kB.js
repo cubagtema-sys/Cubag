@@ -1,1 +1,0 @@
-import{r as e}from"./chunk-CilyBKbf.js";import{f as t}from"./index-JHknWn7F.js";var n=e(t(),1);function r(e,t=3e4,r=[]){let i=(0,n.useRef)(e);(0,n.useEffect)(()=>{i.current=e},[e]),(0,n.useEffect)(()=>{i.current();let e=setInterval(()=>i.current(),t);return()=>clearInterval(e)},[t,...r])}export{r as t};
