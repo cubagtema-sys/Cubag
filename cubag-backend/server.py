@@ -125,13 +125,13 @@ def health():
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_spa(path):
+    # Check if the requested path is a real file (like an image or JS)
     full_path = os.path.join(app.static_folder, path)
     if path and os.path.isfile(full_path):
         return send_from_directory(app.static_folder, path)
-    index_path = os.path.join(app.static_folder, 'index.html')
-    if os.path.isfile(index_path):
-        return send_from_directory(app.static_folder, 'index.html')
-    return {'message': 'CUBAG API is running. Frontend build not found.'}, 200
+
+    # Otherwise, always serve index.html to let React Router handle the URL
+    return send_from_directory(app.static_folder, 'index.html')
 
 # Initialize DB
 try:
