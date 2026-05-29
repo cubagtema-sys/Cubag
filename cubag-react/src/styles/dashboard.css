@@ -207,7 +207,7 @@
   background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
   padding: 10px 16px;
-  z-index: 100;
+  z-index: 1100;
   justify-content: space-between;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }

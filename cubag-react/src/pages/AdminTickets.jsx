@@ -88,13 +88,10 @@ export default function AdminTickets() {
   const displayed = activeTab === 'inbox' ? inbox : archived
 
   return (
-    <AppLayout title="Tickets">
+    <AppLayout title="Support Tickets">
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Support Tickets</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Review and respond to member help requests.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* ── Tab bar ── */}
         <div style={{ display: 'flex', gap: 6, background: 'var(--bg-surface)', borderRadius: 10, padding: 3 }}>

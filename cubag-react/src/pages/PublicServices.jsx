@@ -26,13 +26,7 @@ export default function PublicServices() {
         if (res.ok) {
           setMaterials(await res.json())
         } else {
-          setMaterials([
-            { id: 1, title: 'CUBAG Membership Policy 2026', category: 'Policy', file_type: 'pdf',  file_url: '#', created_at: '2026-01-10' },
-            { id: 2, title: 'License Renewal Form',          category: 'Forms',  file_type: 'xlsx', file_url: '#', created_at: '2026-02-15' },
-            { id: 3, title: 'Export Documentation Guide',    category: 'Guides', file_type: 'pdf',  file_url: '#', created_at: '2026-03-01' },
-            { id: 4, title: 'Customs Act 2015 Extract',      category: 'Policy', file_type: 'pdf',  file_url: '#', created_at: '2026-01-20' },
-            { id: 5, title: 'Standard Operating Procedures', category: 'Guides', file_type: 'docx', file_url: '#', created_at: '2026-02-25' }
-          ])
+          setMaterials([])
         }
       } catch (e) {
         console.error('Error fetching materials', e)

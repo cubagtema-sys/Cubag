@@ -44,22 +44,20 @@ const EventForm = ({ formData, setFormData, onSubmit, submitLabel, submitting })
     <div className="form-group">
       <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Event Title</label>
       <input required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
-        placeholder="e.g. Annual Meeting" style={{ padding: '10px 12px', fontSize: '0.9rem' }} />
+        placeholder="e.g. Annual Meeting" style={{ padding: '10px 12px', fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }} />
     </div>
     <div className="form-group">
       <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Venue</label>
       <input required value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
-        placeholder="e.g. Tema Secretariat" style={{ padding: '10px 12px', fontSize: '0.9rem' }} />
+        placeholder="e.g. Tema Secretariat" style={{ padding: '10px 12px', fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }} />
     </div>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-      <div className="form-group">
-        <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Date</label>
-        <input required type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} style={{ padding: '10px 12px', fontSize: '0.9rem' }} />
-      </div>
-      <div className="form-group">
-        <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Time</label>
-        <input required type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} style={{ padding: '10px 12px', fontSize: '0.9rem' }} />
-      </div>
+    <div className="form-group">
+      <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Date</label>
+      <input required type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} style={{ padding: '10px 12px', fontSize: '0.9rem', width: '100%', maxWidth: '220px', minHeight: '44px', boxSizing: 'border-box' }} />
+    </div>
+    <div className="form-group">
+      <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Time</label>
+      <input required type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} style={{ padding: '10px 12px', fontSize: '0.9rem', width: '100%', maxWidth: '220px', minHeight: '44px', boxSizing: 'border-box' }} />
     </div>
     <div className="form-group">
       <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>Description</label>
@@ -177,14 +175,10 @@ export default function AdminEvents() {
   ]
 
   return (
-    <AppLayout title="Events">
+    <AppLayout title="Events Management">
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Events Management</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Create and manage association meetings and workshops.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* Tab Bar */}
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', borderRadius: 10, padding: 3, flexWrap: 'wrap' }}>

@@ -51,8 +51,8 @@ export default function AdminSurveys() {
     })
     if (!res.ok) throw new Error('Upload failed')
     const data = await res.json()
-    // Return the full URL so images load correctly
-    return `${API_URL.replace('/api', '')}${data.url}`
+    // Return the URL as-is (Backend now returns full permanent Cloud URL)
+    return data.url
   }
 
   const handlePhotoUpload = async (index, e) => {
@@ -130,12 +130,7 @@ export default function AdminSurveys() {
     <AppLayout title="Surveys & Elections">
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-        <div>
-          <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Surveys & Elections</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-            Create polls, manage association elections, and view member responses.
-          </p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', borderRadius: 12, padding: 4, flexWrap: 'wrap' }}>
           {[
@@ -224,7 +219,7 @@ export default function AdminSurveys() {
               </div>
               <div className="form-group">
                 <label>Deadline / Expiry Date</label>
-                <input required type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
+                <input required type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} style={{ width: '100%', maxWidth: '220px', minHeight: '44px', boxSizing: 'border-box' }} />
               </div>
 
               {form.method === 'Multiple Choice' && (
@@ -247,7 +242,7 @@ export default function AdminSurveys() {
                           )}
                           <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(i, e)} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
                         </div>
-                        <input required style={{ flex: 1, minWidth: 0, fontSize: '0.85rem' }} placeholder="Name..." value={opt.name} onChange={e => {
+                        <input required style={{ flex: 1, minWidth: 0, fontSize: '0.95rem', padding: '8px 4px' }} placeholder="Candidate Name..." value={opt.name} onChange={e => {
                           const newOpts = [...form.options];
                           newOpts[i].name = e.target.value;
                           setForm({ ...form, options: newOpts });
@@ -351,15 +346,20 @@ export default function AdminSurveys() {
             ) : (activeTab === 'active' ? activeSurveys : pastSurveys).map(s => (
               <div key={s.id} className="feed-card" style={{ padding: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                  <div>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.type === 'Election' ? '#8b5cf6' : 'var(--brand-primary)', textTransform: 'uppercase', padding: '4px 10px', background: s.type === 'Election' ? 'rgba(139,92,246,0.1)' : 'rgba(240,130,50,0.1)', borderRadius: 20 }}>
-                      {s.type}
-                    </span>
-                    <h3 style={{ margin: '8px 0 4px' }}>{s.title}</h3>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Deadline: {s.deadline || 'No deadline'}</div>
+                  <div style={{ display: 'flex', gap: 14 }}>
+                    {s.cover_image && (
+                      <img src={s.cover_image} alt="" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 10, flexShrink: 0 }} />
+                    )}
+                    <div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.type === 'Election' ? '#8b5cf6' : 'var(--brand-primary)', textTransform: 'uppercase', padding: '4px 10px', background: s.type === 'Election' ? 'rgba(139,92,246,0.1)' : 'rgba(240,130,50,0.1)', borderRadius: 20 }}>
+                        {s.type}
+                      </span>
+                      <h3 style={{ margin: '8px 0 4px' }}>{s.title}</h3>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Deadline: {s.deadline || 'No deadline'}</div>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-outline btn-sm" onClick={() => viewResults(s)}>View Results</button>
+                    <button className="btn btn-outline btn-sm" onClick={() => viewResults(s)}>Results</button>
                     <button className="btn btn-ghost btn-sm" style={{ color: 'var(--brand-danger)' }} onClick={() => setPendingDelete(s.id)}>
                       <span className="material-symbols-outlined">delete</span>
                     </button>

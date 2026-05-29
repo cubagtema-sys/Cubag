@@ -124,10 +124,7 @@ export default function AdminAnnouncements() {
     <AppLayout title="Announcements">
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Announcements</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Broadcast system-wide alerts to all members.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* ── 3-Tab bar ── */}
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', borderRadius: 10, padding: 3 }}>

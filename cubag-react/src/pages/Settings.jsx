@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 
 export default function Settings() {
+  const navigate = useNavigate()
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
   const [showPasswords, setShowPasswords] = useState({ current: false, next: false, confirm: false })
@@ -47,14 +49,10 @@ export default function Settings() {
   }
 
   return (
-    <AppLayout title="Settings">
+    <AppLayout title="Account Settings">
       <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Settings</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Configure your account preferences and security.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {!isChangingPassword ? (
           <div className="feed-card">
@@ -89,10 +87,11 @@ export default function Settings() {
               {[
                 { icon: 'call',  color: 'var(--brand-primary)', bg: 'rgba(240,130,50,0.1)', label: 'Call Support', value: '+233 (0) 302 123 456', href: 'tel:+233302123456' },
                 { icon: 'mail',  color: '#3b82f6',              bg: 'rgba(59,130,246,0.1)',  label: 'Email Us',    value: 'support@cubag.org.gh',  href: 'mailto:support@cubag.org.gh' },
-                { icon: 'forum', color: '#10b981',              bg: 'rgba(16,185,129,0.1)',  label: 'Live Chat',   value: 'Available 8am – 5pm',   href: '#' },
+                { icon: 'forum', color: '#10b981',              bg: 'rgba(16,185,129,0.1)',  label: 'Support Center',   value: 'Help desk & messages',   to: '/engagement' },
               ].map((c, i, arr) => (
-                <a key={c.label} href={c.href}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', textDecoration: 'none', borderBottom: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}
+                <div key={c.label}
+                  onClick={() => c.to ? navigate(c.to) : (window.location.href = c.href)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', cursor: 'pointer', borderBottom: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 34, height: 34, borderRadius: 9, background: c.bg, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -104,7 +103,7 @@ export default function Settings() {
                     </div>
                   </div>
                   <span className="material-symbols-outlined" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>chevron_right</span>
-                </a>
+                </div>
               ))}
             </div>
           </div>

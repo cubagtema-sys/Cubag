@@ -79,14 +79,10 @@ export default function AdminIntelligence() {
   }, [])
 
   return (
-    <AppLayout title="Intelligence">
+    <AppLayout title="Intelligence Hub">
       <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 60 }}>
 
-        {/* Page Title */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Intelligence Control</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Maritime & customs news integration — live feed preview.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* Status Banner */}
         <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderRadius: 12, border: '1px solid rgba(16,185,129,0.3)' }}>

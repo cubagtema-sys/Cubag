@@ -94,14 +94,10 @@ export default function AdminPayments() {
 
   return (
     <>
-    <AppLayout title="Payments">
+    <AppLayout title="Financial Center">
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
-        {/* Header Section */}
-        <div>
-          <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--text-primary)', fontWeight: 800 }}>Revenue Control</h2>
-          <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Monitor association dues and platform transactions.</p>
-        </div>
+        {/* Header Section removed as it is now in the header */}
 
         {/* Financial KPIs - High Density */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>

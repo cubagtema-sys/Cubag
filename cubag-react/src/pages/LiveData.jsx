@@ -132,15 +132,11 @@ export default function LiveData() {
   }, [])
 
   return (
-    <AppLayout title="Intelligence">
+    <AppLayout title="Intelligence Hub">
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 40 }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12 }}>
-          <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 2 }}>Intelligence Hub</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>Live monitoring of global maritime, shipping & customs news.</p>
-          </div>
+        {/* Header removed as it is now in the header */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', paddingBottom: 4 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase' }}>
               <span className="live-dot" style={{ width: 6, height: 6 }} />

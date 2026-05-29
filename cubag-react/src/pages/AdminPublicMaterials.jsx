@@ -114,13 +114,10 @@ export default function AdminPublicMaterials() {
   ]
 
   return (
-    <AppLayout title="Materials">
+    <AppLayout title="Public Materials">
       <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Public Materials</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage documents and media available on the public guest portal.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* ── Tab Switcher ── */}
         <div style={{

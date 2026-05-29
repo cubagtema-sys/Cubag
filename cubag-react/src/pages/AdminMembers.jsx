@@ -25,10 +25,12 @@ const getInitials = (name = '') =>
 export default function AdminMembers() {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selected, setSelected] = useState(null)
   const [updating, setUpdating] = useState(false)
+  const [verifyingPay, setVerifyingPay] = useState(null)
 
   const token = localStorage.getItem('cubag_token')
 
@@ -36,14 +38,21 @@ export default function AdminMembers() {
 
   const fetchMembers = async () => {
     if (firstLoad.current) setLoading(true)
+    setError(null)
     try {
       const res = await fetch(`${API_URL}/members/admin/all`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      const data = await res.json()
-      setMembers(Array.isArray(data) ? data : [])
-    } catch {
-      setMembers([])
+      if (res.ok) {
+        const data = await res.json()
+        setMembers(Array.isArray(data) ? data : [])
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        setError(errData.message || `Error ${res.status}: Failed to load members`)
+      }
+    } catch (err) {
+      console.error(err)
+      setError("Network connection issue. Please refresh.")
     } finally {
       setLoading(false)
       firstLoad.current = false
@@ -79,6 +88,30 @@ export default function AdminMembers() {
     }
   }
 
+  const verifyMemberPayment = async (m) => {
+    if (!m.payment_ref) return
+    setVerifyingPay(m.id)
+    try {
+      const res = await fetch(`${API_URL}/payments/verify/${m.payment_ref}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+
+      if (data.status === 'success') {
+        alert("Payment verified! The account status has been updated to Active.")
+        // Refresh local data
+        setMembers(prev => prev.map(item => item.id === m.id ? { ...item, status: 'active' } : item))
+        if (selected?.id === m.id) setSelected(s => ({ ...s, status: 'active' }))
+      } else {
+        alert(`Status: ${data.status || 'Transaction not found or pending'}`)
+      }
+    } catch (e) {
+      alert("Verification failed. Please check the network.")
+    } finally {
+      setVerifyingPay(null)
+    }
+  }
+
   const filtered = members.filter(m => {
     const q = search.toLowerCase()
     const matchSearch = (m.name || '').toLowerCase().includes(q) ||
@@ -106,14 +139,10 @@ export default function AdminMembers() {
   ]
 
   return (
-    <AppLayout title="Members">
+    <AppLayout title="Association Members">
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Association Members</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage verified logistics personnel and agencies.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* KPI Strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
@@ -158,6 +187,13 @@ export default function AdminMembers() {
 
         {/* Members List */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {error && (
+            <div style={{ padding: '20px 16px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 12, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, margin: '16px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>error</span>
+              {error}
+            </div>
+          )}
+
           {loading ? (
             <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>
               <div className="spinner" style={{ margin: '0 auto 16px' }} />
@@ -261,14 +297,15 @@ export default function AdminMembers() {
                   { icon: 'work',        label: 'Type',              val: selected.member_type },
                   { icon: 'location_on', label: 'Port',              val: selected.port_of_operation },
                   { icon: 'badge',       label: 'License',           val: selected.license_number || 'N/A' },
+                  { icon: 'payments',    label: 'Payment Ref',       val: selected.payment_ref || 'None' },
                   { icon: 'notifications', label: 'Push Token',       val: selected.fcm_token ? 'Active (Registered)' : 'Not Registered' },
                   { icon: 'calendar_month', label: 'Registered',     val: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : 'N/A' },
                 ].map(({ icon, label, val }) => (
                   <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px', background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: TYPE_COLORS[selected.member_type] || 'var(--brand-primary)', flexShrink: 0 }}>{icon}</span>
-                    <div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{label}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{val || '—'}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{val || '—'}</div>
                     </div>
                   </div>
                 ))}

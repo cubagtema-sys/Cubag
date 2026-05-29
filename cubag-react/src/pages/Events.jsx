@@ -28,14 +28,10 @@ export default function Events() {
   }, [])
 
   return (
-    <AppLayout title="Events">
+    <AppLayout title="Events & Workshops">
       <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Events & Workshops</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Industry seminars, meetings, and training sessions.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {loading ? (
           <div style={{ minHeight: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border-subtle)' }}>

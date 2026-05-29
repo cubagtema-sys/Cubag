@@ -24,7 +24,8 @@ export const mapUser = (backendUser, existingUser = {}) => {
     status: backendUser.status || existingUser.status,
     photo: photo,
     profile_photo: photo,
-    licenseExpiry: backendUser.license_number || backendUser.licenseNumber || backendUser.license_expiry_date || existingUser.licenseExpiry || 'No Active License'
+    licenseNumber: backendUser.licenseNumber || backendUser.license_number || existingUser.licenseNumber,
+    licenseExpiry: backendUser.licenseExpiryDate || backendUser.license_expiry_date || existingUser.licenseExpiry || null
   };
 
   // Ensure email-specific persistence for photos

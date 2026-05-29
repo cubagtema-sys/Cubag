@@ -84,14 +84,10 @@ export default function Tasks() {
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
   return (
-    <AppLayout title="Tasks">
+    <AppLayout title="Tasks & Compliance">
       <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Tasks & Compliance</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage your professional requirements and deadlines.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* Banner */}
         <div className="feed-card" style={{ background: 'var(--gradient-brand)', color: '#fff', border: 'none' }}>

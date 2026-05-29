@@ -8,14 +8,17 @@ const API_URL = import.meta.env.VITE_API_URL
 
 function formatDate(str) {
   if (!str) return '—'
-  return new Date(str).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  try {
+    const d = new Date(str)
+    if (isNaN(d.getTime())) return '—'
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch (e) {
+    return '—'
+  }
 }
 
 export default function Profile() {
   const [user, setUser]               = useState({})
-  const [licenseHistory, setHistory]  = useState([])
-  const [historyLoaded, setHistoryLoaded] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -43,18 +46,6 @@ export default function Profile() {
     }
     fetchUser()
   }, [navigate])
-
-  const loadHistory = async () => {
-    if (historyLoaded) { setShowHistory(v => !v); return }
-    try {
-      const res = await fetch(`${API_URL}/members/my-license-history`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
-      })
-      if (res.ok) setHistory(await res.json())
-    } catch {}
-    setHistoryLoaded(true)
-    setShowHistory(true)
-  }
 
 
   const handlePhotoUpload = async (e) => {
@@ -99,15 +90,17 @@ export default function Profile() {
 
 
 
-  const initials = (user.name || 'J').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '...'
 
   const [showIdCard, setShowIdCard] = useState(false)
   
   // Generate unique member ID based on last name + id
-  const lastName = user.name ? user.name.split(' ').pop().toUpperCase() : 'MEMBER'
-  const uniqueMemberId = `CUBAG-${lastName}-00${user.memberId || '1'}`
+  const lastName = user.name ? user.name.split(' ').pop().toUpperCase() : ''
+  const uniqueMemberId = user.id ? `CUBAG-${lastName}-00${user.id || user.memberId}` : '...'
 
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MEMBER:${uniqueMemberId}`
+  // Standard public URL for verification
+  const verifyUrl = user.id ? `${window.location.origin}/verify/${user.id || user.memberId}` : ''
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(verifyUrl)}`
   
   const handleViewIdCard = () => {
     if (!user.photo) {
@@ -119,14 +112,10 @@ export default function Profile() {
   }
 
   return (
-    <AppLayout title="Profile">
+    <AppLayout title="My Profile">
       <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>My Profile</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage your personal and professional information.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* Profile Header Card */}
         <div className="feed-card" style={{ overflow: 'visible' }}>
@@ -269,9 +258,9 @@ export default function Profile() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: '1rem', color: user.status === 'active' ? 'var(--text-primary)' : 'var(--brand-danger)', fontWeight: 700 }}>
-                      {user.licenseNumber || (user.status === 'active' ? 'N/A' : 'PAYMENT REQUIRED')}
+                      {user.id ? (user.licenseNumber || (user.status === 'active' ? 'N/A' : 'PAYMENT REQUIRED')) : '...'}
                     </div>
-                    {user.licenseExpiry && (() => {
+                    {user.id && user.licenseExpiry && (() => {
                       const exp      = new Date(user.licenseExpiry)
                       const daysLeft = Math.ceil((exp - new Date()) / 86400000)
                       return (
@@ -292,44 +281,15 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* License History toggle */}
+              {/* License History button */}
               <div style={{ padding: '12px 20px' }}>
                 <button
-                  onClick={loadHistory}
+                  onClick={() => navigate('/license-renewal')}
                   style={{ width: '100%', padding: '9px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>{showHistory ? 'expand_less' : 'history'}</span>
-                  {showHistory ? 'Hide' : 'View'} License History
+                  <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>history</span>
+                  View License History
                 </button>
-
-                {showHistory && (
-                  <div style={{ marginTop: 12 }}>
-                    {licenseHistory.length === 0 ? (
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>No renewal history yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {licenseHistory.map((h, idx) => {
-                          const expired   = h.expiry_date && new Date(h.expiry_date) < new Date()
-                          const isCurrent = idx === 0
-                          return (
-                            <div key={h.id} style={{ padding: '10px 12px', borderRadius: 10, border: `1px solid ${isCurrent ? 'rgba(16,185,129,0.3)' : 'var(--border-subtle)'}`, background: isCurrent ? 'rgba(16,185,129,0.04)' : 'var(--bg-elevated)' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: isCurrent ? '#10b981' : 'var(--text-muted)', textTransform: 'uppercase' }}>
-                                  {isCurrent ? '● Current' : '○ Archived'} · {h.duration_label || '—'}
-                                </span>
-                                {expired && !isCurrent && <span style={{ fontSize: '0.6rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '1px 7px', borderRadius: 20, fontWeight: 700 }}>Expired</span>}
-                              </div>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>{h.license_number || '—'}</div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                                {formatDate(h.start_date)} → <strong style={{ color: expired && !isCurrent ? '#ef4444' : 'var(--text-secondary)' }}>{formatDate(h.expiry_date)}</strong>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>

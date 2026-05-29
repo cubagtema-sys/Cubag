@@ -19,7 +19,10 @@ export default function Messaging() {
       const res = await fetch(`${API_URL}/messages/conversations`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('cubag_token')}` }
       })
-      if (res.ok) setConversations(await res.json())
+      if (res.ok) {
+        const data = await res.json()
+        setConversations(Array.isArray(data) ? data : [])
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -39,25 +42,29 @@ export default function Messaging() {
       
       const chatTarget = {
         id: u.id,
-        name: u.name,
-        company: u.company || 'Member',
+        name: u.name || 'Member',
+        company: u.company || 'CUBAG Member',
         initials: initials
       }
       
       openChat(chatTarget)
       // Clear the state so refreshing doesn't keep reopening the chat
-      window.history.replaceState({}, '')
+      window.history.replaceState(null, '', location.pathname)
     }
   }, [location.state])
 
   const openChat = async (target) => {
+    if (!target || !target.id) return
     setActiveChat(target)
     setMessages([])
     try {
       const res = await fetch(`${API_URL}/messages/${target.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('cubag_token')}` }
       })
-      if (res.ok) setMessages(await res.json())
+      if (res.ok) {
+        const data = await res.json()
+        setMessages(Array.isArray(data) ? data : [])
+      }
     } catch (e) {
       console.error(e)
     }
@@ -94,9 +101,16 @@ export default function Messaging() {
 
   return (
     <AppLayout title="Messages" hideSearch>
-      <div style={{ height: 'calc(100vh - 120px)', height: 'calc(100svh - 120px)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column' }}>
 
-        {!activeChat ? (
+        {loading ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+             <div style={{ textAlign: 'center' }}>
+                <span className="material-symbols-outlined spin" style={{ fontSize: '2rem', marginBottom: 12 }}>sync</span>
+                <div>Loading conversations...</div>
+             </div>
+          </div>
+        ) : !activeChat ? (
           // Conversations List View
           <div className="feed-card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', border: 'none', borderRadius: 12 }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -110,7 +124,7 @@ export default function Messaging() {
               </div>
             </div>
 
-            {conversations.length === 0 ? (
+            {(!Array.isArray(conversations) || conversations.length === 0) ? (
               // Empty state
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '40px 24px', textAlign: 'center' }}>
                 <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(240,130,50,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -170,12 +184,12 @@ export default function Messaging() {
 
             {/* Messages */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--bg-base)' }}>
-              {messages.length === 0 && (
+              {(!Array.isArray(messages) || messages.length === 0) && (
                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 32 }}>
-                  Say hello to {activeChat.name.split(' ')[0]}!
+                  Say hello to {(activeChat.name || 'Member').split(' ')[0]}!
                 </div>
               )}
-              {messages.map(msg => (
+              {Array.isArray(messages) && messages.map(msg => (
                 <div key={msg.id} style={{ display: 'flex', justifyContent: msg.from === 'me' ? 'flex-end' : 'flex-start' }}>
                   <div style={{
                     maxWidth: '85%', padding: '10px 14px',

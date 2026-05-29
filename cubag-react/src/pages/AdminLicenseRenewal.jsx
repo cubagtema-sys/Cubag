@@ -145,7 +145,7 @@ export default function AdminLicenseRenewal() {
   const activeList  = members.filter(m => m.status === 'active' || m.status === 'suspended')
 
   return (
-    <AppLayout title="Approvals">
+    <AppLayout title="License Queue">
 
       {/* Payment Verification Sheet */}
       {selectedPayment && (
@@ -179,10 +179,7 @@ export default function AdminLicenseRenewal() {
       )}
 
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>License Queue</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Review renewals and set license expiry periods.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 6, background: 'var(--bg-surface)', borderRadius: 10, padding: 3 }}>
@@ -324,7 +321,7 @@ export default function AdminLicenseRenewal() {
                       <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Custom Expiry Date</label>
                       <input type="date" value={ed.customDate}
                         onChange={e => setEditor(m.id, { customDate: e.target.value })}
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                        style={{ width: '100%', maxWidth: '220px', minHeight: '44px', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                       />
                     </div>
                   )}

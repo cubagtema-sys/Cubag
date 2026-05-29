@@ -84,7 +84,7 @@ export default function LicenseRenewal() {
   const isActive = user.status === 'active'
 
   return (
-    <AppLayout title="Certificates">
+    <AppLayout title="Receipts & Licenses">
       {(!isActive && !historyLoading && history.length === 0) ? (
         <div style={{ maxWidth: 600, margin: '40px auto', textAlign: 'center', padding: '60px 24px', background: 'var(--bg-surface)', borderRadius: 20, border: '1px solid var(--border-subtle)' }}>
           <div style={{ width: 80, height: 80, background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
@@ -102,11 +102,7 @@ export default function LicenseRenewal() {
       ) : (
         <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Receipts & Licenses</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Access your official association certificates and payment records.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {historyLoading ? (

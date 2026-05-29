@@ -95,14 +95,10 @@ export default function Engagement() {
 
 
   return (
-    <AppLayout title="Support">
+    <AppLayout title="Support Center">
       <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Support Center</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Get assistance and manage your help requests.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
 
         {/* Tab Switcher */}

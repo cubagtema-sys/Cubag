@@ -49,12 +49,8 @@ export default function AdminDashboard() {
     <AppLayout title="Admin Hub">
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Admin Hub</h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Overview of association health and member activities.</p>
-          </div>
+        {/* Page Title removed as it is now in the header */}
+        <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <button
             className="btn btn-ghost btn-sm"
             onClick={fetchDashboardData}
@@ -91,7 +87,7 @@ export default function AdminDashboard() {
                   <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>group</span>
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {loading ? '...' : (stats.total_members || 0)}
+                  {loading ? '...' : (stats.total_members)}
                 </div>
                 <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Total Users</div>
               </div>
@@ -102,7 +98,7 @@ export default function AdminDashboard() {
                   <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>verified_user</span>
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {loading ? '...' : (stats.active_members || 0)}
+                  {loading ? '...' : (stats.active_members)}
                 </div>
                 <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Active Licenses</div>
               </div>
@@ -124,7 +120,7 @@ export default function AdminDashboard() {
                   <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>payments</span>
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, marginTop: 4 }}>
-                  {loading ? '...' : `₵${stats.revenue >= 1000 ? (stats.revenue/1000).toFixed(1)+'k' : stats.revenue}`}
+                  {loading ? '...' : (stats.revenue > 0 ? `₵${stats.revenue >= 1000 ? (stats.revenue/1000).toFixed(1)+'k' : stats.revenue}` : '₵0.00')}
                 </div>
                 <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>Revenue</div>
               </div>

@@ -47,6 +47,11 @@ export default function AppLayout({ children, title, hideSearch }) {
           }
           const photo = updatedUser.photo || updatedUser.profile_photo
           if (photo) setUserPhoto(photo)
+        } else if (res.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem('cubag_token')
+          localStorage.removeItem('cubag_user')
+          navigate('/login', { state: { message: 'Your session has expired. Please log in again.' } })
         }
       } catch (e) {
         console.warn('[AppLayout] Profile fetch failed:', e)
@@ -60,12 +65,8 @@ export default function AppLayout({ children, title, hideSearch }) {
         if (annRes.ok) {
           const data = await annRes.json()
           if (Array.isArray(data)) {
-            try {
-              const readIds = new Set(JSON.parse(localStorage.getItem('cubag_read_announcements') || '[]'))
-              setNotifCount(data.filter(a => !readIds.has(a.id)).length)
-            } catch {
-              setNotifCount(data.length)
-            }
+            // Count items where is_read is false
+            setNotifCount(data.filter(a => !a.is_read).length)
           }
         }
       } catch {}
@@ -105,7 +106,7 @@ export default function AppLayout({ children, title, hideSearch }) {
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode)
 
-  let user = getStoredUser() || { name: 'Member', role: 'Member' }
+  let user = getStoredUser() || { name: 'Loading...', role: '' }
 
   // Use reactive photo — initialized from localStorage, updated by /me fetch
   const displayPhoto = userPhoto || user.photo || user.profile_photo || null
@@ -161,13 +162,19 @@ export default function AppLayout({ children, title, hideSearch }) {
       <main className="main-content">
         {/* Top Header */}
         <header className="top-header">
-          <div className="header-left">
+          <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               className="mobile-menu-btn"
               onClick={() => setSidebarOpen(o => !o)}
               aria-label="Menu"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', lineHeight: 1 }}>menu</span></button>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', lineHeight: 1 }}>menu</span>
+            </button>
+            {title && (
+              <h1 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {title}
+              </h1>
+            )}
           </div>
 
           <div className="header-right">

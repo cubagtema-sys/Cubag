@@ -34,7 +34,6 @@ const ALL_NAV_ITEMS = [
     items: [
       { to: '/engagement',     icon: 'support_agent',    label: 'Contact Support' },
       { to: '/settings',       icon: 'settings',         label: 'Settings' },
-      { to: '/profile',        icon: 'account_circle',   label: 'My Profile',      isPrimary: true },
     ],
   }
 ]
@@ -152,7 +151,13 @@ export default function Sidebar({ isOpen, onClose, badgeCount, taskCount }) {
       {isOpen && (
         <div
           onClick={onClose}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            bottom: isMobile ? 'calc(60px + env(safe-area-inset-bottom))' : 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 999
+          }}
         />
       )}
 

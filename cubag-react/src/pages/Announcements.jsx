@@ -2,52 +2,53 @@ import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 
 const API_URL = import.meta.env.VITE_API_URL
-const READ_KEY = 'cubag_read_announcements'
-
-function getReadIds() {
-  try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || '[]')) }
-  catch { return new Set() }
-}
-
-function markRead(id) {
-  const ids = getReadIds()
-  ids.add(id)
-  localStorage.setItem(READ_KEY, JSON.stringify([...ids]))
-}
 
 export default function Announcements() {
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(new Set())
-  const [readIds, setReadIds] = useState(getReadIds())
   const [filter, setFilter] = useState('All')
 
-  useEffect(() => {
-    async function fetchAlerts() {
-      try {
-        setLoading(true)
-        const res = await fetch(`${API_URL}/announcements`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('cubag_token')}` }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setAlerts(Array.isArray(data) ? data : [])
-        }
-      } catch (e) {
-        console.error('Announcements load error', e)
-      } finally {
-        setLoading(false)
+  const token = localStorage.getItem('cubag_token')
+
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch(`${API_URL}/announcements`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setAlerts(Array.isArray(data) ? data : [])
       }
+    } catch (e) {
+      console.error('Announcements load error', e)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchAlerts()
   }, [])
 
-  const toggleExpand = (id) => {
-    // Mark as read when expanding
-    if (!expanded.has(id)) {
-      markRead(id)
-      setReadIds(getReadIds())
+  const toggleExpand = async (id, isRead) => {
+    // Mark as read when expanding if not already read
+    if (!isRead) {
+      try {
+        await fetch(`${API_URL}/announcements/mark-read`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ announcement_id: id })
+        })
+        // Update local state to reflect it's read without full re-fetch
+        setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_read: true } : a))
+      } catch {}
     }
+
     setExpanded(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
@@ -55,19 +56,29 @@ export default function Announcements() {
     })
   }
 
+  const markAllRead = async () => {
+    try {
+      await fetch(`${API_URL}/announcements/mark-read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({}) // empty body marks all as read
+      })
+      setAlerts(prev => prev.map(a => ({ ...a, is_read: true })))
+    } catch {}
+  }
+
   const filteredAlerts = alerts.filter(a => filter === 'All' || a.category === filter || a.type === filter)
-  const unreadCount = alerts.filter(a => !readIds.has(a.id)).length
+  const unreadCount = alerts.filter(a => !a.is_read).length
   const categories = ['All', ...new Set(alerts.map(a => a.category || a.type).filter(Boolean))]
 
   return (
     <AppLayout title="Announcements">
       <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Redesigned Header Area */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Announcements</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Latest updates from the association secretariat.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* Category Filter - Integrated Dropdown */}
         <div style={{ marginBottom: 12 }}>
@@ -97,10 +108,7 @@ export default function Announcements() {
 
             {unreadCount > 0 && (
               <button
-                onClick={() => {
-                  alerts.forEach(a => markRead(a.id))
-                  setReadIds(getReadIds())
-                }}
+                onClick={markAllRead}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -139,11 +147,11 @@ export default function Announcements() {
             ) : filteredAlerts.length > 0 ? (
               filteredAlerts.map((alert, i) => {
                 const isExpanded = expanded.has(alert.id)
-                const isRead = readIds.has(alert.id)
+                const isRead = alert.is_read
                 return (
                   <div
                     key={alert.id}
-                    onClick={() => toggleExpand(alert.id)}
+                    onClick={() => toggleExpand(alert.id, isRead)}
                     style={{
                       display: 'flex', gap: 12, alignItems: 'flex-start', padding: '16px',
                       borderBottom: i === filteredAlerts.length - 1 ? 'none' : '1px solid var(--border-subtle)',

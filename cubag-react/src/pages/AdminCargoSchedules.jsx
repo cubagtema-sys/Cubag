@@ -37,6 +37,7 @@ export default function AdminCargoSchedules() {
   const [deletingId, setDeletingId] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
   const [filterStatus, setFilterStatus] = useState('All')
+  const [filterType, setFilterType]     = useState('All')
 
   const [formData, setFormData] = useState({
     type: 'vanning', container: '', vessel: '', cargo: '',
@@ -104,7 +105,11 @@ export default function AdminCargoSchedules() {
     ...STATUS_OPTIONS
   ]
 
-  const displayed = filterStatus === 'All' ? schedules : schedules.filter(s => s.status === filterStatus)
+  const displayed = schedules.filter(s => {
+    const statusMatch = filterStatus === 'All' || s.status === filterStatus
+    const typeMatch   = filterType === 'All'   || s.type === filterType
+    return statusMatch && typeMatch
+  })
 
   return (
     <Fragment>
@@ -219,9 +224,22 @@ export default function AdminCargoSchedules() {
           /* ── History Tab ── */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* Filter bar — no record count */}
-            <div style={{ flex: 1 }}>
-              <CustomSelect value={filterStatus} onChange={setFilterStatus} options={FILTER_OPTIONS} icon="filter_list" />
+            {/* Filter bar */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <CustomSelect value={filterStatus} onChange={setFilterStatus} options={FILTER_OPTIONS} icon="filter_list" />
+              </div>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <CustomSelect
+                  value={filterType}
+                  onChange={setFilterType}
+                  options={[
+                    { value: 'All', label: 'All Types', icon: 'category' },
+                    ...TYPE_OPTIONS
+                  ]}
+                  icon="category"
+                />
+              </div>
             </div>
 
             {displayed.length === 0 ? (

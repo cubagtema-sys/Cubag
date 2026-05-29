@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout.jsx'
 
 export default function AdminSettings() {
-  const [user, setUser] = useState({ name: 'System Administrator', email: 'admin@cubag.org', role: 'Platform Admin' })
+  const [user, setUser] = useState({ name: '', email: '', role: '' })
   const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' })
   const [message, setMessage] = useState('')
 
@@ -56,14 +56,10 @@ export default function AdminSettings() {
   }
 
   return (
-    <AppLayout title="Settings">
+    <AppLayout title="Platform Settings">
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Page Title for Content */}
-        <div style={{ marginBottom: 4 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Admin Profile</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage your administrative credentials and security.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="feed-card" style={{ padding: '20px 16px', borderRadius: 12 }}>

@@ -5,14 +5,6 @@ import CustomSelect from '../components/CustomSelect'
 import useAutoRefresh from '../hooks/useAutoRefresh'
 import { showToast } from '../utils/toast'
 
-const REASON_OPTIONS = [
-  { value: '', label: '— Select payment type —', icon: 'payments', disabled: true },
-  { value: 'Dues', label: 'Association Dues' },
-  { value: 'Renewal', label: 'License Renewal' },
-  { value: 'Penalty', label: 'Late Penalty Fee' },
-  { value: 'Other', label: 'Other / Miscellaneous' }
-]
-
 export default function Payments() {
   const navigate = useNavigate()
   const [payStep, setPayStep] = useState(1)
@@ -23,12 +15,12 @@ export default function Payments() {
   const [paymentId, setPaymentId] = useState(null)
   const [serverRef, setServerRef] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
-  const [platformFees, setPlatformFees] = useState({ renewalFee: '1500.00', monthlyDues: '100.00', latePenaltyFee: '50.00', otherFee: '0.00' })
+  const [fees, setFees] = useState([])
   const [paymentSettings, setPaymentSettings] = useState({
-    momoAccounts: [{ network: 'MTN', number: '0244000000' }],
-    bankAccounts: [{ bankName: 'GCB Bank', accountName: 'CUBAG National Account', accountNumber: '1011130023456', branch: 'Tema Main' }]
+    momoAccounts: [{ network: 'MTN', number: '' }],
+    bankAccounts: [{ bankName: '', accountName: '', accountNumber: '', branch: '' }]
   })
-  const [momoDetails, setMomoDetails] = useState({ network: 'MTN', phone: '' })
+  const [momoDetails, setMomoDetails] = useState({ network: '', phone: '' })
   const [bankDetails, setBankDetails] = useState({ transactionId: '' })
   const [selectedBank] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -56,18 +48,18 @@ export default function Payments() {
     const authHeader = { 'Authorization': `Bearer ${token}` }
     try {
       const [feesRes, payRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_URL}/settings/cubag_fees`),
+        fetch(`${import.meta.env.VITE_API_URL}/settings/cubag_fees_v2`),
         fetch(`${import.meta.env.VITE_API_URL}/settings/cubag_payment_settings_v2`)
       ])
 
       if (feesRes.ok) {
         const feesData = await feesRes.json()
-        if (feesData && feesData.renewalFee) setPlatformFees(feesData)
+        if (Array.isArray(feesData)) setFees(feesData)
       }
 
       if (payRes.ok) {
         const payData = await payRes.json()
-        if (payData && payData.momoAccounts) setPaymentSettings(payData)
+        if (payData && payData.bankAccounts) setPaymentSettings(payData)
       }
     } catch (e) {
       console.error("Payment Data Sync Error:", e)
@@ -106,23 +98,20 @@ export default function Payments() {
 
   const handleReasonChange = (val) => {
     setReason(val)
-    if (val === 'Dues')         setAmount(platformFees.monthlyDues    || '100.00')
-    else if (val === 'Renewal') setAmount(platformFees.renewalFee     || '1500.00')
-    else if (val === 'Penalty') setAmount(platformFees.latePenaltyFee || '50.00')
-    else if (val === 'Other')   setAmount(platformFees.otherFee       || '0.00')
-    else setAmount('')
+    const selectedFee = fees.find(f => f.label === val)
+    if (selectedFee) {
+      setAmount(selectedFee.amount)
+    } else {
+      setAmount('')
+    }
   }
 
-  const isAmountFixed = reason === 'Dues' || reason === 'Renewal'
+  const isAmountFixed = !!reason && reason !== 'Other'
 
   const handlePayment = async () => {
     setLoading(true)
     try {
       const paymentRef = method === 'momo' ? `MOMO-${momoDetails.phone}` : bankDetails.transactionId
-      const desc = reason === 'Dues' ? 'Association Dues'
-                 : reason === 'Renewal' ? 'License Renewal'
-                 : reason === 'Penalty' ? 'Late Penalty Fee'
-                 : 'Other / Miscellaneous'
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/payments`, {
         method: 'POST',
@@ -132,7 +121,7 @@ export default function Payments() {
         },
         body: JSON.stringify({
           amount: parseFloat(amount),
-          description: desc,
+          description: reason,
           payment_ref: paymentRef,
           method,
           network: momoDetails.network,
@@ -226,17 +215,17 @@ export default function Payments() {
   ]
   const bank = paymentSettings.bankAccounts[selectedBank] || {}
 
+  const REASON_OPTIONS = [
+    { value: '', label: '— Select payment type —', icon: 'payments', disabled: true },
+    ...fees.map(f => ({ value: f.label, label: f.label })),
+    { value: 'Other', label: 'Other / Miscellaneous' }
+  ]
+
   return (
-    <AppLayout title="Payments">
+    <AppLayout title="Association Dues">
       <div style={{ maxWidth: 650, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 80 }}>
 
-        {/* Page Header - Clean & High */}
-        <div style={{ padding: '8px 0' }}>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>Payments & Dues</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>Complete the steps below to settle your fees.</p>
-        </div>
-
-        {/* 4-Step Payment Card - Moved to the Top */}
+        {/* 4-Step Payment Card */}
         <div className="feed-card" style={{ borderRadius: 20, border: '1.5px solid var(--border-subtle)', boxShadow: 'var(--shadow-lg)' }}>
 
           {/* Progress Indicator */}
@@ -306,10 +295,20 @@ export default function Payments() {
 
                 {method === 'momo' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <CustomSelect label="Mobile Network" options={[{ value: 'MTN', label: 'MTN MoMo' }, { value: 'Vodafone', label: 'Telecel (Vodafone)' }, { value: 'AirtelTigo', label: 'AT (AirtelTigo)' }]} value={momoDetails.network} onChange={val => setMomoDetails({ ...momoDetails, network: val })} />
+                    <CustomSelect
+                      label="Mobile Network"
+                      options={[
+                        { value: '', label: '— Please select —', disabled: true },
+                        { value: 'MTN', label: 'MTN MoMo' },
+                        { value: 'Vodafone', label: 'Telecel (Vodafone)' },
+                        { value: 'AirtelTigo', label: 'AT (AirtelTigo)' }
+                      ]}
+                      value={momoDetails.network}
+                      onChange={val => setMomoDetails({ ...momoDetails, network: val })}
+                    />
                     <div>
                       <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>MoMo Phone Number</label>
-                      <input type="tel" placeholder="0244..." value={momoDetails.phone} onChange={e => setMomoDetails({ ...momoDetails, phone: e.target.value })} style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid var(--border-default)', outline: 'none', fontSize: '1rem', fontWeight: 600 }} />
+                      <input type="tel" placeholder="0245-678-901" value={momoDetails.phone} onChange={e => setMomoDetails({ ...momoDetails, phone: e.target.value })} style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid var(--border-default)', outline: 'none', fontSize: '1rem', fontWeight: 600 }} />
                     </div>
                   </div>
                 )}
@@ -333,7 +332,7 @@ export default function Payments() {
                   <button className="btn btn-outline" onClick={() => setPayStep(1)} style={{ flex: 1, height: 52, borderRadius: 12, minWidth: '80px' }}>Back</button>
                   <button
                     className="btn btn-primary"
-                    disabled={(method === 'momo' && !momoDetails.phone) || (method === 'bank' && !bankDetails.transactionId)}
+                    disabled={(method === 'momo' && (!momoDetails.phone || !momoDetails.network)) || (method === 'bank' && !bankDetails.transactionId)}
                     onClick={() => {
                       if (method === 'momo') {
                         const ghPhone = /^0[235][0-9]{8}$/

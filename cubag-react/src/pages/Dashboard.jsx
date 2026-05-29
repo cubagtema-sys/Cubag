@@ -11,7 +11,7 @@ export default function Dashboard() {
   const [user, setUser] = useState({})
   const [tasks, setTasks] = useState([])
   const [announcements, setAnnouncements] = useState([])
-  const [forex, setForex] = useState({ USD: '15.42', EUR: '16.85' })
+  const [forex, setForex] = useState({ USD: '...', EUR: '...' })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function Dashboard() {
     setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
   }
 
-  const firstName = user.name ? user.name.split(' ')[0] : 'Member'
+  const firstName = user.name ? user.name.split(' ')[0] : '...'
 
   if (loading) return (
     <AppLayout title="Dashboard" hideSearch>

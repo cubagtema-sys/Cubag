@@ -59,8 +59,32 @@ export default function PaymentHistory() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [page, setPage] = useState(1)
+  const [verifyingId, setVerifyingId] = useState(null)
 
   const socket = useSocket()
+
+  const verifyPayment = async (pay) => {
+    if (!pay.payment_ref) return
+    setVerifyingId(pay.id)
+    try {
+      // If it's a Paystack reference, we use the specific verify endpoint
+      const isPaystack = pay.payment_ref.includes('-') && !pay.payment_ref.startsWith('MOMO')
+      const ref = isPaystack ? pay.payment_ref : pay.id
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/payments/verify/${pay.payment_ref}`)
+      const data = await res.json()
+
+      if (data.status === 'success') {
+        fetchPayments()
+      } else {
+        alert(`Status: ${data.status || 'Still Pending'}. Please check again in a moment.`)
+      }
+    } catch (e) {
+      alert("Could not verify at this time. Please try later.")
+    } finally {
+      setVerifyingId(null)
+    }
+  }
 
   const fetchPayments = () => {
     fetch(`${import.meta.env.VITE_API_URL}/payments`, {
@@ -103,15 +127,11 @@ export default function PaymentHistory() {
   const fmt = (n) => n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
-    <AppLayout title="History">
+    <AppLayout title="Payment Records">
       <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Page Title */}
-        <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Transaction History</h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Review and download receipts for all payments.</p>
-          </div>
+        {/* Page Title removed as it is now in the header */}
+        <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <button
             className="icon-btn"
             onClick={() => { setLoading(true); fetchPayments(); }}
@@ -231,6 +251,20 @@ export default function PaymentHistory() {
                       #{pay.id.toString().slice(-6).toUpperCase()}
                     </div>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {pay.status === 'pending' && (
+                        <button
+                          onClick={() => verifyPayment(pay)}
+                          disabled={verifyingId === pay.id}
+                          style={{
+                            padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border-default)',
+                            background: 'var(--bg-base)', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 700,
+                            color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: 4
+                          }}
+                        >
+                          <span className={`material-symbols-outlined ${verifyingId === pay.id ? 'spin' : ''}`} style={{ fontSize: '0.85rem' }}>sync</span>
+                          {verifyingId === pay.id ? 'Verifying...' : 'Check Status'}
+                        </button>
+                      )}
                       <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', color: s.text, padding: '2px 8px', background: s.bg, borderRadius: 4 }}>
                         {statusLabel(pay.status)}
                       </span>

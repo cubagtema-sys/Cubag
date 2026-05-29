@@ -117,13 +117,10 @@ export default function AdminTasks() {
   const totalSubmissionsPages = Math.ceil(submissions.length / PAGE_SIZE)
 
   return (
-    <AppLayout title="Tasks">
+    <AppLayout title="Compliance Control">
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>Compliance Control</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Assign duties and track task completion.</p>
-        </div>
+        {/* Page Title removed as it is now in the header */}
 
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: 3, background: 'var(--bg-surface)', borderRadius: 10, padding: 3, flexWrap: 'wrap' }}>
