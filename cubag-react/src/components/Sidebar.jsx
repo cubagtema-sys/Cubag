@@ -61,7 +61,6 @@ const ADMIN_NAV_ITEMS = [
     section: 'Financials & Records',
     items: [
       { to: '/admin/payments',         icon: 'account_balance',      label: 'Financial Center' },
-      { to: '/admin/payment-settings', icon: 'payments',             label: 'Payment Settings' },
       { to: '/admin/fees',             icon: 'request_quote',        label: 'Platform Fees' },
     ],
   },
