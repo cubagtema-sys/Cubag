@@ -3,6 +3,8 @@ from flask import Blueprint, jsonify, request, send_from_directory, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from config.db import get_db
+from routes.admin import log_admin_action
+from utils import admin_required, sub_admin_required
 
 tasks_bp = Blueprint('tasks', __name__)
 
@@ -122,7 +124,7 @@ def serve_file(filename):
 
 # ─── GET /tasks/admin/all ─────────────────────────────────────────────────────
 @tasks_bp.route('/admin/all', methods=['GET'])
-@jwt_required()
+@sub_admin_required('members')
 def get_all_tasks_admin():
     conn = get_db()
     try:
@@ -138,26 +140,39 @@ def get_all_tasks_admin():
             """)
             tasks = cursor.fetchall()
 
-            # Attach files for each submission
+            # Attach files for each submission using one bulk query
+            submission_ids = [t['submission_id'] for t in tasks if t.get('submission_id')]
+            files_by_submission = {}
+            if submission_ids:
+                placeholders = ', '.join(['%s'] * len(submission_ids))
+                cursor.execute(f"""
+                    SELECT id, submission_id, original_name, file_type, file_size, filename
+                    FROM task_submission_files
+                    WHERE submission_id IN ({placeholders})
+                """, submission_ids)
+                all_files = cursor.fetchall()
+                for file_row in all_files:
+                    sub_id = file_row['submission_id']
+                    if sub_id not in files_by_submission:
+                        files_by_submission[sub_id] = []
+                    file_item = dict(file_row)
+                    del file_item['submission_id']
+                    files_by_submission[sub_id].append(file_item)
+
             for task in tasks:
-                if task.get('submission_id'):
-                    cursor.execute("""
-                        SELECT id, original_name, file_type, file_size, filename
-                        FROM task_submission_files
-                        WHERE submission_id = %s
-                    """, (task['submission_id'],))
-                    task['files'] = cursor.fetchall()
-                else:
-                    task['files'] = []
+                sub_id = task.get('submission_id')
+                task['files'] = files_by_submission.get(sub_id, [])
 
         return jsonify(tasks), 200
     finally:
         conn.close()
 
 
-# ─── POST /tasks/admin/create ─────────────────────────────────────────────────
+# ─── POST /tasks/admin/create ─────────────────────────────────────────────
 @tasks_bp.route('/admin/create', methods=['POST'])
+@sub_admin_required('members')
 def create_task_admin():
+    admin_id = get_jwt_identity()
     data = request.get_json()
     member_id = data.get('member_id')
     title = data.get('title')
@@ -175,12 +190,20 @@ def create_task_admin():
                         INSERT INTO tasks (member_id, title, description, due_date)
                         VALUES (%s, %s, %s, %s)
                     """, (m['id'], title, description, due_date))
+                target_name = f'All active members ({len(members)})'
             else:
                 cursor.execute("""
                     INSERT INTO tasks (member_id, title, description, due_date)
                     VALUES (%s, %s, %s, %s)
                 """, (member_id, title, description, due_date))
+                cursor.execute("SELECT name FROM members WHERE id = %s", (member_id,))
+                m = cursor.fetchone()
+                target_name = m['name'] if m else f'Member #{member_id}'
             conn.commit()
+
+        # Audit log
+        log_admin_action(admin_id, 'Assigned task', 'task', None, target_name, f'Task: {title}')
+
         return jsonify({'message': 'Task assigned successfully'}), 201
     finally:
         conn.close()
@@ -188,12 +211,24 @@ def create_task_admin():
 
 # ─── PATCH /tasks/admin/<id>/verify ─ Admin ticks task as verified ────────────
 @tasks_bp.route('/admin/<int:submission_id>/verify', methods=['PATCH'])
+@sub_admin_required('members')
 def verify_task_submission(submission_id):
+    admin_id = get_jwt_identity()
     data = request.get_json() or {}
     admin_notes = data.get('admin_notes', '')
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # Get task and member info for audit
+            cursor.execute("""
+                SELECT ts.task_id, t.title, m.name as member_name
+                FROM task_submissions ts
+                JOIN tasks t ON ts.task_id = t.id
+                LEFT JOIN members m ON ts.member_id = m.id
+                WHERE ts.id = %s
+            """, (submission_id,))
+            info = cursor.fetchone()
+
             cursor.execute("""
                 UPDATE task_submissions
                 SET admin_verified = TRUE,
@@ -202,6 +237,11 @@ def verify_task_submission(submission_id):
                 WHERE id = %s
             """, (admin_notes, submission_id))
             conn.commit()
+
+        # Audit log
+        if info:
+            log_admin_action(admin_id, 'Verified task submission', 'task', info.get('task_id'), info.get('member_name'), f'Task: {info.get("title")}')
+
         return jsonify({'message': 'Task submission verified'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500

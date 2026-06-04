@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
+from routes.admin import log_admin_action
+from utils import admin_required, sub_admin_required
 
 schedules_bp = Blueprint('schedules', __name__)
 
@@ -22,8 +24,9 @@ def get_schedules():
         conn.close()
 
 @schedules_bp.route('/', methods=['POST'])
-@jwt_required()
+@sub_admin_required('schedules')
 def create_schedule():
+    admin_id = get_jwt_identity()
     data = request.get_json()
     conn = get_db()
     try:
@@ -40,6 +43,10 @@ def create_schedule():
                 data.get('progress', 0)   # 0–100 percent along route
             ))
             conn.commit()
+
+        # Audit log
+        log_admin_action(admin_id, 'Created schedule', 'schedule', None, data.get('vessel') or data.get('container'), f'Type: {data.get("type")}, Port: {data.get("port")}')
+
         return jsonify({'message': 'Schedule added successfully'}), 201
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -48,8 +55,9 @@ def create_schedule():
 
 # ─── PATCH /schedules/<id> — Update status ────────────────────────────────────
 @schedules_bp.route('/<int:schedule_id>', methods=['PATCH'])
-@jwt_required()
+@sub_admin_required('schedules')
 def update_schedule_status(schedule_id):
+    admin_id = get_jwt_identity()
     data = request.get_json()
     new_status = data.get('status')
     if not new_status:
@@ -57,26 +65,43 @@ def update_schedule_status(schedule_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            cursor.execute("SELECT vessel, container FROM schedules WHERE id = %s", (schedule_id,))
+            sched = cursor.fetchone()
+
             cursor.execute(
                 "UPDATE schedules SET status = %s WHERE id = %s",
                 (new_status, schedule_id)
             )
             conn.commit()
+
+        # Audit log
+        label = sched.get('vessel') or sched.get('container') or f'#{schedule_id}' if sched else f'#{schedule_id}'
+        log_admin_action(admin_id, 'Updated schedule status', 'schedule', schedule_id, label, f'Status → {new_status}')
+
         return jsonify({'message': 'Status updated'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
 
-# ─── DELETE /schedules/<id> ───────────────────────────────────────────────────
+# ─── DELETE /schedules/<id> ───────────────────────────────────────────────
 @schedules_bp.route('/<int:schedule_id>', methods=['DELETE'])
-@jwt_required()
+@sub_admin_required('schedules')
 def delete_schedule(schedule_id):
+    admin_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            cursor.execute("SELECT vessel, container FROM schedules WHERE id = %s", (schedule_id,))
+            sched = cursor.fetchone()
+
             cursor.execute("DELETE FROM schedules WHERE id = %s", (schedule_id,))
             conn.commit()
+
+        # Audit log
+        label = sched.get('vessel') or sched.get('container') or f'#{schedule_id}' if sched else f'#{schedule_id}'
+        log_admin_action(admin_id, 'Deleted schedule', 'schedule', schedule_id, label)
+
         return jsonify({'message': 'Schedule deleted'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500

@@ -1,7 +1,42 @@
 import os
+import logging
 import firebase_admin
 from firebase_admin import credentials, messaging
 from config.db import get_db
+
+# Module logger
+logger = logging.getLogger(__name__)
+
+def log_admin_action(admin_id, action, target_type=None, target_id=None, target_name=None, details=None):
+    """Utility to record an admin action in the audit log."""
+    if not admin_id:
+        return
+
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            # Ensure ids are integers
+            try:
+                a_id = int(admin_id)
+            except (TypeError, ValueError):
+                return
+
+            t_id = None
+            if target_id:
+                try:
+                    t_id = int(target_id)
+                except (TypeError, ValueError):
+                    pass
+
+            cursor.execute("""
+                INSERT INTO audit_log (admin_id, action, target_type, target_id, target_name, details)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (a_id, action, target_type, t_id, target_name, details))
+        conn.commit()
+    except Exception as e:
+        logger.exception("[Audit Log Error] %s", e)
+    finally:
+        conn.close()
 
 def send_push_notification(fcm_token, title, body, data=None):
     """
@@ -13,7 +48,7 @@ def send_push_notification(fcm_token, title, body, data=None):
     try:
         # Check if Firebase is initialized
         if not firebase_admin._apps:
-            print("Firebase not initialized. Cannot send push notification.")
+            logger.warning("Firebase not initialized. Cannot send push notification.")
             return False
 
         message = messaging.Message(
@@ -24,12 +59,12 @@ def send_push_notification(fcm_token, title, body, data=None):
             data=data if data else {},
             token=fcm_token,
         )
-        
+
         response = messaging.send(message)
-        print(f"Successfully sent message: {response}")
+        logger.info("Successfully sent message: %s", response)
         return True
     except Exception as e:
-        print(f"Error sending push notification: {e}")
+        logger.exception("Error sending push notification: %s", e)
         return False
 
 # Load service account from environment variable (JSON string) or file
@@ -47,20 +82,16 @@ def _init_firebase():
                 cred_dict = json.loads(service_account_json)
                 cred = credentials.Certificate(cred_dict)
                 firebase_admin.initialize_app(cred)
-                print("[Push] Firebase Admin initialized from ENV.")
+                logger.info("[Push] Firebase Admin initialized from ENV.")
             except Exception as e:
-                print(f"[Push] Error parsing FIREBASE_CREDENTIALS_JSON: {e}")
+                logger.exception("[Push] Error parsing FIREBASE_CREDENTIALS_JSON: %s", e)
                 return False
-        elif os.path.exists('firebase-service-account.json'):
-            cred = credentials.Certificate('firebase-service-account.json')
+        elif os.path.exists('firebase-key.json'):
+            cred = credentials.Certificate('firebase-key.json')
             firebase_admin.initialize_app(cred)
-            print("[Push] Firebase Admin initialized from FILE.")
-        elif os.path.exists('planning-with-ai-a2368-firebase-adminsdk-fbsvc-3f0078de77.json'):
-            cred = credentials.Certificate('planning-with-ai-a2368-firebase-adminsdk-fbsvc-3f0078de77.json')
-            firebase_admin.initialize_app(cred)
-            print("[Push] Firebase Admin initialized from LEGACY FILE.")
+            logger.info("[Push] Firebase Admin initialized from FILE.")
         else:
-            print("[Push] Firebase Credentials not found. Skipping push.")
+            logger.warning("[Push] Firebase Credentials not found. Skipping push.")
             return False
     return True
 
@@ -78,7 +109,7 @@ def send_push_to_all(title, body, data=None):
             cursor.execute("SELECT fcm_token FROM members WHERE fcm_token IS NOT NULL")
             tokens = [row['fcm_token'] for row in cursor.fetchall()]
 
-        print(f"[DEBUG] Push notification triggered. Found {len(tokens)} tokens in DB.")
+        logger.debug("[DEBUG] Push notification triggered. Found %d tokens in DB.", len(tokens))
 
         if not tokens:
             return
@@ -99,7 +130,7 @@ def send_push_to_all(title, body, data=None):
             )
             try:
                 response = messaging.send_multicast(message)
-                print(f"[Push] Batch sent: {response.success_count} success, {response.failure_count} failure")
+                logger.info("[Push] Batch sent: %s success, %s failure", response.success_count, response.failure_count)
 
                 # Cleanup invalid tokens if any (optional but recommended)
                 if response.failure_count > 0:
@@ -108,9 +139,299 @@ def send_push_to_all(title, body, data=None):
                             # Token is invalid (e.g. app uninstalled) - could delete from DB here
                             pass
             except Exception as e:
-                print(f"[Push] Error sending batch: {e}")
+                logger.exception("[Push] Error sending batch: %s", e)
 
     except Exception as e:
-        print(f"[Push] Database error: {e}")
+        logger.exception("[Push] Database error: %s", e)
     finally:
         conn.close()
+
+def calculate_and_update_member_rating(member_id, cursor=None):
+    from datetime import date
+    should_close = False
+    if cursor is None:
+        conn = get_db()
+        cursor = conn.cursor()
+        should_close = True
+    
+    try:
+        # Get previous rating status to compare tiers for notification triggers
+        cursor.execute("SELECT compliance_score, star_rating FROM members WHERE id = %s", (member_id,))
+        prev_row = cursor.fetchone()
+        prev_score = prev_row['compliance_score'] if prev_row and prev_row['compliance_score'] is not None else None
+        prev_stars = float(prev_row['star_rating']) if prev_row and prev_row['star_rating'] is not None else None
+
+        # 1. Payment Compliance (max 40)
+        # Punctual Dues Payment (no outstanding balance) (25 pts)
+        cursor.execute("""
+            SELECT COUNT(*) as count 
+            FROM payments 
+            WHERE member_id = %s AND status = 'pending' AND due_date < CURRENT_DATE
+        """, (member_id,))
+        overdue_count = cursor.fetchone()['count']
+        payment_punctual = 25 if overdue_count == 0 else 0
+
+        # History of on-time payments (15 pts)
+        cursor.execute("""
+            SELECT COUNT(*) as total_paid, 
+                   SUM(CASE WHEN paid_at IS NOT NULL AND paid_at::date <= due_date THEN 1 ELSE 0 END) as on_time_paid 
+            FROM payments 
+            WHERE member_id = %s AND status = 'paid'
+        """, (member_id,))
+        pay_history = cursor.fetchone()
+        total_paid = pay_history['total_paid']
+        on_time_paid = pay_history['on_time_paid'] or 0
+
+        if total_paid == 0:
+            payment_history = 15
+        else:
+            payment_history = round((on_time_paid / total_paid) * 15)
+
+        payment_score = payment_punctual + payment_history
+
+        # 2. Task & Document Compliance (max 30)
+        # License Renewal submitted before expiration (15 pts)
+        cursor.execute("SELECT status, license_expiry_date, manual_review_score FROM members WHERE id = %s", (member_id,))
+        member_row = cursor.fetchone()
+        if not member_row:
+            return {'compliance_score': 100, 'star_rating': 5.0, 'manual_review_score': 10}
+            
+        status = member_row['status']
+        expiry_date = member_row['license_expiry_date']
+        manual_review = member_row['manual_review_score']
+        if manual_review is None:
+            manual_review = 10
+
+        today = date.today()
+        # Ensure expiry_date is a date object for comparison
+        is_expired = False
+        if expiry_date:
+            if isinstance(expiry_date, str):
+                from datetime import datetime
+                try:
+                    expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d').date()
+                    except Exception as e:
+                        logger.debug("Failed to parse expiry_date for member %s: %s", member_id, e)
+            is_expired = expiry_date < today
+
+        if status == 'active' and not is_expired:
+            license_score = 15
+        else:
+            license_score = 5
+
+        # Compliance tasks completed (15 pts)
+        cursor.execute("""
+            SELECT COUNT(*) as total_tasks, 
+                   SUM(CASE WHEN done = TRUE THEN 1 ELSE 0 END) as completed_tasks 
+            FROM tasks 
+            WHERE member_id = %s
+        """, (member_id,))
+        task_row = cursor.fetchone()
+        total_tasks = task_row['total_tasks']
+        completed_tasks = task_row['completed_tasks'] or 0
+
+        if total_tasks == 0:
+            task_completion_score = 15
+        else:
+            task_completion_score = round((completed_tasks / total_tasks) * 15)
+
+        task_score = license_score + task_completion_score
+
+        # 3. Activity & Event Engagement (max 20)
+        # Survey completion rate (10 pts)
+        cursor.execute("SELECT COUNT(*) as count FROM surveys")
+        total_surveys = cursor.fetchone()['count']
+        
+        cursor.execute("SELECT COUNT(*) as count FROM survey_responses WHERE member_id = %s", (member_id,))
+        responded_surveys = cursor.fetchone()['count']
+
+        if total_surveys == 0:
+            survey_score = 10
+        else:
+            survey_score = round((responded_surveys / total_surveys) * 10)
+
+        # AGM attendance (10 pts) - default to 10 for active status, 5 otherwise
+        agm_score = 10 if status == 'active' else 5
+        engagement_score = survey_score + agm_score
+
+        # 4. Admin Review Rating (max 10)
+        admin_score = manual_review
+
+        # Total Score & Rating
+        total_score = payment_score + task_score + engagement_score + admin_score
+        total_score = max(0, min(100, total_score))
+        star_rating = round(total_score / 20.0, 2)
+
+        # Save to database
+        cursor.execute("""
+            UPDATE members 
+            SET compliance_score = %s, star_rating = %s, manual_review_score = %s
+            WHERE id = %s
+        """, (total_score, star_rating, manual_review, member_id))
+
+        # Save to rating history
+        cursor.execute("""
+            INSERT INTO member_rating_history (member_id, compliance_score, star_rating)
+            VALUES (%s, %s, %s)
+        """, (member_id, total_score, star_rating))
+
+        # Check for standing tier changes
+        def get_tier(score):
+            if score >= 90: return "Elite"
+            elif score >= 70: return "Good Standing"
+            elif score >= 50: return "Warning/Probation"
+            else: return "Suspended/Delinquent"
+
+        new_tier = get_tier(total_score)
+        
+        if prev_score is not None:
+            prev_tier = get_tier(prev_score)
+            if prev_tier != new_tier:
+                # standing tier transition alert
+                title = f"Standing Changed to {new_tier}"
+                body = f"Your compliance standing has changed from {prev_tier} to {new_tier}. Compliance Score: {total_score}%."
+                
+                # Insert personalized notification
+                cursor.execute("""
+                    INSERT INTO announcements (title, body, category, posted_by, member_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (title, body, 'Compliance', 'System Alert', member_id))
+                
+                # FCM push
+                cursor.execute("SELECT fcm_token FROM members WHERE id = %s", (member_id,))
+                fcm_row = cursor.fetchone()
+                fcm_token = fcm_row['fcm_token'] if fcm_row else None
+                if fcm_token:
+                    send_push_notification(fcm_token, title, body, data={'type': 'compliance'})
+        else:
+            # Welcome notice
+            title = "Compliance Standing Calculated"
+            body = f"Your initial compliance status is now calculated: {total_score}% ({star_rating} Stars) - {new_tier} Standing."
+            cursor.execute("""
+                INSERT INTO announcements (title, body, category, posted_by, member_id)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (title, body, 'Compliance', 'System Alert', member_id))
+
+        cursor.connection.commit()
+
+        return {
+            'compliance_score': total_score,
+            'star_rating': float(star_rating),
+            'manual_review_score': manual_review,
+            'breakdown': {
+                'payment_score': payment_score,
+                'payment_punctual_score': payment_punctual,
+                'payment_history_score': payment_history,
+                'overdue_payments_count': overdue_count,
+                'total_payments_paid': total_paid,
+                'on_time_payments_paid': on_time_paid,
+                'task_score': task_score,
+                'license_score': license_score,
+                'task_completion_score': task_completion_score,
+                'total_tasks': total_tasks,
+                'completed_tasks': completed_tasks,
+                'engagement_score': engagement_score,
+                'survey_score': survey_score,
+                'total_surveys': total_surveys,
+                'responded_surveys': responded_surveys,
+                'agm_score': agm_score,
+                'admin_score': admin_score
+            }
+        }
+    except Exception as e:
+        logger.exception("Error calculating member rating: %s", e)
+        try:
+            cursor.connection.rollback()
+        except Exception as re:
+            logger.exception("Error rolling back DB after rating calc failure: %s", re)
+        return {'compliance_score': 100, 'star_rating': 5.0, 'manual_review_score': 10}
+    finally:
+        if should_close:
+            cursor.close()
+            conn.close()
+
+from functools import wraps
+from flask import jsonify
+from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+
+def admin_required(fn):
+    @wraps(fn)
+    def decorator(*args, **kwargs):
+        try:
+            verify_jwt_in_request()
+        except Exception:
+            return jsonify({'message': 'Missing or invalid authorization token'}), 401
+            
+        admin_id = get_jwt_identity()
+        if not admin_id:
+            return jsonify({'message': 'Missing or invalid authorization token'}), 401
+            
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT role FROM members WHERE id = %s", (admin_id,))
+                res = cursor.fetchone()
+                if not res or res.get('role') not in ('admin', 'sub_admin'):
+                    return jsonify({'message': 'Admin privilege required'}), 403
+                # Sub-admins pass through here — individual route decorators can
+                # add further permission checks via sub_admin_required().
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500
+        finally:
+            conn.close()
+        return fn(*args, **kwargs)
+    return decorator
+
+
+def sub_admin_required(permission: str):
+    """
+    Decorator that requires the caller to be either:
+      - a full admin (role == 'admin') — always allowed, OR
+      - a sub_admin with the given permission key granted.
+
+    Supported permission keys:
+      members, payments, tickets, announcements,
+      schedules, events, intelligence, audit_log,
+      fees, settings
+    """
+    def decorator_factory(fn):
+        @wraps(fn)
+        def decorator(*args, **kwargs):
+            try:
+                verify_jwt_in_request()
+            except Exception:
+                return jsonify({'message': 'Missing or invalid authorization token'}), 401
+
+            caller_id = get_jwt_identity()
+            if not caller_id:
+                return jsonify({'message': 'Missing or invalid authorization token'}), 401
+
+            conn = get_db()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT role FROM members WHERE id = %s", (caller_id,))
+                    res = cursor.fetchone()
+                    if not res:
+                        return jsonify({'message': 'User not found'}), 403
+
+                    role = res.get('role')
+                    if role == 'admin':
+                        # Full admin — unconditional access
+                        pass
+                    elif role == 'sub_admin':
+                        cursor.execute("""
+                            SELECT 1 FROM sub_admin_permissions
+                            WHERE sub_admin_id = %s AND permission_key = %s AND granted = TRUE
+                        """, (caller_id, permission))
+                        if not cursor.fetchone():
+                            return jsonify({'message': f'Permission denied: {permission}'}), 403
+                    else:
+                        return jsonify({'message': 'Admin privilege required'}), 403
+            except Exception as e:
+                return jsonify({'message': str(e)}), 500
+            finally:
+                conn.close()
+            return fn(*args, **kwargs)
+        return decorator
+    return decorator_factory
+

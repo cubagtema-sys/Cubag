@@ -1,28 +1,58 @@
 import requests
+import logging
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from config.db import get_db
 import xml.etree.ElementTree as ET
 import re
+import threading
+import time as _time
+from utils import admin_required, sub_admin_required
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 news_bp = Blueprint('news', __name__)
 
 @news_bp.route('/blog', methods=['GET'])
 def get_blogs():
     try:
+        # Pagination parameters
+        try:
+            page = max(1, int(request.args.get('page', 1)))
+        except Exception:
+            page = 1
+        try:
+            per_page = int(request.args.get('per_page', 20))
+        except Exception:
+            per_page = 20
+        per_page = max(1, min(per_page, 100))
+        offset = (page - 1) * per_page
+
         conn = get_db()
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM news_blog ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM news_blog ORDER BY created_at DESC LIMIT %s OFFSET %s", (per_page, offset))
             posts = cursor.fetchall()
-        return jsonify(posts), 200
+
+            # Optional: return pagination metadata
+            cursor.execute("SELECT COUNT(*) as total FROM news_blog")
+            total = cursor.fetchone().get('total', 0)
+
+        return jsonify({
+            'items': posts,
+            'page': page,
+            'per_page': per_page,
+            'total': total
+        }), 200
     except Exception as e:
+        logger.exception("Error in get_blogs: %s", e)
         return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
             conn.close()
 
 @news_bp.route('/blog', methods=['POST'])
-@jwt_required()
+@sub_admin_required('announcements')
 def create_blog():
     data = request.json
     try:
@@ -48,7 +78,7 @@ def create_blog():
             conn.close()
 
 @news_bp.route('/blog/<int:id>', methods=['DELETE'])
-@jwt_required()
+@sub_admin_required('announcements')
 def delete_blog(id):
     try:
         conn = get_db()
@@ -63,25 +93,34 @@ def delete_blog(id):
             conn.close()
 
 FEED_SOURCES = [
-    {'url': 'http://feeds.bbci.co.uk/news/world/rss.xml',    'source': 'BBC News'},
-    {'url': 'https://www.aljazeera.com/xml/rss/all.xml',     'source': 'Al Jazeera'},
-    {'url': 'https://feeds.skynews.com/feeds/rss/world.xml', 'source': 'Sky News'},
-    {'url': 'https://gcaptain.com/feed/',                    'source': 'gCaptain Maritime'},
-    {'url': 'https://www.theafricareport.com/feed/',         'source': 'The Africa Report'},
-    {'url': 'https://rssfeeds.usatoday.com/usatoday-NewsTopStories', 'source': 'USA Today'},
+    { 'url': 'https://gcaptain.com/feed/',                  'source': 'gCaptain',            'color': '#f08232' },
+    { 'url': 'https://www.hellenicshippingnews.com/feed/',  'source': 'Hellenic Shipping',   'color': '#1a6b3c' },
+    { 'url': 'https://splash247.com/feed/',                 'source': 'Splash247',           'color': '#0066cc' },
+    { 'url': 'https://worldmaritimenews.com/feed/',         'source': 'World Maritime News', 'color': '#7c3aed' },
+    { 'url': 'https://www.ship-technology.com/feed/',       'source': 'Ship Technology',     'color': '#c0392b' },
+    { 'url': 'https://www.freightwaves.com/news/feed',      'source': 'FreightWaves',        'color': '#003580' },
 ]
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; CUBAGNewsBot/1.0)'}
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
 def _parse_feed(source_config):
     """Fetch and parse one RSS feed, returning a list of article dicts."""
     results = []
     try:
-        res = requests.get(source_config['url'], headers=HEADERS, timeout=5, verify=False)
+        # Increase timeout slightly and handle errors more gracefully
+        # Enforce TLS verification; do not disable certificate checks
+        res = requests.get(source_config['url'], headers=HEADERS, timeout=12, verify=True)
         if not res.ok:
+            logger.warning(f"Feed server returned {res.status_code} for {source_config['source']}")
             return results
-        root = ET.fromstring(res.content)
-        for item in root.findall('./channel/item')[:8]:
+
+        # Clean up XML string to prevent encoding errors
+        content = res.content.decode('utf-8', errors='replace')
+        # Some feeds have leading whitespace
+        content = content.strip()
+
+        root = ET.fromstring(content)
+        for item in root.findall('./channel/item')[:10]:
             title_el     = item.find('title')
             link_el      = item.find('link')
             pubdate_el   = item.find('pubDate')
@@ -109,7 +148,7 @@ def _parse_feed(source_config):
 
             clean_desc = re.sub(r'<[^>]+>', '', desc_str).strip()
 
-            # Parse pubDate for sorting (fall back to epoch 0 if unparsable)
+            # Parse pubDate for sorting
             try:
                 from email.utils import parsedate_to_datetime
                 pub_ts = parsedate_to_datetime(d_str).timestamp() if d_str else 0
@@ -124,59 +163,107 @@ def _parse_feed(source_config):
                 'description': clean_desc,
                 'thumbnail':   thumbnail,
                 'source':      source_config['source'],
+                'sourceColor': source_config.get('color', '#3b82f6'),
             })
     except Exception as e:
-        print(f"Feed error [{source_config['source']}]: {e}")
+        logger.error(f"Feed error [{source_config['source']}]: {e}")
     return results
-
-
-import threading
-import time as _time
 
 # ─── In-memory news cache ─────────────────────────────────────────────────────
 _news_cache = []
 _cache_lock = threading.Lock()
 _cache_populated = threading.Event()
 
+# Fallback articles if all feeds fail
+_MOCK_ARTICLES = [
+    {
+        'title': 'CUBAG Digital Platform Optimization Complete',
+        'link': 'https://cubag.org',
+        'pubDate': 'Wed, 03 Jun 2026 08:00:00 GMT',
+        'description': 'The Secretariat is pleased to announce the successful migration of our enterprise platform to Flutter, providing enhanced performance and mobile support for all members.',
+        'thumbnail': '',
+        'source': 'CUBAG Official',
+        'sourceColor': '#f08232',
+    },
+    {
+        'title': 'West Africa Maritime Traffic Overview',
+        'link': 'https://cubag.org',
+        'pubDate': 'Wed, 03 Jun 2026 07:30:00 GMT',
+        'description': 'Maritime activity in the Gulf of Guinea remains steady. Member firms are advised to monitor live vessel movements via the CUBAG Intelligence Hub.',
+        'thumbnail': '',
+        'source': 'Logistics Hub',
+        'sourceColor': '#1a6b3c',
+    }
+]
+
 def _refresh_cache():
     """Fetch all feeds and update the in-memory cache."""
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    logger.info("[NewsCache] Refreshing feeds...")
     all_items = []
+
+    # Try fetching from real sources
     for s in FEED_SOURCES:
         try:
-            all_items.extend(_parse_feed(s))
+            feed_items = _parse_feed(s)
+            if feed_items:
+                all_items.extend(feed_items)
+                logger.info(f"[NewsCache] Fetched {len(feed_items)} items from {s['source']}")
         except Exception as e:
-            print(f"[NewsCache] Feed error [{s['source']}]: {e}")
+            logger.error(f"[NewsCache] Feed error [{s['source']}]: {e}")
+
+    # Sort by timestamp
     all_items.sort(key=lambda x: x.get('pub_ts', 0), reverse=True)
+
+    # Remove timestamp field before caching
     for item in all_items:
         item.pop('pub_ts', None)
+
     with _cache_lock:
         global _news_cache
-        _news_cache = all_items[:30]
+        if all_items:
+            _news_cache = all_items[:40]
+            logger.info(f"[NewsCache] Refreshed with {len(_news_cache)} real articles.")
+        else:
+            # Fallback to mock data if all feeds failed
+            _news_cache = _MOCK_ARTICLES
+            logger.warning("[NewsCache] All feeds failed. Using mock fallback data.")
+
     _cache_populated.set()
-    print(f"[NewsCache] Refreshed — {len(_news_cache)} articles cached.")
 
 def _cache_worker():
-    """Background daemon that refreshes the cache every 10 minutes."""
+    """Background daemon that refreshes the cache every 15 minutes."""
     while True:
         try:
             _refresh_cache()
         except Exception as e:
-            print(f"[NewsCache] Worker error: {e}")
-        _time.sleep(600)  # 10 minutes
+            logger.error(f"[NewsCache] Worker error: {e}")
+        _time.sleep(900)  # 15 minutes
 
 def start_news_worker():
     """Start the background worker thread."""
     worker = threading.Thread(target=_cache_worker, daemon=True, name='news-cache-worker')
     worker.start()
-    print("[NewsCache] Background worker started.")
+    logger.info("[NewsCache] Background worker started.")
 
 @news_bp.route('/global', methods=['GET'])
 def get_global_news():
-    """Return cached news — refreshed every 10 min by background thread."""
-    # Wait up to 20s for first load on cold start
-    _cache_populated.wait(timeout=20)
-    with _cache_lock:
-        return jsonify(_news_cache), 200
+    """Return cached news — refreshed by background thread."""
+    # Don't block — if cache isn't ready yet, return mock articles immediately.
+    # The client can refresh after a few seconds to get real data.
+    if not _cache_populated.is_set():
+        logger.info("[NewsCache] Cache not ready yet, returning mock fallback.")
+        return jsonify(_MOCK_ARTICLES), 200
 
+    with _cache_lock:
+        articles = list(_news_cache)
+
+    if not articles:
+        return jsonify(_MOCK_ARTICLES), 200
+    return jsonify(articles), 200
+
+@news_bp.route('/refresh', methods=['POST'])
+@sub_admin_required('announcements')
+def trigger_refresh():
+    """Admin endpoint to manually trigger a news refresh."""
+    threading.Thread(target=_refresh_cache, daemon=True).start()
+    return jsonify({'message': 'Refresh triggered in background'}), 200

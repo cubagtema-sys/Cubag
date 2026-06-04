@@ -3,10 +3,14 @@ import os
 import threading
 import time
 import websocket
+import logging
 from datetime import datetime, timezone
 from socket_instance import socketio
 
+logger = logging.getLogger(__name__)
+
 AIS_API_KEY = os.getenv('AIS_API_KEY')
+# Ghana Coastal Waters Bounding Box
 GHANA_BBOX = [[[4.0, -4.0], [6.5, 2.0]]]
 
 class AISStreamManager:
@@ -15,32 +19,45 @@ class AISStreamManager:
         self.active_vessels = {}
         self.is_running = False
         self.tracked_mmsis = set()
+        self.tracked_names = set()
         self.ws = None
         self.lock = threading.Lock()
 
     def start(self):
         if not AIS_API_KEY:
-            print("[AIS] API Key missing. AIS stream will not start.")
+            logger.warning("[AIS] API Key missing. AIS stream will start in simulation mode.")
+            self.is_running = True
+            self.thread = threading.Thread(target=self._run_simulation, daemon=True, name="ais-sim-thread")
+            self.thread.start()
             return
 
         if self.is_running:
             return
 
         self.is_running = True
-        self.thread = threading.Thread(target=self._run_forever, daemon=True)
+        self.thread = threading.Thread(target=self._run_forever, daemon=True, name="ais-stream-thread")
         self.thread.start()
-        print("[AIS] Synchronous background thread started.")
+        logger.info("[AIS] Background stream thread started.")
 
-    def add_track(self, mmsi):
-        if not mmsi: return
+    def add_track(self, query):
+        if not query: return
+        query_str = str(query).strip()
+
         try:
-            mmsi_int = int(mmsi)
-            with self.lock:
-                if mmsi_int in self.tracked_mmsis:
-                    return
-                self.tracked_mmsis.add(mmsi_int)
-            print(f"[AIS] Now tracking MMSI: {mmsi_int}")
-        except:
+            if query_str.isdigit() and len(query_str) == 9:
+                mmsi_int = int(query_str)
+                with self.lock:
+                    if mmsi_int in self.tracked_mmsis: return
+                    self.tracked_mmsis.add(mmsi_int)
+                logger.info(f"[AIS] Now tracking MMSI: {mmsi_int}")
+            else:
+                if len(query_str) < 3: return
+                with self.lock:
+                    if query_str.lower() in [n.lower() for n in self.tracked_names]: return
+                    self.tracked_names.add(query_str)
+                logger.info(f"[AIS] Now tracking Name: {query_str}")
+        except Exception as e:
+            logger.error(f"[AIS] add_track error: {e}")
             return
 
         if self.ws and self.ws.sock and self.ws.sock.connected:
@@ -49,7 +66,7 @@ class AISStreamManager:
     def _run_forever(self):
         while self.is_running:
             try:
-                print("[AIS] Connecting to stream...")
+                logger.info("[AIS] Connecting to aisstream.io...")
                 self.ws = websocket.WebSocketApp(
                     "wss://stream.aisstream.io/v0/stream",
                     on_open=self._on_open,
@@ -59,17 +76,16 @@ class AISStreamManager:
                 )
                 self.ws.run_forever(ping_interval=30, ping_timeout=10)
             except Exception as e:
-                print(f"[AIS] Manager error: {e}")
+                logger.error(f"[AIS] Manager error: {e}")
 
-            print("[AIS] Disconnected. Retrying in 10s...")
-            time.sleep(10)
+            logger.info("[AIS] Disconnected. Retrying in 15s...")
+            time.sleep(15)
 
     def _on_open(self, ws):
-        print("[AIS] WebSocket Connected.")
+        logger.info("[AIS] WebSocket Connected.")
         self._send_subscription(ws)
 
     def _send_subscription(self, ws):
-        # Always track Ghana by default
         subscribe_message = {
             "APIKey": AIS_API_KEY,
             "BoundingBoxes": GHANA_BBOX,
@@ -77,43 +93,42 @@ class AISStreamManager:
         }
 
         with self.lock:
-            # Send MMSIs as integers (required by protocol)
             mmsi_list = [int(m) for m in list(self.tracked_mmsis)[:50]]
+            name_list = list(self.tracked_names)[:20]
 
-        if mmsi_list:
-            subscribe_message["FiltersShipMMSI"] = mmsi_list
-            # Expand to worldwide for these specific vessels
+        if mmsi_list or name_list:
+            if mmsi_list: subscribe_message["FiltersShipMMSI"] = mmsi_list
+            if name_list: subscribe_message["FiltersShipName"] = name_list
+            # Expand to worldwide if we are tracking specific ships
             subscribe_message["BoundingBoxes"] = [[[-90, -180], [90, 180]]]
 
         try:
             ws.send(json.dumps(subscribe_message))
-            print(f"[AIS] Subscription sent (Ghana + {len(mmsi_list)} live filters)")
+            logger.info(f"[AIS] Subscription sent (Ghana + {len(mmsi_list)} MMSI + {len(name_list)} Names)")
         except Exception as e:
-            print(f"[AIS] Failed to send subscription: {e}")
+            logger.error(f"[AIS] Failed to send subscription: {e}")
 
     def _on_message(self, ws, message_json):
         try:
             msg = json.loads(message_json)
             self._handle_ais_message(msg)
         except Exception as e:
-            print(f"[AIS] Message parse error: {e}")
+            logger.debug(f"[AIS] Failed to parse WS message: {e}")
 
     def _on_error(self, ws, error):
-        print(f"[AIS] WebSocket Error: {error}")
+        logger.error(f"[AIS] WebSocket Error: {error}")
 
-    def _on_close(self, ws, close_status_code, close_msg):
-        print(f"[AIS] WebSocket Closed: {close_msg}")
+    def _on_close(self, ws, code, msg):
+        logger.info(f"[AIS] WebSocket Closed: {msg}")
 
     def _handle_ais_message(self, msg):
         try:
-            msg_type = msg.get("MessageType")
-            metadata = msg.get("Metadata", {})
-            ship_name = metadata.get("VesselName", "Unknown").strip()
+            metadata = msg.get("MetaData", {})
             mmsi = metadata.get("MMSI")
+            if not mmsi: return
 
-            if not mmsi:
-                return
-
+            msg_type = msg.get("MessageType")
+            ship_name = metadata.get("ShipName", "Unknown").strip()
             now_str = datetime.now(timezone.utc).isoformat()
 
             with self.lock:
@@ -122,20 +137,13 @@ class AISStreamManager:
                     'name': ship_name,
                     'type': 'Unknown',
                     'status': 'Unknown',
-                    'lat': metadata.get('Latitude'),
-                    'lng': metadata.get('Longitude'),
+                    'lat': metadata.get('latitude'),
+                    'lng': metadata.get('longitude'),
                     'last_update': now_str,
                     'last_emit': 0,
                     'imo': '—',
                     'callsign': '—',
-                    'flag': self._get_flag_by_mmsi(mmsi),
-                    'length': '—',
-                    'width': '—',
-                    'speed': 0,
-                    'course': '—',
-                    'heading': '—',
-                    'rot': '—',
-                    'draught': '—',
+                    'flag': 'Unknown',
                     'destination': '—',
                     'eta': '—',
                     'region': 'Detecting...'
@@ -146,9 +154,6 @@ class AISStreamManager:
                     vessel['lat'] = pos.get('Latitude')
                     vessel['lng'] = pos.get('Longitude')
                     vessel['speed'] = pos.get('Sog', 0)
-                    vessel['course'] = pos.get('Cog', '—')
-                    vessel['heading'] = pos.get('TrueHeading', '—')
-                    vessel['rot'] = pos.get('Rot', '—')
                     vessel['status'] = self._decode_nav_status(pos.get('NavigationalStatus'))
                     vessel['region'] = self._estimate_region(vessel['lat'], vessel['lng'])
                     vessel['last_update'] = now_str
@@ -161,69 +166,56 @@ class AISStreamManager:
                     vessel['type'] = self._decode_ship_type(static.get('Type'))
                     vessel['destination'] = static.get('Destination', '—').strip()
                     vessel['eta'] = self._format_eta(static.get('Eta'))
-                    vessel['draught'] = static.get('Draught', '—')
-
-                    dim = static.get('Dimension', {})
-                    a, b, c, d = dim.get('A', 0), dim.get('B', 0), dim.get('C', 0), dim.get('D', 0)
-                    if a or b: vessel['length'] = a + b
-                    if c or d: vessel['width'] = c + d
-
                     vessel['last_update'] = now_str
 
                 self.active_vessels[mmsi] = vessel
 
-                # Throttle emissions
+                # Throttle socket emissions (max every 5s per vessel)
                 curr_ts = time.time()
                 if curr_ts - vessel.get('last_emit', 0) > 5:
                     vessel['last_emit'] = curr_ts
                     socketio.emit('vessel_update', vessel)
         except Exception as e:
-            print(f"[AIS] Handle Error: {e}")
-
-    def _get_flag_by_mmsi(self, mmsi):
-        m = str(mmsi)
-        if m.startswith('247'): return 'ITALY'
-        if m.startswith('636'): return 'LIBERIA'
-        if m.startswith('477'): return 'HONG KONG'
-        if m.startswith('563'): return 'SINGAPORE'
-        return 'Unknown'
+            logger.debug(f"[AIS] Message handle error: {e}")
 
     def _estimate_region(self, lat, lng):
-        if not lat or not lng: return "Global network"
+        if not lat or not lng: return "Global Network"
         if 4 <= lat <= 7 and -4 <= lng <= 2: return "Ghana Coastal Waters"
-        if lat > 0 and -100 < lng < -60: return "US East Coast"
         return "International Waters"
 
     def _decode_ship_type(self, type_id):
         if not type_id: return "Unknown"
         if 70 <= type_id <= 79: return "Cargo Ship"
         if 80 <= type_id <= 89: return "Tanker"
-        if 60 <= type_id <= 69: return "Passenger"
-        if 30 <= type_id <= 30: return "Fishing"
         return f"Ship ({type_id})"
 
     def _decode_nav_status(self, status_id):
-        statuses = {
-            0: "Underway using Engine",
-            1: "At Anchor",
-            2: "Not Under Command",
-            3: "Restricted Manoeuvrability",
-            4: "Constrained by Draught",
-            5: "Moored",
-            6: "Aground",
-            7: "Engaged in Fishing",
-            8: "Underway Sailing",
-            15: "Unknown"
-        }
-        return statuses.get(status_id, f"Other ({status_id})")
+        statuses = {0: "Underway", 1: "At Anchor", 5: "Moored"}
+        return statuses.get(status_id, "Unknown")
 
-    def _format_eta(self, eta_obj):
-        if not eta_obj: return "—"
+    def _format_eta(self, eta):
+        if not eta: return "—"
         try:
-            m, d, h, mn = eta_obj.get('Month', 0), eta_obj.get('Day', 0), eta_obj.get('Hour', 0), eta_obj.get('Minute', 0)
-            if m == 0 or d == 0: return "—"
-            return f"2026-{m:02d}-{d:02d} {h:02d}:{mn:02d} UTC"
-        except:
+            m, d, h = eta.get('Month', 0), eta.get('Day', 0), eta.get('Hour', 0)
+            if m == 0: return "—"
+            return f"2026-{m:02d}-{d:02d} {h:02d}:00 UTC"
+        except Exception as e:
+            logger.debug(f"[AIS] ETA format error: {e}")
             return "—"
+
+    def _run_simulation(self):
+        import random
+        # Mock data for when API key is missing
+        vessels = [
+            {'mmsi': 563297800, 'name': 'Maersk Charleston', 'lat': 5.5, 'lng': -0.1, 'speed': 12},
+            {'mmsi': 477174700, 'name': 'Maersk Cubango', 'lat': 5.6, 'lng': -0.2, 'speed': 14},
+        ]
+        while self.is_running:
+            for v in vessels:
+                v['lat'] += random.uniform(-0.01, 0.01)
+                v['lng'] += random.uniform(-0.01, 0.01)
+                v['last_update'] = datetime.now(timezone.utc).isoformat()
+                socketio.emit('vessel_update', v)
+            time.sleep(5)
 
 ais_manager = AISStreamManager()

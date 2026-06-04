@@ -1,8 +1,10 @@
 import os
+import uuid
 import requests
 import hashlib
 import hmac
 import smtplib
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import Blueprint, jsonify, request
@@ -10,17 +12,30 @@ from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
 from socket_instance import socketio
+from routes.admin import log_admin_action
+from utils import admin_required, sub_admin_required
 
 payments_bp = Blueprint('payments', __name__)
+logger = logging.getLogger(__name__)
 
-PAYSTACK_SECRET = os.getenv('PAYSTACK_SECRET_KEY', '')
-PAYSTACK_WEBHOOK_SECRET = os.getenv('PAYSTACK_WEBHOOK_SECRET', '')
+# ─── WhitsunPay Configuration ─────────────────────────────────────────────────
+WHITSUNPAY_BASE_URL = os.getenv('WHITSUNPAY_BASE_URL', 'https://developer.whitsun.dev').rstrip('/')
+WHITSUNPAY_CLIENT_ID = os.getenv('WHITSUNPAY_CLIENT_ID', '')
+WHITSUNPAY_API_KEY = os.getenv('WHITSUNPAY_API_KEY', '')
+WHITSUNPAY_WEBHOOK_SECRET = os.getenv('WHITSUNPAY_WEBHOOK_SECRET', '')
+WHITSUNPAY_CALLBACK_URL = os.getenv('WHITSUNPAY_CALLBACK_URL', '')
+
+# Full versioned API base — e.g. https://developer.whitsun.dev/api/v1
+_WP_API = f'{WHITSUNPAY_BASE_URL}/api/v1'
 
 
-def _paystack_headers():
+def _whitsunpay_headers():
+    """Build headers for WhitsunPay API requests (per official docs)."""
     return {
-        'Authorization': f'Bearer {PAYSTACK_SECRET}',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-client-id': WHITSUNPAY_CLIENT_ID,
+        'x-api-key': WHITSUNPAY_API_KEY,
+        'x-callback-url': WHITSUNPAY_CALLBACK_URL,  # Required per docs
     }
 
 
@@ -54,7 +69,7 @@ def create_payment():
             # If so, we'll "re-use" that record ID rather than making a duplicate.
             cursor.execute("""
                 SELECT id FROM payments
-                WHERE member_id = %s AND description = %s AND status = 'pending'
+                WHERE member_id = %s AND description = %s AND LOWER(status) = 'pending'
                 LIMIT 1
             """, (member_id, description))
             existing_pending = cursor.fetchone()
@@ -85,79 +100,77 @@ def create_payment():
 
             conn.commit()
 
-        # ── 2. Handle MoMo via Paystack ──
-        if method == 'momo' and PAYSTACK_SECRET and 'REPLACE' not in PAYSTACK_SECRET:
-            network_map = {'MTN': 'mtn', 'Vodafone': 'vod', 'AirtelTigo': 'atl'}
+        # ── 2. Handle MoMo via WhitsunPay ──
+        if method == 'momo' and WHITSUNPAY_CLIENT_ID and WHITSUNPAY_API_KEY:
+            network_map = {'MTN': 'mtn', 'Vodafone': 'vodafone', 'AirtelTigo': 'airteltigo'}
 
-            # Ensure phone is in local 10-digit format for Paystack GHS
-            # (Remove +233 if it was somehow added, but usually frontend sends 0...)
-            clean_phone = phone.strip().replace(' ', '')
-            if clean_phone.startswith('+233'):
-                clean_phone = '0' + clean_phone[4:]
+            # WhitsunPay requires international format without +: 233XXXXXXXXX
+            clean_phone = phone.strip().replace(' ', '').replace('-', '')
+            if clean_phone.startswith('+'):
+                clean_phone = clean_phone[1:]
+            elif clean_phone.startswith('0'):
+                clean_phone = '233' + clean_phone[1:]
+
+            tx_ref = f"CUBAG-{payment_id}-{uuid.uuid4().hex[:8]}"
 
             payload = {
-                'email': member['email'],
-                'amount': int(float(amount) * 100),  # pesewas
-                'currency': 'GHS',
-                'mobile_money': {
-                    'phone': clean_phone,
+                'transactionReference': tx_ref,
+                'description': description,
+                'amount': float(amount),
+                'debitParty': {
+                    'msisdn': clean_phone,
                     'provider': network_map.get(network, 'mtn')
-                },
-                'metadata': {
-                    'payment_id': payment_id,
-                    'member_id': member_id,
-                    'description': description
                 }
             }
-            print(f"[DEBUG] Initiating Paystack Charge. Phone: {clean_phone}, Provider: {network_map.get(network)}")
             try:
-                ps_res = requests.post(
-                    'https://api.paystack.co/charge',
+                wp_res = requests.post(
+                    f'{_WP_API}/charge',
                     json=payload,
-                    headers=_paystack_headers(),
-                    timeout=15
+                    headers=_whitsunpay_headers(),
+                    timeout=30
                 )
-                ps_data = ps_res.json()
-                print(f"[DEBUG] Paystack Charge Response: {ps_data}")
+                # Parse response body immediately so it's always available
+                wp_data = {}
+                try:
+                    wp_data = wp_res.json()
+                except Exception:
+                    pass
 
-                if not ps_data.get('status'):
+                if wp_res.status_code >= 400:
                     with conn.cursor() as cursor:
                         cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s", (payment_id,))
                         conn.commit()
                     return jsonify({
                         'payment_id': payment_id,
-                        'message': ps_data.get('message', 'Paystack initialization failed'),
+                        'message': wp_data.get('message', 'WhitsunPay payment initiation failed'),
                         'error': True,
-                        'details': ps_data
+                        'details': wp_data
                     }), 400
 
-                ps_payload = ps_data.get('data', {})
-                paystack_ref = ps_payload.get('reference')
-                ps_status = ps_payload.get('status')
-
-                # ── 3. Update Record with Paystack Reference Immediately ──
+                # ── 3. Store WhitsunPay transaction reference ──
                 with conn.cursor() as cursor:
                     cursor.execute(
                         "UPDATE payments SET payment_ref = %s WHERE id = %s",
-                        (paystack_ref, payment_id)
+                        (tx_ref, payment_id)
                     )
-                    # If it's a license renewal, link it to the member profile too
                     if 'Renewal' in description:
                         cursor.execute(
                             "UPDATE members SET payment_ref = %s WHERE id = %s",
-                            (paystack_ref, member_id)
+                            (tx_ref, member_id)
                         )
                     conn.commit()
 
                 return jsonify({
                     'payment_id': payment_id,
-                    'paystack_ref': paystack_ref,
-                    'status': ps_status,
+                    'whitsun_ref': tx_ref,
+                    'transaction_ref': tx_ref,
+                    'status': 'pending',
                     'message': 'Payment request sent successfully. Please check your phone.',
-                    'display_text': 'Please check your phone for the MoMo prompt.' if ps_status in ('send_otp', 'pay_offline', 'pending') else 'Authorization required'
+                    'display_text': 'Please check your phone for the MoMo prompt and enter your PIN to approve.'
                 }), 200
 
             except Exception as e:
+                logger.error(f"[WhitsunPay] Request failed: {str(e)}")
                 with conn.cursor() as cursor:
                     cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s", (payment_id,))
                     conn.commit()
@@ -201,110 +214,92 @@ def poll_payment_status(payment_id):
         conn.close()
 
 
-# ─── POST /payments/verify-code — Submit OTP to Paystack ─────────────────────
+# ─── POST /payments/verify-code — Check status via WhitsunPay ────────────────
 @payments_bp.route('/verify-code', methods=['POST', 'OPTIONS'])
 @jwt_required()
 def verify_payment_code():
+    """WhitsunPay handles MoMo PIN approval on-device (no OTP submission).
+    This endpoint now checks the transaction status via WhitsunPay instead."""
     if request.method == 'OPTIONS':
         return jsonify({'ok': True}), 200
 
     data = request.get_json() or {}
-    payment_id  = data.get('payment_id')
-    otp         = str(data.get('code', '')).strip()
-    paystack_ref = str(data.get('paystack_ref', '')).strip()
+    payment_id = data.get('payment_id')
+    tx_ref = str(data.get('whitsun_ref', data.get('transaction_ref', ''))).strip()
 
-    print(f"[DEBUG] verify-code called. payment_id: {payment_id}, otp: {otp}, ref: {paystack_ref}")
-
-    if not paystack_ref or not otp:
-        return jsonify({'message': 'Paystack reference and OTP code are required', 'error': True}), 400
+    if not tx_ref:
+        return jsonify({'message': 'Transaction reference is required', 'error': True}), 400
 
     try:
-        # 1. Submit OTP to Paystack
-        payload = {'otp': otp, 'reference': paystack_ref}
-        print(f"[DEBUG] Submitting to Paystack: {payload}")
-
-        ps_res = requests.post(
-            'https://api.paystack.co/charge/submit_otp',
-            json=payload,
-            headers=_paystack_headers(),
+        wp_res = requests.get(
+            f'{_WP_API}/{tx_ref}/status',
+            headers=_whitsunpay_headers(),
             timeout=15
         )
-        ps_data = ps_res.json()
-        print(f"[DEBUG] Paystack submit_otp response: {ps_data}")
+        wp_data = wp_res.json()
+        wp_status = str(wp_data.get('status', '')).lower()
 
-        if not ps_data.get('status'):
-            msg = ps_data.get('message', 'OTP verification failed')
-            if not msg and ps_data.get('data'):
-                msg = ps_data.get('data', {}).get('message')
-            return jsonify({'message': msg or 'Paystack rejected the code', 'error': True}), 400
-
-        # 2. Check the final status from the response
-        ps_payload = ps_data.get('data', {})
-        ps_status = ps_payload.get('status')
-
-        if ps_status == 'success':
-            _mark_payment_as_paid(payment_id or ps_payload.get('metadata', {}).get('payment_id'))
+        if wp_status in ('successful', 'success', 'completed'):
+            _mark_payment_as_paid(payment_id)
             return jsonify({'message': 'Payment confirmed! 🎉', 'status': 'success'}), 200
+        elif wp_status in ('failed', 'declined', 'reversed', 'cancelled'):
+            _mark_payment_as_failed(payment_id)
+            return jsonify({'message': f'Payment {wp_status}', 'status': 'failed'}), 200
 
         return jsonify({
-            'message': ps_data.get('message', 'Payment processing'),
-            'status': ps_status
+            'message': 'Payment is still processing. Please approve the MoMo prompt on your phone.',
+            'status': wp_status or 'pending'
         }), 200
 
     except Exception as e:
-        print(f"[ERROR] verify_payment_code: {str(e)}")
+        logger.error(f"[verify_payment_code] {str(e)}")
         return jsonify({'message': str(e)}), 500
 
 
-# ─── GET /payments/verify/<reference> — Poll Paystack for status ─────────────
+# ─── GET /payments/verify/<reference> — Poll WhitsunPay for status ────────────
 @payments_bp.route('/verify/<string:reference>', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def verify_payment_manually(reference):
     if request.method == 'OPTIONS':
         return jsonify({'ok': True}), 200
 
-    if not reference or reference.lower() == 'n/a' or reference.lower() == 'pending':
+    if not reference or reference.lower() in ('n/a', 'pending', 'null', 'undefined'):
         return jsonify({'message': 'Invalid reference code', 'status': 'error'}), 200
 
     try:
-        ps_res = requests.get(
-            f'https://api.paystack.co/transaction/verify/{reference}',
-            headers=_paystack_headers(),
+        wp_res = requests.get(
+            f'{_WP_API}/{reference}/status',
+            headers=_whitsunpay_headers(),
             timeout=15
         )
-        ps_data = ps_res.json()
+        wp_data = wp_res.json()
+        wp_status = str(wp_data.get('status', 'pending')).lower()
 
-        if not ps_data.get('status'):
-            return jsonify({'message': 'Reference not found on Paystack', 'status': 'not_found'}), 200
-
-        ps_payload = ps_data.get('data', {})
-        ps_status = ps_payload.get('status', 'pending')
-
-        if ps_status == 'success':
-            # 1. Try to get ID from metadata
-            payment_id = ps_payload.get('metadata', {}).get('payment_id')
-
-            # 2. Fallback: Lookup payment by reference if metadata is missing
-            if not payment_id:
-                conn = get_db()
+        if wp_status in ('successful', 'success', 'completed'):
+            # Look up payment by reference
+            payment_id = None
+            conn = get_db()
+            try:
                 with conn.cursor() as cursor:
                     cursor.execute("SELECT id FROM payments WHERE payment_ref = %s", (reference,))
                     row = cursor.fetchone()
-                    if row: payment_id = row['id']
+                    if row:
+                        payment_id = row['id']
+            finally:
                 conn.close()
 
             if payment_id:
                 _mark_payment_as_paid(payment_id)
                 return jsonify({'message': 'Payment verified and updated!', 'status': 'success'}), 200
             else:
-                return jsonify({'message': 'Payment success on Paystack, but could not link to member record.', 'status': 'orphan_success'}), 200
+                return jsonify({'message': 'Payment success on WhitsunPay, but could not link to member record.', 'status': 'orphan_success'}), 200
 
-        elif ps_status in ('failed', 'abandoned', 'reversed', 'declined', 'cancelled'):
-            return jsonify({'message': f'Payment {ps_status}', 'status': 'failed'}), 200
+        elif wp_status in ('failed', 'abandoned', 'reversed', 'declined', 'cancelled'):
+            return jsonify({'message': f'Payment {wp_status}', 'status': 'failed'}), 200
 
-        return jsonify({'message': f'Transaction state: {ps_status.replace("_", " ")}', 'status': ps_status}), 200
+        return jsonify({'message': f'Transaction state: {wp_status.replace("_", " ")}', 'status': wp_status}), 200
     except Exception as e:
-        print(f'[ERROR] verify_payment_manually: {e}')
+        logger.error(f'[verify_payment_manually] {e}')
         return jsonify({'message': 'Verification service temporarily unavailable', 'status': 'pending'}), 200
 
 
@@ -315,7 +310,7 @@ def _mark_payment_as_failed(payment_id):
         with conn.cursor() as cursor:
             cursor.execute("SELECT status FROM payments WHERE id = %s", (payment_id,))
             p = cursor.fetchone()
-            if p and p['status'] == 'pending':
+            if p and str(p['status']).lower() == 'pending':
                 cursor.execute(
                     "UPDATE payments SET status = 'failed' WHERE id = %s",
                     (payment_id,)
@@ -332,7 +327,7 @@ def _mark_payment_as_paid(payment_id):
             # Check if already paid to avoid double processing
             cursor.execute("SELECT status FROM payments WHERE id = %s", (payment_id,))
             p = cursor.fetchone()
-            if p and p['status'] == 'paid': return
+            if p and str(p['status']).lower() == 'paid': return
 
             cursor.execute(
                 "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
@@ -361,31 +356,53 @@ def _mark_payment_as_paid(payment_id):
         conn.close()
 
 
-# ─── POST /payments/webhook — Paystack fires this when payment completes ───────
-@payments_bp.route('/webhook', methods=['POST'])
-def paystack_webhook():
-    sig = request.headers.get('X-Paystack-Signature', '')
+# ─── PUT|POST /payments/webhook — WhitsunPay callback on terminal state ───────
+@payments_bp.route('/webhook', methods=['PUT', 'POST'])
+def whitsunpay_webhook():
+    sig  = request.headers.get('X-Whitsun-Signature', '')
     body = request.get_data()
 
-    if PAYSTACK_WEBHOOK_SECRET and 'your_webhook' not in PAYSTACK_WEBHOOK_SECRET:
-        expected = hmac.new(
-            PAYSTACK_WEBHOOK_SECRET.encode(), body, hashlib.sha512
-        ).hexdigest()
-        if not hmac.compare_digest(sig, expected):
-            return jsonify({'message': 'Invalid signature'}), 400
+    # Reject all webhook calls when no secret is configured — prevents unauthenticated pay-marking
+    if not WHITSUNPAY_WEBHOOK_SECRET:
+        logger.warning('[Webhook] WHITSUNPAY_WEBHOOK_SECRET not set — rejecting webhook call')
+        return jsonify({'message': 'Webhook not configured on server'}), 503
 
-    event = request.get_json()
+    # Verify HMAC-SHA256 signature
+    expected = 'sha256=' + hmac.new(
+        WHITSUNPAY_WEBHOOK_SECRET.encode(), body, hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        return jsonify({'message': 'Invalid signature'}), 401
 
-    if event.get('event') == 'charge.success':
-        ps_payload = event.get('data', {})
-        payment_id = ps_payload.get('metadata', {}).get('payment_id')
-        if payment_id:
-            _mark_payment_as_paid(payment_id)
-    elif event.get('event') in ('charge.failed', 'charge.abandoned', 'charge.reversed'):
-        ps_payload = event.get('data', {})
-        payment_id = ps_payload.get('metadata', {}).get('payment_id')
-        if payment_id:
-            _mark_payment_as_failed(payment_id)
+    event     = request.get_json() or {}
+    tx_ref    = event.get('transactionReference', '')
+    wp_status = str(event.get('status', '')).lower()
+
+    if tx_ref:
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id FROM payments WHERE payment_ref = %s", (tx_ref,))
+                row = cursor.fetchone()
+                if row:
+                    if wp_status in ('successful', 'success', 'completed'):
+                        _mark_payment_as_paid(row['id'])
+                        # Trigger rating update for this member immediately after successful payment
+                        try:
+                            with conn.cursor() as cursor2:
+                                cursor2.execute("SELECT member_id FROM payments WHERE id = %s", (row['id'],))
+                                m_row = cursor2.fetchone()
+                                if m_row:
+                                    m_id = m_row['member_id']
+                                    from utils import calculate_and_update_member_rating
+                                    calculate_and_update_member_rating(m_id, cursor2)
+                                    conn.commit()
+                        except Exception as e:
+                            logger.error(f"[Webhook Rating Update] {e}")
+                    elif wp_status in ('failed', 'declined', 'reversed', 'cancelled'):
+                        _mark_payment_as_failed(row['id'])
+        finally:
+            conn.close()
 
     return jsonify({'message': 'ok'}), 200
 
@@ -424,7 +441,7 @@ def _send_receipt_email(to_email, member_name, amount, description, payment_id):
             server.login(smtp_user, smtp_pass)
             server.sendmail(smtp_user, to_email, msg.as_string())
     except Exception as e:
-        print(f'[Email] Failed to send receipt to {to_email}: {e}')
+        logger.warning(f'[Email] Failed to send receipt to {to_email}: {e}')
 
 
 # ─── GET /payments/ — Member payment history ──────────────────────────────────
@@ -453,8 +470,8 @@ def payments_summary():
             # Get Totals
             cursor.execute("""
                 SELECT 
-                    SUM(CASE WHEN status='paid' THEN amount ELSE 0 END) as total_paid,
-                    SUM(CASE WHEN status='pending' THEN amount ELSE 0 END) as total_pending
+                    SUM(CASE WHEN LOWER(status)='paid' THEN amount ELSE 0 END) as total_paid,
+                    SUM(CASE WHEN LOWER(status)='pending' THEN amount ELSE 0 END) as total_pending
                 FROM payments WHERE member_id = %s
             """, (member_id,))
             totals = cursor.fetchone()
@@ -463,7 +480,7 @@ def payments_summary():
             cursor.execute("""
                 SELECT description, amount, created_at
                 FROM payments
-                WHERE member_id = %s AND status = 'pending'
+                WHERE member_id = %s AND LOWER(status) = 'pending'
                 ORDER BY created_at DESC
             """, (member_id,))
             items = cursor.fetchall()
@@ -479,38 +496,55 @@ def payments_summary():
 
 # ─── GET /payments/admin/all ──────────────────────────────────────────────────
 @payments_bp.route('/admin/all', methods=['GET'])
-@jwt_required()
+@sub_admin_required('payments')
 def get_all_payments_admin():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT p.id as tx_id, p.amount, p.description, p.status,
-                       p.created_at as date, m.name as member_name
+                       p.payment_ref, p.created_at, m.name as member_name
                 FROM payments p
                 LEFT JOIN members m ON p.member_id = m.id
                 ORDER BY p.created_at DESC
             """)
             payments = cursor.fetchall()
 
-            cursor.execute("SELECT COALESCE(SUM(amount), 0) as revenue FROM payments WHERE status = 'paid'")
+            # Manually serialize dates and decimals
+            for p in payments:
+                # Add a 'date' alias for components expecting it (like Dashboard charts)
+                if 'created_at' in p and p['created_at']:
+                    p['date'] = p['created_at'].isoformat() if hasattr(p['created_at'], 'isoformat') else str(p['created_at'])
+
+                for key, value in list(p.items()):
+                    if hasattr(value, 'isoformat'):
+                        p[key] = value.isoformat()
+                    elif hasattr(value, 'strftime'):
+                        p[key] = str(value)
+                    elif hasattr(value, 'to_eng_string'): # Decimal
+                        p[key] = float(value)
+                    elif key == 'amount' and value is not None:
+                        p[key] = float(value)
+
+            cursor.execute("SELECT COALESCE(SUM(amount), 0) as revenue FROM payments WHERE LOWER(status) = 'paid'")
             revenue = cursor.fetchone()
 
-            cursor.execute("SELECT COALESCE(SUM(amount), 0) as pending FROM payments WHERE status = 'pending'")
+            cursor.execute("SELECT COALESCE(SUM(amount), 0) as pending FROM payments WHERE LOWER(status) = 'pending'")
             pending = cursor.fetchone()
 
-            cursor.execute("SELECT COUNT(id) as failed FROM payments WHERE status = 'overdue'")
+            cursor.execute("SELECT COALESCE(SUM(amount), 0) as failed FROM payments WHERE LOWER(status) IN ('failed', 'overdue')")
             failed = cursor.fetchone()
 
         return jsonify({
             'transactions': payments,
             'kpis': {
-                'revenue': revenue['revenue'] or 0,
-                'pending': pending['pending'] or 0,
-                'failed': failed['failed'] or 0
+                'revenue': float(revenue['revenue'] or 0),
+                'pending': float(pending['pending'] or 0),
+                'failed':  float(failed['failed']  or 0),
             }
         }), 200
     except Exception as e:
+        logger.exception("[Admin Payments Error] %s", e)
         return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
@@ -518,13 +552,14 @@ def get_all_payments_admin():
 
 # ─── POST /payments/admin/mark-paid/<id> ─────────────────────────────────────
 @payments_bp.route('/admin/mark-paid/<int:payment_id>', methods=['POST'])
-@jwt_required()
+@sub_admin_required('payments')
 def admin_mark_paid(payment_id):
+    admin_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             # Get the member_id from the payment
-            cursor.execute("SELECT member_id FROM payments WHERE id = %s", (payment_id,))
+            cursor.execute("SELECT member_id, amount FROM payments WHERE id = %s", (payment_id,))
             row = cursor.fetchone()
             if row:
                 # Mark payment as paid
@@ -540,6 +575,10 @@ def admin_mark_paid(payment_id):
                 conn.commit()
                 # Real-time WebSocket emission
                 socketio.emit('payment_approved', {'member_id': row['member_id'], 'payment_id': payment_id})
+                # Audit log
+                cursor.execute("SELECT name FROM members WHERE id = %s", (row['member_id'],))
+                member = cursor.fetchone()
+                log_admin_action(admin_id, 'Marked payment as paid', 'payment', payment_id, member['name'] if member else None, f'Amount: {row["amount"]}')
         return jsonify({'message': 'Payment marked as paid'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -549,7 +588,7 @@ def admin_mark_paid(payment_id):
 
 # ─── POST /payments/admin/approve-license/<id> ───────────────────────────────
 @payments_bp.route('/admin/approve-license/<int:payment_id>', methods=['POST'])
-@jwt_required()
+@sub_admin_required('payments')
 def admin_approve_license(payment_id):
     conn = get_db()
     try:

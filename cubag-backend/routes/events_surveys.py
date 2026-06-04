@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
+from utils import admin_required, log_admin_action, sub_admin_required
 
 events_bp = Blueprint('events', __name__)
 surveys_bp = Blueprint('surveys', __name__)
@@ -22,8 +23,9 @@ def get_events():
         conn.close()
 
 @events_bp.route('/', methods=['POST'])
-@jwt_required()
+@sub_admin_required('events')
 def create_event():
+    admin_id = get_jwt_identity()
     data = request.get_json()
     conn = get_db()
     try:
@@ -34,6 +36,7 @@ def create_event():
             """, (data.get('title'), data.get('description'), data.get('date'),
                   data.get('time'), data.get('location'), data.get('capacity') or None))
             conn.commit()
+        log_admin_action(admin_id, 'Created event', 'event', None, data.get('title'), f"Date: {data.get('date')}, Location: {data.get('location')}")
         return jsonify({'message': 'Event created'}), 201
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -41,8 +44,9 @@ def create_event():
         conn.close()
 
 @events_bp.route('/<int:event_id>', methods=['PUT'])
-@jwt_required()
+@sub_admin_required('events')
 def update_event(event_id):
+    admin_id = get_jwt_identity()
     data = request.get_json()
     conn = get_db()
     try:
@@ -53,6 +57,7 @@ def update_event(event_id):
             """, (data.get('title'), data.get('description'), data.get('date'),
                   data.get('time'), data.get('location'), data.get('capacity') or None, event_id))
             conn.commit()
+        log_admin_action(admin_id, 'Updated event', 'event', event_id, data.get('title'), f"Date: {data.get('date')}")
         return jsonify({'message': 'Event updated'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -60,13 +65,18 @@ def update_event(event_id):
         conn.close()
 
 @events_bp.route('/<int:event_id>', methods=['DELETE'])
-@jwt_required()
+@sub_admin_required('events')
 def delete_event(event_id):
+    admin_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            cursor.execute("SELECT title FROM events WHERE id = %s", (event_id,))
+            event = cursor.fetchone()
             cursor.execute("DELETE FROM events WHERE id = %s", (event_id,))
             conn.commit()
+        title = event['title'] if event else f'#{event_id}'
+        log_admin_action(admin_id, 'Deleted event', 'event', event_id, title)
         return jsonify({'message': 'Event deleted'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -74,14 +84,28 @@ def delete_event(event_id):
         conn.close()
 
 @events_bp.route('/admin/all', methods=['GET'])
-@jwt_required()
+@sub_admin_required('events')
 def get_all_events_admin():
-    conn = get_db()
     try:
+        try:
+            page = max(1, int(request.args.get('page', 1)))
+        except Exception:
+            page = 1
+        try:
+            per_page = int(request.args.get('per_page', 50))
+        except Exception:
+            per_page = 50
+        per_page = max(1, min(per_page, 200))
+        offset = (page - 1) * per_page
+
+        conn = get_db()
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM events ORDER BY date DESC")
+            cursor.execute("SELECT * FROM events ORDER BY date DESC LIMIT %s OFFSET %s", (per_page, offset))
             data = cursor.fetchall()
-        return jsonify(data), 200
+            cursor.execute("SELECT COUNT(*) as total FROM events")
+            total = cursor.fetchone().get('total', 0)
+
+        return jsonify({'items': data, 'page': page, 'per_page': per_page, 'total': total}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
@@ -112,8 +136,9 @@ def get_surveys():
         conn.close()
 
 @surveys_bp.route('/', methods=['POST'])
-@jwt_required()
+@sub_admin_required('events')
 def create_survey():
+    admin_id = get_jwt_identity()
     data = request.get_json()
     conn = get_db()
     try:
@@ -126,6 +151,7 @@ def create_survey():
             """, (data.get('title'), data.get('description'), data.get('type', 'survey'),
                   data.get('deadline') or None, options_json, data.get('cover_image')))
             conn.commit()
+        log_admin_action(admin_id, 'Created survey', 'survey', None, data.get('title'), f"Type: {data.get('type', 'survey')}")
         return jsonify({'message': 'Survey created'}), 201
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -133,14 +159,19 @@ def create_survey():
         conn.close()
 
 @surveys_bp.route('/<int:survey_id>', methods=['DELETE'])
-@jwt_required()
+@sub_admin_required('events')
 def delete_survey(survey_id):
+    admin_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            cursor.execute("SELECT title FROM surveys WHERE id = %s", (survey_id,))
+            survey = cursor.fetchone()
             cursor.execute("DELETE FROM survey_responses WHERE survey_id = %s", (survey_id,))
             cursor.execute("DELETE FROM surveys WHERE id = %s", (survey_id,))
             conn.commit()
+        title = survey['title'] if survey else f'#{survey_id}'
+        log_admin_action(admin_id, 'Deleted survey', 'survey', survey_id, title)
         return jsonify({'message': 'Survey deleted'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -148,21 +179,35 @@ def delete_survey(survey_id):
         conn.close()
 
 @surveys_bp.route('/admin/all', methods=['GET'])
-@jwt_required()
+@sub_admin_required('events')
 def get_all_surveys_admin():
-    conn = get_db()
     try:
+        try:
+            page = max(1, int(request.args.get('page', 1)))
+        except Exception:
+            page = 1
+        try:
+            per_page = int(request.args.get('per_page', 50))
+        except Exception:
+            per_page = 50
+        per_page = max(1, min(per_page, 200))
+        offset = (page - 1) * per_page
+
+        conn = get_db()
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM surveys ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM surveys ORDER BY created_at DESC LIMIT %s OFFSET %s", (per_page, offset))
             data = cursor.fetchall()
-        return jsonify(data), 200
+            cursor.execute("SELECT COUNT(*) as total FROM surveys")
+            total = cursor.fetchone().get('total', 0)
+
+        return jsonify({'items': data, 'page': page, 'per_page': per_page, 'total': total}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
 
 @surveys_bp.route('/<int:survey_id>/participation', methods=['GET'])
-@jwt_required()
+@sub_admin_required('events')
 def get_survey_participation(survey_id):
     """Returns lists of members who have and haven't responded to a survey."""
     conn = get_db()
@@ -197,8 +242,10 @@ def get_survey_participation(survey_id):
                 ans = {}
                 try:
                     ans = json.loads(r_data['answers']) if r_data['answers'] else {}
-                except:
-                    pass
+                except Exception as e:
+                    # Ignore malformed answer payloads but log for debugging
+                    import logging as _logging
+                    _logging.getLogger(__name__).debug("Malformed survey answer for member %s: %s", m['id'], e)
                 
                 vote = ans.get('vote')
                 if vote is not None:

@@ -1,8 +1,12 @@
 import os
 import json
+import logging
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from config.db import get_db
+from utils import sub_admin_required
+
+logger = logging.getLogger(__name__)
 
 intelligence_bp = Blueprint('intelligence', __name__)
 
@@ -32,34 +36,34 @@ SETTING_KEY = 'intelligence_data'
 
 
 def load_data():
-    """Load from DB settings table, fall back to defaults."""
+    """Load from DB platform_settings table, fall back to defaults."""
     try:
         conn = get_db()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT value FROM settings WHERE key = %s",
+                    "SELECT config_value FROM platform_settings WHERE config_key = %s",
                     (SETTING_KEY,)
                 )
                 row = cursor.fetchone()
             if row:
-                return json.loads(row['value'])
+                return row['config_value'] # Already stored as JSONB
         finally:
             conn.close()
     except Exception as e:
-        print(f"[intelligence] DB load failed: {e}")
+        logger.exception("[intelligence] DB load failed: %s", e)
     return DEFAULT_DATA
 
 
 def save_data(data):
-    """Upsert intelligence data into DB settings table."""
+    """Upsert intelligence data into DB platform_settings table."""
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO settings (key, value)
+                INSERT INTO platform_settings (config_key, config_value)
                 VALUES (%s, %s)
-                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+                ON CONFLICT (config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = CURRENT_TIMESTAMP
             """, (SETTING_KEY, json.dumps(data)))
             conn.commit()
     finally:
@@ -72,7 +76,7 @@ def get_intelligence():
 
 
 @intelligence_bp.route('/', methods=['POST'])
-@jwt_required()
+@sub_admin_required('intelligence')
 def update_intelligence():
     data = request.json
     save_data(data)

@@ -9,11 +9,19 @@ __pycache__/
 # Build outputs
 cubag-react/dist/
 cubag-react/build/
+cubag_flutter/build/
 android/app/build/
 android/.gradle/
 android/build/
 *.apk
 *.aab
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
 
 # Environment files — NEVER commit real keys
 .env
@@ -22,6 +30,7 @@ android/build/
 .env.*.local
 cubag-backend/.env
 cubag-react/.env
+firebase-key.json
 
 # IDE / OS
 .vscode/
@@ -29,6 +38,7 @@ cubag-react/.env
 *.DS_Store
 Thumbs.db
 desktop.ini
+*.iml
 
 # Python virtual environments
 venv/
@@ -44,7 +54,7 @@ instance/
 *.log
 npm-debug.log*
 
-# Capacitor generated (will be re-generated on build)
+# Capacitor generated
 cubag-react/assets/android/
 cubag-react/assets/ios/
 

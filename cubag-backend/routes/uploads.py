@@ -9,7 +9,7 @@ uploads_bp = Blueprint('uploads', __name__)
 # ─── Supabase Configuration ──────────────────────────────────────────────────
 SUPABASE_URL    = os.getenv('SUPABASE_URL', '')
 SUPABASE_KEY    = os.getenv('SUPABASE_SERVICE_KEY', '')
-SUPABASE_BUCKET = os.getenv('SUPABASE_BUCKET', 'public-materials')
+SUPABASE_BUCKET = os.getenv('SUPABASE_BUCKET', 'uploads')
 
 ALLOWED = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'}
 MAX_SIZE_MB = 10

@@ -1,13 +1,17 @@
 import os
 import json
 import logging
-from flask import Flask, send_from_directory
+import sys
+import time
+from flask import g
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, get_jwt_identity, verify_jwt_in_request
 from dotenv import load_dotenv
 from datetime import timedelta
 import firebase_admin
 from firebase_admin import credentials
+from utils import log_admin_action
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,21 +19,20 @@ logger = logging.getLogger(__name__)
 
 logger.info("Starting CUBAG Production Backend...")
 
-from config.db import init_db
+from config.db import get_db, init_db
 from routes.auth import auth_bp
 from routes.members import members_bp
 from routes.announcements import announcements_bp
 from routes.tasks import tasks_bp
 from routes.payments import payments_bp
 from routes.events_surveys import events_bp, surveys_bp
+from routes.sub_admins import sub_admins_bp
 
 # Load environment variables
 load_dotenv()
 
-# ── Resolve React build path ─────────────────────────────────────────────────
-STATIC_DIR = os.path.join(os.path.dirname(__file__), '..', 'cubag-react', 'dist')
-if not os.path.isdir(STATIC_DIR):
-    STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
+# ── Resolve static file path (Flutter web build or fallback) ─────────────────
+STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
 if not os.path.isdir(STATIC_DIR):
     STATIC_DIR = os.path.join(os.path.dirname(__file__), 'dist')
 
@@ -40,7 +43,7 @@ app.url_map.strict_slashes = False
 # Initialize Firebase Admin
 try:
     firebase_json_env = os.getenv('FIREBASE_CREDENTIALS_JSON') or os.getenv('FIREBASE_SERVICE_ACCOUNT')
-    cred_path = os.getenv('FIREBASE_CREDENTIALS', 'planning-with-ai-a2368-firebase-adminsdk-fbsvc-3f0078de77.json')
+    cred_path = os.getenv('FIREBASE_CREDENTIALS', 'firebase-key.json')  # Updated to match project file
     
     if firebase_json_env:
         try:
@@ -55,18 +58,93 @@ try:
         firebase_admin.initialize_app(cred)
         logger.info(f"Firebase Admin initialized from FILE: {cred_path}")
     else:
-        logger.warning("Firebase credentials not found.")
+        logger.warning("Firebase credentials not found. Push notifications will be disabled.")
 except Exception as e:
     logger.error(f"Failed to initialize Firebase Admin: {e}")
 
 # Config
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'cubag-secret')
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'cubag-jwt-secret')
+# SECURITY: In production, app will fail to start if these secrets are not provided.
+_DEFAULT_SECRET = 'cubag-secret-placeholder-insecure'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', _DEFAULT_SECRET)
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', _DEFAULT_SECRET)
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 604800)))
 
-# Extensions
-CORS(app, origins="*") # Allow all for now to eliminate CORS issues during debugging
+# PRODUCTION GUARD: Ensure we are not using default secrets in non-debug mode
+IS_DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+if not IS_DEBUG:
+    if app.config['SECRET_KEY'] == _DEFAULT_SECRET or app.config['JWT_SECRET_KEY'] == _DEFAULT_SECRET:
+        logger.critical("[SECURITY] PRODUCTION FAILURE: SECRET_KEY or JWT_SECRET_KEY is missing or insecure! Set these env vars before deploying.")
+        # Fail fast in production to avoid running with insecure defaults
+        sys.exit(1)
+
+# Extensions — restrict CORS to explicitly allowed origins
+_CORS_ORIGINS = [
+    o.strip()
+    for o in os.getenv('CORS_ALLOWED_ORIGINS', 'https://cub-production.up.railway.app').split(',')
+    if o.strip()
+]
+CORS(app, origins=_CORS_ORIGINS, supports_credentials=True)
 JWTManager(app)
+
+def _is_admin_api_path(path):
+    return path.startswith('/api/admin') or (
+        path.startswith('/api/') and '/admin/' in path
+    )
+
+@app.before_request
+def require_admin_role_for_admin_api():
+    if request.method == 'OPTIONS':
+        return None
+
+    # 1. Automatic Admin Activity Logging
+    if request.path.startswith('/api/admin/') and request.method in ('POST', 'PUT', 'DELETE'):
+        try:
+            verify_jwt_in_request()
+            admin_id = get_jwt_identity()
+            if admin_id:
+                action_desc = f"{request.method} {request.path.replace('/api/admin/', '')}"
+                log_admin_action(admin_id, 'Admin Action', 'system', None, action_desc, f"Payload: {request.get_data(as_text=True)[:200]}")
+        except Exception as e:
+            logger.exception("Failed to log admin action: %s", e)
+
+    # 2. Access Control for Admin Routes
+    if not _is_admin_api_path(request.path):
+        return None
+
+    try:
+        from flask_jwt_extended import get_jwt
+        verify_jwt_in_request()
+        claims = get_jwt()
+        role = claims.get('role')
+
+        if role not in ('admin', 'sub_admin'):
+            return jsonify({'message': 'Admin access required'}), 403
+
+    except Exception:
+        return jsonify({'message': 'Missing or invalid authorization token'}), 401
+
+    return None
+
+
+@app.before_request
+def _start_request_timer():
+    try:
+        g._start_time = time.time()
+    except Exception:
+        pass
+
+
+@app.after_request
+def _log_request_time(response):
+    try:
+        start = getattr(g, '_start_time', None)
+        if start:
+            duration = time.time() - start
+            logger.info("%s %s completed in %.3fs", request.method, request.path, duration)
+            response.headers['X-Response-Time'] = f"{duration:.3f}s"
+    except Exception:
+        pass
+    return response
 
 # Initialize SocketIO
 from socket_instance import socketio
@@ -79,6 +157,9 @@ try:
 
     from routes.news import start_news_worker
     start_news_worker()
+
+    from rating_worker import start_rating_worker
+    start_rating_worker(interval_seconds=86400)
 
     @socketio.on('track_vessel')
     def handle_track_vessel(data):
@@ -105,7 +186,6 @@ from routes.tickets import tickets_bp
 from routes.settings import settings_bp
 from routes.intelligence import intelligence_bp
 from routes.uploads import uploads_bp
-from routes.public_materials import public_materials_bp
 from routes.news import news_bp
 
 app.register_blueprint(admin_bp,         url_prefix='/api/admin')
@@ -115,12 +195,36 @@ app.register_blueprint(tickets_bp,       url_prefix='/api/tickets')
 app.register_blueprint(settings_bp,      url_prefix='/api/settings')
 app.register_blueprint(intelligence_bp,  url_prefix='/api/intelligence')
 app.register_blueprint(uploads_bp,          url_prefix='/api/uploads')
-app.register_blueprint(public_materials_bp, url_prefix='/api/public-materials')
 app.register_blueprint(news_bp,             url_prefix='/api/news')
+app.register_blueprint(sub_admins_bp,       url_prefix='/api/sub-admins')
+
+@app.route('/api/ping', methods=['GET'])
+def ping():
+    return 'pong', 200
 
 @app.route('/api/health', methods=['GET'])
 def health():
     return {'status': 'CUBAG API is running'}, 200
+
+@app.route('/api/vessels', methods=['GET'])
+def get_vessels():
+    try:
+        from ais_stream import ais_manager
+        with ais_manager.lock:
+            vessels = list(ais_manager.active_vessels.values())
+        return jsonify(vessels), 200
+    except Exception as e:
+        logger.error(f"Error in /api/vessels: {e}")
+        return jsonify([]), 200
+
+@app.route('/api/analytics/telemetry', methods=['POST'])
+def telemetry():
+    try:
+        # Just ack the telemetry for now to prevent 405 errors
+        return jsonify({"status": "ok"}), 200
+    except Exception as e:
+        logger.error(f"Error in telemetry: {e}")
+        return jsonify({"status": "error"}), 500
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -130,7 +234,7 @@ def serve_spa(path):
     if path and os.path.isfile(full_path):
         return send_from_directory(app.static_folder, path)
 
-    # Otherwise, always serve index.html to let React Router handle the URL
+    # Otherwise, always serve index.html to let Flutter web router handle the URL
     return send_from_directory(app.static_folder, 'index.html')
 
 # Initialize DB

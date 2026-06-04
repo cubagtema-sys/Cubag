@@ -1,6 +1,7 @@
 import os
 import uuid
 import random
+import logging
 import resend
 
 from flask import Blueprint, request, jsonify, make_response
@@ -11,11 +12,12 @@ from config.db import get_db
 import requests as http_req
 
 auth_bp = Blueprint('auth', __name__)
+logger = logging.getLogger(__name__)
 
-# ─── Supabase config (shared with public_materials) ──────────────────────────
+# ─── Supabase config ──────────────────────────────────────────────────────────
 SUPABASE_URL  = os.getenv('SUPABASE_URL', '')
 SUPABASE_KEY  = os.getenv('SUPABASE_SERVICE_KEY', '')
-PHOTO_BUCKET  = os.getenv('SUPABASE_BUCKET', 'public-materials')  # reuse same bucket
+PHOTO_BUCKET  = os.getenv('SUPABASE_BUCKET', 'uploads')
 
 def send_verification_email(to_email, token):
     resend.api_key = os.getenv('RESEND_API_KEY')
@@ -84,7 +86,12 @@ def verify_email():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM otp_codes WHERE email = %s AND code = %s", (email, token))
+            # Check code is valid AND was created within the last 15 minutes
+            cursor.execute("""
+                SELECT * FROM otp_codes
+                WHERE email = %s AND code = %s
+                  AND created_at > NOW() - INTERVAL '15 minutes'
+            """, (email, token))
             if not cursor.fetchone():
                 return jsonify({'message': 'Invalid or expired verification code'}), 400
 
@@ -146,12 +153,34 @@ def login():
 
             if not member or not check_password_hash(member['password_hash'], password):
                 return jsonify({'message': 'Invalid credentials'}), 401
-                
+
             if not member.get('email_verified', True):
                 return jsonify({'message': 'Please check your email to verify your account before logging in.'}), 403
 
-            token = create_access_token(identity=str(member['id']))
+            from utils import calculate_and_update_member_rating
+            rating_data = calculate_and_update_member_rating(member['id'], cursor)
+
+            # Generate JWT with identity and role
+            role = member.get('role', 'member')
+            token = create_access_token(
+                identity=str(member['id']),
+                additional_claims={'role': role}
+            )
+
+            # Expiry date serialization
             expiry = str(member['license_expiry_date']) if member.get('license_expiry_date') else None
+
+            # Audit log for admin & sub_admin logins
+            role = member.get('role', 'member')
+            if role in ('admin', 'sub_admin'):
+                from utils import log_admin_action
+                log_admin_action(
+                    member['id'],
+                    f'{"Admin" if role == "admin" else "Sub-Admin"} Login',
+                    role, member['id'], member['name'],
+                    f'IP: {request.remote_addr}'
+                )
+
             return jsonify({
                 'token': token,
                 'user': {
@@ -164,8 +193,12 @@ def login():
                     'licenseExpiryDate': expiry,
                     'portOfOperation': member['port_of_operation'],
                     'status': member['status'],
-                    'role': member.get('role', 'member'),
-                    'profile_photo': member.get('profile_photo') or None
+                    'role': role,
+                    'profile_photo': member.get('profile_photo') or None,
+                    'compliance_score': rating_data['compliance_score'],
+                    'star_rating': rating_data['star_rating'],
+                    'manual_review_score': rating_data['manual_review_score'],
+                    'breakdown': rating_data.get('breakdown', {})
                 }
             }), 200
     except Exception as e:
@@ -185,7 +218,7 @@ def me():
                 cursor.execute("""
                     SELECT id, name, email, phone, company, license_number,
                            member_type, port_of_operation, status, profile_photo,
-                           license_expiry_date, role
+                           license_expiry_date, role, compliance_score, star_rating, manual_review_score
                     FROM members WHERE id = %s
                 """, (member_id,))
             except Exception:
@@ -206,8 +239,33 @@ def me():
             member = cursor.fetchone()
             if not member:
                 return jsonify({'message': 'Member not found'}), 404
-            # Serialize date to string for JSON
+                
+            from utils import calculate_and_update_member_rating
+            rating_data = calculate_and_update_member_rating(member_id, cursor)
+
+            # Fetch rating history
+            cursor.execute("""
+                SELECT compliance_score, star_rating, recorded_at
+                FROM member_rating_history
+                WHERE member_id = %s
+                ORDER BY recorded_at ASC
+            """, (member_id,))
+            history_rows = cursor.fetchall()
+            history = []
+            for h in history_rows:
+                history.append({
+                    'compliance_score': h['compliance_score'],
+                    'star_rating': float(h['star_rating']),
+                    'recorded_at': str(h['recorded_at'])
+                })
+
+            # Return fresh data
             result = dict(member)
+            result['compliance_score'] = rating_data['compliance_score']
+            result['star_rating'] = rating_data['star_rating']
+            result['manual_review_score'] = rating_data['manual_review_score']
+            result['breakdown'] = rating_data.get('breakdown', {})
+            result['rating_history'] = history
             if result.get('license_expiry_date'):
                 result['license_expiry_date'] = str(result['license_expiry_date'])
             return jsonify(result), 200
@@ -289,7 +347,7 @@ def change_password():
         verify_jwt_in_request()
         member_id = get_jwt_identity()
     except Exception as e:
-        print(f"[DEBUG] JWT Verification failed: {str(e)}")
+        logger.debug(f"[change-password] JWT verification failed: {str(e)}")
         return jsonify({'message': 'Authentication required'}), 401
 
     data = request.get_json()
@@ -322,27 +380,29 @@ def update_fcm_token():
     if request.method == 'OPTIONS':
         return jsonify({'ok': True}), 200
 
-    @jwt_required()
-    def handle_post():
+    # Properly verify JWT on the route function (inner-function decorator pattern doesn't work)
+    try:
+        verify_jwt_in_request()
         member_id = get_jwt_identity()
-        data = request.get_json()
-        token = data.get('token')
+    except Exception:
+        return jsonify({'message': 'Authentication required'}), 401
 
-        if not token:
-            return jsonify({'message': 'Token is required'}), 400
+    data = request.get_json() or {}
+    token = data.get('token')
 
-        conn = get_db()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("UPDATE members SET fcm_token = %s WHERE id = %s", (token, member_id))
-                conn.commit()
-            return jsonify({'message': 'FCM token updated'}), 200
-        except Exception as e:
-            return jsonify({'message': str(e)}), 500
-        finally:
-            conn.close()
+    if not token:
+        return jsonify({'message': 'Token is required'}), 400
 
-    return handle_post()
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE members SET fcm_token = %s WHERE id = %s", (token, member_id))
+            conn.commit()
+        return jsonify({'message': 'FCM token updated'}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
 
 
 def send_reset_email(to_email, token):

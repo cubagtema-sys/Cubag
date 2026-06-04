@@ -1,24 +1,49 @@
 import os
+import logging
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2.pool import ThreadedConnectionPool
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-def get_db():
-    """Get a new database connection, supporting DATABASE_URL or individual params."""
-    db_url = os.getenv('DATABASE_URL')
-    if db_url:
-        return psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+# Connection pool instance
+_pool = None
 
-    return psycopg2.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        port=int(os.getenv('DB_PORT', 5432)),
-        user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', ''),
-        dbname=os.getenv('DB_NAME', 'Customs'),
-        cursor_factory=RealDictCursor
-    )
+def get_db():
+    """Get a database connection from the pool."""
+    global _pool
+    if _pool is None:
+        db_url = os.getenv('DATABASE_URL')
+        if db_url:
+            _pool = ThreadedConnectionPool(1, 20, db_url, cursor_factory=RealDictCursor)
+        else:
+            _pool = ThreadedConnectionPool(
+                1, 20,
+                host=os.getenv('DB_HOST', 'localhost'),
+                port=int(os.getenv('DB_PORT', 5432)),
+                user=os.getenv('DB_USER', 'postgres'),
+                password=os.getenv('DB_PASSWORD', ''),
+                dbname=os.getenv('DB_NAME', 'Customs'),
+                cursor_factory=RealDictCursor
+            )
+
+    # getconn() returns a connection from the pool
+    conn = _pool.getconn()
+
+    # We monkey-patch the close method to return the connection to the pool
+    # instead of actually closing it.
+    original_close = conn.close
+    def release_to_pool():
+        if _pool:
+            _pool.putconn(conn)
+        else:
+            original_close()
+
+    conn.close = release_to_pool
+    return conn
 
 def init_db():
     """Initialize the database tables if they don't exist."""
@@ -37,7 +62,7 @@ def init_db():
                     agency_code VARCHAR(100),
                     port_of_operation VARCHAR(100) DEFAULT 'Tema Port',
                     member_type VARCHAR(50) DEFAULT 'Individual Broker',
-                    password_hash VARCHAR(255) NOT NULL,
+                    password_hash TEXT NOT NULL,
                     status VARCHAR(20) DEFAULT 'pending',
                     email_verified BOOLEAN DEFAULT FALSE,
                     verification_token VARCHAR(255),
@@ -126,11 +151,17 @@ def init_db():
                     amount DECIMAL(10,2),
                     description VARCHAR(255),
                     status VARCHAR(20) DEFAULT 'pending',
+                    payment_ref VARCHAR(255),
                     due_date DATE,
                     paid_at TIMESTAMP NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (member_id) REFERENCES members(id)
                 )
+            """)
+
+            # Ensure payment_ref column exists on older databases
+            cursor.execute("""
+                ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_ref VARCHAR(255);
             """)
 
             # Surveys
@@ -188,7 +219,10 @@ def init_db():
                 ADD COLUMN IF NOT EXISTS payment_ref VARCHAR(255),
                 ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'member',
                 ADD COLUMN IF NOT EXISTS profile_photo TEXT,
-                ADD COLUMN IF NOT EXISTS fcm_token TEXT;
+                ADD COLUMN IF NOT EXISTS fcm_token TEXT,
+                ADD COLUMN IF NOT EXISTS compliance_score INT DEFAULT 100,
+                ADD COLUMN IF NOT EXISTS star_rating DECIMAL(3,2) DEFAULT 5.0,
+                ADD COLUMN IF NOT EXISTS manual_review_score INT DEFAULT 10;
             """)
 
             # Add movement-specific columns to schedules if not exists
@@ -199,13 +233,54 @@ def init_db():
                 ADD COLUMN IF NOT EXISTS progress INT DEFAULT 0;
             """)
 
+            # Support tickets table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS support_tickets (
+                    id VARCHAR(50) PRIMARY KEY,
+                    member_id INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                    subject VARCHAR(255) NOT NULL,
+                    message TEXT,
+                    status VARCHAR(50) DEFAULT 'open',
+                    priority VARCHAR(50) DEFAULT 'medium',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    deleted_at TIMESTAMP NULL
+                )
+            """)
+
+            # Ticket replies table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ticket_replies (
+                    id SERIAL PRIMARY KEY,
+                    ticket_id VARCHAR(50) NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+                    author VARCHAR(150) NOT NULL,
+                    message TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # License renewal/expiry history tracking
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS license_history (
+                    id SERIAL PRIMARY KEY,
+                    member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                    license_number VARCHAR(100),
+                    start_date DATE,
+                    expiry_date DATE,
+                    duration_label VARCHAR(50),
+                    archived_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+
             # Add soft-delete to support tickets (table may not exist yet)
             try:
                 cursor.execute("""
                     ALTER TABLE support_tickets
-                    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;
+                    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL,
+                    ADD COLUMN IF NOT EXISTS priority VARCHAR(50) DEFAULT 'medium';
                 """)
-            except Exception:
+            except Exception as e:
+                logger.exception("Failed to alter support_tickets: %s", e)
                 conn.rollback()  # rollback just this failed ALTER
 
             # Task submission tracking
@@ -262,9 +337,72 @@ def init_db():
                 )
             """)
 
+            # Rating history tracking table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS member_rating_history (
+                    id SERIAL PRIMARY KEY,
+                    member_id INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                    compliance_score INT NOT NULL,
+                    star_rating DECIMAL(3,2) NOT NULL,
+                    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Support personal member-specific notifications inside the announcements table
+            cursor.execute("""
+                ALTER TABLE announcements ADD COLUMN IF NOT EXISTS member_id INT DEFAULT NULL REFERENCES members(id) ON DELETE CASCADE;
+            """)
+
+            # Audit log for tracking admin actions (Make admin_id nullable to avoid FK issues on deletion)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id SERIAL PRIMARY KEY,
+                    admin_id INT REFERENCES members(id) ON DELETE SET NULL,
+                    action VARCHAR(100) NOT NULL,
+                    target_type VARCHAR(50),
+                    target_id INT,
+                    target_name VARCHAR(255),
+                    details TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Ensure it's nullable if already exists
+            cursor.execute("ALTER TABLE audit_log ALTER COLUMN admin_id DROP NOT NULL")
+
+            # Platform-wide configuration (fees, bank accounts, payment settings, etc.)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS platform_settings (
+                    id SERIAL PRIMARY KEY,
+                    config_key VARCHAR(100) UNIQUE NOT NULL,
+                    config_value JSONB,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Sub-admin permissions — one row per (sub_admin, module) pair
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sub_admin_permissions (
+                    id SERIAL PRIMARY KEY,
+                    sub_admin_id INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                    permission_key VARCHAR(60) NOT NULL,
+                    granted BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (sub_admin_id, permission_key)
+                )
+            """)
+
+            # ── Performance Indexes ──────────────────────────────────────────
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_members_status ON members(status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_members_role ON members(role)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_member_id ON payments(member_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_announcements_deleted_at ON announcements(deleted_at) WHERE deleted_at IS NULL")
+
         conn.commit()
-        print("[OK] Database tables initialised successfully.")
+        logger.info("[OK] Database tables initialised successfully.")
     except Exception as e:
-        print(f"[ERROR] DB init error: {e}")
+        logger.exception("[ERROR] DB init error: %s", e)
     finally:
         conn.close()

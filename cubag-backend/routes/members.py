@@ -1,8 +1,12 @@
 from flask import Blueprint, jsonify, request
+import logging
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
+from routes.admin import log_admin_action
+from utils import admin_required, sub_admin_required
 
 members_bp = Blueprint('members', __name__)
+logger = logging.getLogger(__name__)
 
 @members_bp.route('/', methods=['GET'])
 @jwt_required()
@@ -12,8 +16,9 @@ def get_members():
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT id, name, email, phone, company, member_type,
-                       port_of_operation, license_number, status
-                FROM members WHERE status = 'active'
+                       port_of_operation, license_number, status,
+                       compliance_score, star_rating, manual_review_score
+                FROM members WHERE LOWER(status) = 'active'
                 ORDER BY name ASC
             """)
             members = cursor.fetchall()
@@ -24,32 +29,34 @@ def get_members():
         conn.close()
 
 @members_bp.route('/admin/all', methods=['GET'])
-@jwt_required()
+@sub_admin_required('members')
 def get_all_members_admin():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            # Join with payments to get the LATEST "License Renewal" payment reference for each member
+            # Use a LATERAL join to efficiently fetch the latest renewal payment reference for each member
             cursor.execute("""
                 SELECT m.id, m.name, m.email, m.phone, m.company, m.member_type,
                        m.port_of_operation, m.license_number, m.status, m.created_at,
-                       COALESCE(m.payment_ref, (
-                           SELECT p.payment_ref
-                           FROM payments p
-                           WHERE p.member_id = m.id
-                             AND p.description ILIKE '%%License Renewal%%'
-                             AND p.payment_ref IS NOT NULL AND p.payment_ref != ''
-                           ORDER BY p.created_at DESC LIMIT 1
-                       )) as payment_ref,
-                       m.fcm_token, m.license_expiry_date
+                       COALESCE(m.payment_ref, p.payment_ref) as payment_ref,
+                       m.fcm_token, m.license_expiry_date,
+                       m.compliance_score, m.star_rating, m.manual_review_score
                 FROM members m
+                LEFT JOIN LATERAL (
+                    SELECT payment_ref
+                    FROM payments
+                    WHERE member_id = m.id AND description ILIKE '%License Renewal%'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ) p ON TRUE
                 ORDER BY m.created_at DESC
             """)
             members = cursor.fetchall()
+
             result = []
             for m in members:
                 d = dict(m)
-                # Ultra-defensive serialization
+                # Defensive serialization
                 for key, value in list(d.items()):
                     if hasattr(value, 'isoformat'):
                         d[key] = value.isoformat()
@@ -62,9 +69,7 @@ def get_all_members_admin():
                 result.append(d)
         return jsonify(result), 200
     except Exception as e:
-        import traceback
-        print(f"[Admin Members Error] {e}")
-        print(traceback.format_exc())
+        logger.exception("[Admin Members Error] %s", e)
         return jsonify({'message': f"Server error fetching members: {str(e)}"}), 500
     finally:
         conn.close()
@@ -108,7 +113,7 @@ def get_license_history():
         history = []
         has_activity = (
             member.get('payment_ref') or
-            member.get('status') in ('active', 'pending', 'suspended')
+            str(member.get('status')).lower() in ('active', 'pending', 'suspended')
         )
         if has_activity:
             history.append({
@@ -132,7 +137,9 @@ def get_license_history():
         conn.close()
 
 @members_bp.route('/admin/status/<int:member_id>', methods=['PUT'])
+@sub_admin_required('members')
 def update_member_status(member_id):
+    admin_id = get_jwt_identity()
     data = request.get_json()
     new_status = data.get('status')
     if not new_status:
@@ -141,11 +148,15 @@ def update_member_status(member_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # Get member name for audit log
+            cursor.execute("SELECT name, license_number FROM members WHERE id = %s", (member_id,))
+            member = cursor.fetchone()
+            member_name = member['name'] if member else f'Member #{member_id}'
+
             new_license = None
-            if new_status == 'active':
-                cursor.execute("SELECT license_number FROM members WHERE id = %s", (member_id,))
-                member = cursor.fetchone()
-                if member and (not member['license_number'] or member['license_number'].lower() == 'pending'):
+            norm_status = str(new_status).lower()
+            if norm_status == 'active':
+                if member and (not member['license_number'] or str(member['license_number']).lower() == 'pending'):
                     import datetime
                     year = datetime.datetime.now().year
                     new_license = f"CUBAG-LIC-{year}-{member_id:04d}"
@@ -155,6 +166,10 @@ def update_member_status(member_id):
             else:
                 cursor.execute("UPDATE members SET status = %s WHERE id = %s", (new_status, member_id))
         conn.commit()
+
+        # Log admin action
+        action_label = {'active': 'Activated', 'suspended': 'Suspended', 'inactive': 'Deactivated', 'pending': 'Set to Pending'}.get(new_status, f'Changed to {new_status}')
+        log_admin_action(admin_id, f'{action_label} member', 'member', member_id, member_name, f'Status → {new_status}')
         
         response_data = {'message': f'Member {member_id} status updated to {new_status}'}
         if new_license:
@@ -168,8 +183,10 @@ def update_member_status(member_id):
 
 
 @members_bp.route('/admin/set-expiry/<int:member_id>', methods=['PUT'])
+@sub_admin_required('members')
 def set_license_expiry(member_id):
     """Admin: archive old license period then set new expiry date."""
+    admin_id = get_jwt_identity()
     data          = request.get_json()
     expiry_date   = data.get('license_expiry_date')   # 'YYYY-MM-DD'
     duration_label = data.get('duration_label', '')   # e.g. '1 Year'
@@ -185,28 +202,13 @@ def set_license_expiry(member_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            # ── 1. Ensure columns & history table exist ───────────────────────
-            cursor.execute(
-                "ALTER TABLE members ADD COLUMN IF NOT EXISTS license_expiry_date DATE"
-            )
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS license_history (
-                    id             SERIAL PRIMARY KEY,
-                    member_id      INTEGER NOT NULL,
-                    license_number VARCHAR(100),
-                    start_date     DATE,
-                    expiry_date    DATE,
-                    duration_label VARCHAR(50),
-                    archived_at    TIMESTAMP DEFAULT NOW()
-                )
-            """)
-
             # ── 2. Read the current (outgoing) license period ─────────────────
             cursor.execute("""
-                SELECT license_number, license_expiry_date
+                SELECT name, license_number, license_expiry_date
                 FROM members WHERE id = %s
             """, (member_id,))
             current = cursor.fetchone()
+            member_name = current['name'] if current else f'Member #{member_id}'
 
             # ── 3. Archive it only if there was a previous expiry set ─────────
             if current and current.get('license_expiry_date'):
@@ -235,6 +237,10 @@ def set_license_expiry(member_id):
             """, (member_id, effective_start, expiry_date, duration_label or 'Custom', member_id))
 
         conn.commit()
+
+        # Audit log
+        log_admin_action(admin_id, 'Updated license expiry', 'member', member_id, member_name, f'Expiry → {expiry_date} ({duration_label or "Custom"})')
+
         return jsonify({
             'message': 'License period updated and history archived.',
             'license_expiry_date': expiry_date,
@@ -247,6 +253,7 @@ def set_license_expiry(member_id):
 
 
 @members_bp.route('/admin/license-history/<int:member_id>', methods=['GET'])
+@sub_admin_required('members')
 def get_member_license_history(member_id):
     """Admin: fetch the full license period history for a member."""
     conn = get_db()
@@ -321,7 +328,7 @@ def get_public_directory():
             cursor.execute("""
                 SELECT id, company as name, member_type as type, port_of_operation as location, 
                        phone, email, '4.8' as rating 
-                FROM members WHERE status = 'active' AND company IS NOT NULL
+                FROM members WHERE LOWER(status) = 'active' AND company IS NOT NULL
             """)
             companies = cursor.fetchall()
             
@@ -338,11 +345,41 @@ def get_member(member_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT id, name, email, phone, company, member_type, port_of_operation FROM members WHERE id = %s", (member_id,))
+            cursor.execute("""
+                SELECT id, name, email, phone, company, member_type, port_of_operation, status,
+                       compliance_score, star_rating, manual_review_score
+                FROM members WHERE id = %s
+            """, (member_id,))
             member = cursor.fetchone()
-        if not member:
-            return jsonify({'message': 'Member not found'}), 404
-        return jsonify(member), 200
+            if not member:
+                return jsonify({'message': 'Member not found'}), 404
+            
+            from utils import calculate_and_update_member_rating
+            rating_data = calculate_and_update_member_rating(member_id, cursor)
+            
+            # Get rating history
+            cursor.execute("""
+                SELECT compliance_score, star_rating, recorded_at
+                FROM member_rating_history
+                WHERE member_id = %s
+                ORDER BY recorded_at ASC
+            """, (member_id,))
+            history_rows = cursor.fetchall()
+            history = []
+            for h in history_rows:
+                history.append({
+                    'compliance_score': h['compliance_score'],
+                    'star_rating': float(h['star_rating']),
+                    'recorded_at': str(h['recorded_at'])
+                })
+
+            result = dict(member)
+            result['compliance_score'] = rating_data['compliance_score']
+            result['star_rating'] = rating_data['star_rating']
+            result['manual_review_score'] = rating_data['manual_review_score']
+            result['breakdown'] = rating_data.get('breakdown', {})
+            result['rating_history'] = history
+            return jsonify(result), 200
     finally:
         conn.close()
 
@@ -354,12 +391,50 @@ def verify_member_public(member_id):
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT name, company, member_type, port_of_operation,
-                       status, profile_photo, license_number
+                       status, profile_photo, license_number,
+                       compliance_score, star_rating
                 FROM members WHERE id = %s
             """, (member_id,))
             member = cursor.fetchone()
         if not member:
             return jsonify({'message': 'Invalid member ID'}), 404
         return jsonify(dict(member)), 200
+    finally:
+        conn.close()
+
+@members_bp.route('/admin/set-review-score/<int:member_id>', methods=['PUT'])
+@sub_admin_required('members')
+def set_manual_review_score(member_id):
+    admin_id = get_jwt_identity()
+    data = request.get_json()
+    score = data.get('manual_review_score')
+    if score is None or not (0 <= int(score) <= 10):
+        return jsonify({'message': 'manual_review_score must be between 0 and 10'}), 400
+        
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            # Get member name for audit
+            cursor.execute("SELECT name FROM members WHERE id = %s", (member_id,))
+            member = cursor.fetchone()
+            member_name = member['name'] if member else f'Member #{member_id}'
+
+            cursor.execute("UPDATE members SET manual_review_score = %s WHERE id = %s", (int(score), member_id))
+            conn.commit()
+            
+            # Recalculate
+            from utils import calculate_and_update_member_rating
+            rating_data = calculate_and_update_member_rating(member_id, cursor)
+
+        # Audit log
+        log_admin_action(admin_id, 'Updated review score', 'member', member_id, member_name, f'Manual review score → {score}/10')
+            
+        return jsonify({
+            'message': 'Manual review score updated successfully.',
+            'compliance_score': rating_data['compliance_score'],
+            'star_rating': rating_data['star_rating']
+        }), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
     finally:
         conn.close()

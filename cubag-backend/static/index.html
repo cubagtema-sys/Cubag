@@ -1,110 +1,56 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<!DOCTYPE html>
+<html>
+<head>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
 
-    <!-- Mobile App Settings -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="CUBAG" />
-    <meta name="theme-color" content="#f08232" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="format-detection" content="telephone=no" />
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
 
-    <title>CUBAG — Enterprise Mobility Platform</title>
-    <style>
-      #splash-screen {
-        position: fixed;
-        inset: 0;
-        background: #ffffff;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 99999;
-        transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
-      }
-      .splash-logo {
-        width: 100px;
-        height: 100px;
-        object-fit: cover;
-        border-radius: 24px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        animation: splash-entry 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-      }
-      .splash-text {
-        margin-top: 24px;
-        font-family: system-ui, -apple-system, sans-serif;
-        font-weight: 800;
-        font-size: 1.5rem;
-        color: #f08232;
-        letter-spacing: 0.1em;
-        opacity: 0;
-        animation: splash-text-fade 0.5s ease-out 0.8s forwards;
-      }
-      .splash-loader {
-        margin-top: 16px;
-        width: 40px;
-        height: 4px;
-        background: #f1f5f9;
-        border-radius: 10px;
-        overflow: hidden;
-        opacity: 0;
-        animation: splash-text-fade 0.5s ease-out 1s forwards;
-      }
-      .splash-progress {
-        width: 100%;
-        height: 100%;
-        background: #f08232;
-        transform: translateX(-100%);
-        animation: splash-progress-bar 2s ease-in-out infinite;
-      }
-      @keyframes splash-entry {
-        0% { transform: scale(0.3) rotate(-45deg); opacity: 0; }
-        100% { transform: scale(1) rotate(0deg); opacity: 1; }
-      }
-      @keyframes splash-text-fade {
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes splash-progress-bar {
-        0% { transform: translateX(-100%); }
-        50% { transform: translateX(0); }
-        100% { transform: translateX(100%); }
-      }
-      body.loaded #splash-screen {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-      }
-      /* Prevent icon text from flashing before font loads */
-      .material-symbols-outlined {
-        font-display: block;
-        color: transparent; /* Hide text color initially */
-        transition: color 0.2s;
-      }
-      body.loaded .material-symbols-outlined {
-        color: inherit; /* Show color once app is loaded */
-      }
-    </style>
-    <script type="module" crossorigin src="/assets/index-BONLrBqi.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/chunk-CilyBKbf.js">
-    <link rel="modulepreload" crossorigin href="/assets/dist-CQS6rvaI.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-B-FGJg0Q.css">
-  </head>
-  <body>
-    <div id="splash-screen">
-      <img src="/logo.jpeg" alt="CUBAG" class="splash-logo" onerror="this.src='https://via.placeholder.com/100/f08232/ffffff?text=CUBAG'" />
-      <div class="splash-text">CUBAG</div>
-      <div class="splash-loader">
-        <div class="splash-progress"></div>
-      </div>
-      <div style="position: absolute; bottom: 40px; font-family: 'Inter', sans-serif; font-size: 0.7rem; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">© 2026 CUBAG PLATFORM • VERSION 1.0</div>
-    </div>
-    <div id="root"></div>
-  </body>
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="CUBAG Enterprise Mobility Platform">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="CUBAG">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/jpeg" href="logo.jpeg"/>
+
+  <title>CUBAG</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
 </html>

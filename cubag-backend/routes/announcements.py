@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
-from utils import send_push_to_all
+from utils import send_push_to_all, admin_required, sub_admin_required
+from routes.admin import log_admin_action
 
 announcements_bp = Blueprint('announcements', __name__)
 
@@ -18,9 +19,9 @@ def get_announcements():
                        (ar.member_id IS NOT NULL) AS is_read
                 FROM announcements a
                 LEFT JOIN announcement_reads ar ON a.id = ar.announcement_id AND ar.member_id = %s
-                WHERE a.deleted_at IS NULL
+                WHERE a.deleted_at IS NULL AND (a.member_id IS NULL OR a.member_id = %s)
                 ORDER BY a.created_at DESC
-            """, (user_id,))
+            """, (user_id, user_id))
             data = cursor.fetchall()
         return jsonify(data), 200
     except Exception as e:
@@ -61,8 +62,9 @@ def mark_read():
 
 # ─── POST / — Create new announcement ─────────────────────────────────────────
 @announcements_bp.route('/', methods=['POST'])
-@jwt_required()
+@sub_admin_required('announcements')
 def create_announcement():
+    admin_id = get_jwt_identity()
     data = request.get_json()
     title = data.get('title')
     body = data.get('body')
@@ -89,6 +91,9 @@ def create_announcement():
             data={'type': 'announcement', 'category': category}
         )
 
+        # Audit log
+        log_admin_action(admin_id, 'Created announcement', 'announcement', None, title, f'Category: {category}')
+
         return jsonify({'message': 'Announcement posted'}), 201
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -98,7 +103,7 @@ def create_announcement():
 
 # ─── GET /admin/all — Admin: all announcements (including soft-deleted) ────────
 @announcements_bp.route('/admin/all', methods=['GET'])
-@jwt_required()
+@sub_admin_required('announcements')
 def get_all_announcements_admin():
     conn = get_db()
     try:
@@ -118,14 +123,16 @@ def get_all_announcements_admin():
 
 # ─── DELETE /<id> — Soft-delete: set deleted_at timestamp ─────────────────────
 @announcements_bp.route('/<int:ann_id>', methods=['DELETE'])
-@jwt_required()
+@sub_admin_required('announcements')
 def soft_delete_announcement(ann_id):
+    admin_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             # Ensure the announcement exists
-            cursor.execute("SELECT id FROM announcements WHERE id = %s", (ann_id,))
-            if not cursor.fetchone():
+            cursor.execute("SELECT id, title FROM announcements WHERE id = %s", (ann_id,))
+            ann = cursor.fetchone()
+            if not ann:
                 return jsonify({'message': 'Announcement not found'}), 404
 
             # Soft-delete — keep the record, just mark the timestamp
@@ -134,6 +141,10 @@ def soft_delete_announcement(ann_id):
                 (ann_id,)
             )
             conn.commit()
+
+        # Audit log
+        log_admin_action(admin_id, 'Archived announcement', 'announcement', ann_id, ann.get('title', f'#{ann_id}'))
+
         return jsonify({'message': 'Announcement archived (soft-deleted)'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -143,16 +154,24 @@ def soft_delete_announcement(ann_id):
 
 # ─── PATCH /<id>/restore — Restore a soft-deleted announcement ────────────────
 @announcements_bp.route('/<int:ann_id>/restore', methods=['PATCH'])
-@jwt_required()
+@sub_admin_required('announcements')
 def restore_announcement(ann_id):
+    admin_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            cursor.execute("SELECT title FROM announcements WHERE id = %s", (ann_id,))
+            ann = cursor.fetchone()
+
             cursor.execute(
                 "UPDATE announcements SET deleted_at = NULL WHERE id = %s",
                 (ann_id,)
             )
             conn.commit()
+
+        # Audit log
+        log_admin_action(admin_id, 'Restored announcement', 'announcement', ann_id, ann.get('title', f'#{ann_id}') if ann else f'#{ann_id}')
+
         return jsonify({'message': 'Announcement restored'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500

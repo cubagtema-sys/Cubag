@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from config.db import get_db
 import json
+from utils import admin_required, sub_admin_required
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -21,6 +22,7 @@ def get_setting(key):
         conn.close()
 
 @settings_bp.route('/<key>', methods=['POST'])
+@sub_admin_required('settings')
 def update_setting(key):
     data = request.get_json()
     conn = get_db()
