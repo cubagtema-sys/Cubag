@@ -9,5 +9,7 @@ gunicorn==22.0.0
 firebase-admin
 Flask-SocketIO
 eventlet
+gevent
+gevent-websocket
 websocket-client
 resend
