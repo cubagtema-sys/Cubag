@@ -12,6 +12,30 @@ load_dotenv()
 # Connection pool instance
 _pool = None
 
+class PooledConnection:
+    """A simple wrapper to return connections to the pool when close() is called."""
+    def __init__(self, conn, pool):
+        self._conn = conn
+        self._pool = pool
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+    def close(self):
+        if self._pool:
+            try:
+                self._pool.putconn(self._conn)
+            except Exception as e:
+                logger.warning(f"Error returning connection to pool: {e}")
+        else:
+            self._conn.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
 def get_db():
     """Get a database connection from the pool."""
     global _pool
@@ -30,20 +54,7 @@ def get_db():
                 cursor_factory=RealDictCursor
             )
 
-    # getconn() returns a connection from the pool
-    conn = _pool.getconn()
-
-    # We monkey-patch the close method to return the connection to the pool
-    # instead of actually closing it.
-    original_close = conn.close
-    def release_to_pool():
-        if _pool:
-            _pool.putconn(conn)
-        else:
-            original_close()
-
-    conn.close = release_to_pool
-    return conn
+    return PooledConnection(_pool.getconn(), _pool)
 
 def init_db():
     """Initialize the database tables if they don't exist."""
