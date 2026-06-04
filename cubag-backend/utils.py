@@ -210,8 +210,8 @@ def calculate_and_update_member_rating(member_id, cursor=None):
                 from datetime import datetime
                 try:
                     expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d').date()
-                    except Exception as e:
-                        logger.debug("Failed to parse expiry_date for member %s: %s", member_id, e)
+                except Exception as e:
+                    logger.debug("Failed to parse expiry_date for member %s: %s", member_id, e)
             is_expired = expiry_date < today
 
         if status == 'active' and not is_expired:
