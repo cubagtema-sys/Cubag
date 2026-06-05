@@ -16,11 +16,12 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailCtrl = TextEditingController();
-  final _passCtrl  = TextEditingController();
-  bool _loading    = false;
-  bool _showPw     = false;
+  final _identifierCtrl = TextEditingController();
+  final _passCtrl       = TextEditingController();
+  bool _loading         = false;
+  bool _showPw          = false;
   String? _error;
+  String _loginMode     = 'email'; // 'email' or 'phone'
 
   final BiometricService _bioService = BiometricService();
   bool _bioAvailable = false;
@@ -51,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() { _loading = true; _error = null; });
     final authService = Provider.of<AuthService>(context, listen: false);
-    final error = await authService.login(creds['email']!, creds['password']!);
+    final error = await authService.login(creds['email']!.toLowerCase(), creds['password']!);
 
     if (mounted) {
       setState(() { _loading = false; _error = error; });
@@ -63,27 +64,70 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    if (_emailCtrl.text.trim().isEmpty || _passCtrl.text.isEmpty) {
-      setState(() => _error = 'Please enter your email and password.');
+    final raw = _identifierCtrl.text.trim();
+    if (raw.isEmpty || _passCtrl.text.isEmpty) {
+      setState(() => _error = 'Please enter your ${_loginMode == 'email' ? 'email' : 'phone number'} and password.');
       return;
     }
     setState(() { _loading = true; _error = null; });
 
+    // Normalise: lowercase for email, digits-only kept as-is for phone
+    final identifier = _loginMode == 'email' ? raw.toLowerCase() : raw;
     final authService = Provider.of<AuthService>(context, listen: false);
-    final error = await authService.login(_emailCtrl.text.trim().toLowerCase(), _passCtrl.text);
+    final error = await authService.login(identifier, _passCtrl.text);
 
     if (mounted) {
       setState(() { _loading = false; _error = error; });
       if (error == null) {
         // Save credentials for biometric re-login on next visit
         if (_bioAvailable) {
-          await _bioService.saveCredentials(_emailCtrl.text.trim(), _passCtrl.text);
+          await _bioService.saveCredentials(_identifierCtrl.text.trim(), _passCtrl.text);
           await _bioService.setBiometricEnabled(true);
         }
         final role = authService.userRole;
         context.go((role == 'admin' || role == 'sub_admin') ? '/admin/dashboard' : '/dashboard');
       }
     }
+  }
+
+  Widget _loginTab(String mode, IconData icon, String label) {
+    final isActive = _loginMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() {
+          _loginMode = mode;
+          _identifierCtrl.clear();
+          _error = null;
+        }),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: isActive
+                ? [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 6, offset: const Offset(0, 2))]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: isActive ? _kOrange : Colors.grey.shade400),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? _kOrange : Colors.grey.shade400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -189,16 +233,32 @@ class _LoginPageState extends State<LoginPage> {
           child: Row(children: [const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18), const SizedBox(width: 10), Expanded(child: Text(_error!, style: const TextStyle(color: Color(0xFFef4444), fontSize: 13, fontWeight: FontWeight.w600)))]),
         ),
 
-      const Text('Email Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
-      const SizedBox(height: 8),
+      // ── Email / Phone toggle ──────────────────────────────────
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            _loginTab('email',  Icons.email_outlined,   'Email'),
+            _loginTab('phone',  Icons.phone_outlined,    'Phone'),
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
       TextFormField(
-        controller: _emailCtrl,
-        keyboardType: TextInputType.emailAddress,
+        controller: _identifierCtrl,
+        keyboardType: _loginMode == 'email' ? TextInputType.emailAddress : TextInputType.phone,
         autocorrect: false,
         textCapitalization: TextCapitalization.none,
         decoration: InputDecoration(
-          hintText: 'broker@example.com',
-          prefixIcon: Icon(Icons.email_outlined, color: Colors.grey.shade400, size: 20),
+          hintText: _loginMode == 'email' ? 'broker@example.com' : '024 5678 901',
+          prefixIcon: Icon(
+            _loginMode == 'email' ? Icons.email_outlined : Icons.phone_outlined,
+            color: Colors.grey.shade400, size: 20,
+          ),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),

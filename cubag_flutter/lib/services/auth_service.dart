@@ -81,7 +81,7 @@ class AuthService extends ChangeNotifier {
   Future<String?> login(String email, String password) async {
     try {
       final response = await _apiService.post('/auth/login', data: {
-        'email': email,
+        'identifier': email,
         'password': password,
       });
 

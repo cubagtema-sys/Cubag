@@ -140,16 +140,28 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    email = data.get('email') or data.get('memberId')
+    identifier = (data.get('email') or data.get('identifier') or data.get('memberId') or '').strip()
     password = data.get('password')
 
-    if not email or not password:
-        return jsonify({'message': 'Email and password required'}), 400
+    if not identifier or not password:
+        return jsonify({'message': 'Email or phone number and password are required'}), 400
 
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM members WHERE LOWER(email) = LOWER(%s)", (email,))
+            # Detect if input looks like a phone number (digits, spaces, dashes, +)
+            import re
+            is_phone = bool(re.match(r'^[\d\s\+\-\(\)]+$', identifier))
+
+            if is_phone:
+                # Normalize: strip all non-digit chars for flexible matching
+                digits_only = re.sub(r'\D', '', identifier)
+                cursor.execute(
+                    "SELECT * FROM members WHERE regexp_replace(phone, '[^0-9]', '', 'g') = %s",
+                    (digits_only,)
+                )
+            else:
+                cursor.execute("SELECT * FROM members WHERE LOWER(email) = LOWER(%s)", (identifier,))
             member = cursor.fetchone()
 
             if not member or not check_password_hash(member['password_hash'], password):
