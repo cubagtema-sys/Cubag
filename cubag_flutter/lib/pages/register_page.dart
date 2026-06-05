@@ -315,18 +315,8 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildStep1() => Column(children: [
     _field('Full Name', _nameCtrl, hint: 'e.g. John Mensah', icon: Icons.person_outline),
     _field('Email Address', _emailCtrl, type: TextInputType.emailAddress, hint: 'e.g. john@agency.com', icon: Icons.email_outlined),
-    Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _field('Phone Number', _phoneCtrl, type: TextInputType.phone, hint: 'e.g. 024 5678 901', icon: Icons.phone_outlined),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _dropdown('Membership Type', _form['memberType']!, ['Individual Broker', 'Corporate Agency', 'Associate Member'], (v) => setState(() => _form['memberType'] = v), icon: Icons.badge_outlined),
-        ),
-      ],
-    ),
+    _field('Phone Number', _phoneCtrl, type: TextInputType.phone, hint: 'e.g. 024 5678 901', icon: Icons.phone_outlined),
+    _dropdown('Membership Type', _form['memberType']!, ['Individual Broker', 'Corporate Agency', 'Associate Member'], (v) => setState(() => _form['memberType'] = v), icon: Icons.badge_outlined),
     const SizedBox(height: 12),
     SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: _step1Next, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Next Step', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
   ]);
@@ -344,18 +334,8 @@ class _RegisterPageState extends State<RegisterPage> {
       ]),
     ),
     _field('License # (Optional)', _licCtrl, hint: 'LIC/...', icon: Icons.assignment_outlined),
-    Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _field('Agency Code (Optional)', _agcCtrl, hint: 'CUB-...', icon: Icons.code_outlined),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _dropdown('Primary Port of Operation', _form['portOfOperation']!, ['Tema Port', 'Takoradi Port', 'KIA Air Cargo', 'Elubo Border', 'Aflao Border'], (v) => setState(() => _form['portOfOperation'] = v), icon: Icons.anchor),
-        ),
-      ],
-    ),
+    _field('Agency Code (Optional)', _agcCtrl, hint: 'CUB-...', icon: Icons.code_outlined),
+    _dropdown('Primary Port of Operation', _form['portOfOperation']!, ['Tema Port', 'Takoradi Port', 'KIA Air Cargo', 'Elubo Border', 'Aflao Border'], (v) => setState(() => _form['portOfOperation'] = v), icon: Icons.anchor),
     const SizedBox(height: 12),
     Row(children: [
       Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.grey.shade300, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(0, 52)), child: Text('Back', style: TextStyle(color: Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.bold)))),
