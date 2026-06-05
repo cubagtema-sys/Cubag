@@ -21,6 +21,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 logger.info("Starting CUBAG Production Backend...")
+logger.info(f"Python {sys.version}")
+logger.info(f"PORT env = {os.getenv('PORT', 'NOT SET')}")
+logger.info(f"DB_HOST env = {'SET' if os.getenv('DB_HOST') or os.getenv('DATABASE_URL') else 'NOT SET'}")
+logger.info(f"SECRET_KEY env = {'SET' if os.getenv('SECRET_KEY') else 'NOT SET'}")
+logger.info(f"JWT_SECRET_KEY env = {'SET' if os.getenv('JWT_SECRET_KEY') else 'NOT SET'}")
 
 from config.db import get_db, init_db
 from routes.auth import auth_bp
@@ -77,6 +82,9 @@ IS_DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
 if not IS_DEBUG:
     if app.config['SECRET_KEY'] == _DEFAULT_SECRET or app.config['JWT_SECRET_KEY'] == _DEFAULT_SECRET:
         logger.critical("[SECURITY] PRODUCTION FAILURE: SECRET_KEY or JWT_SECRET_KEY is missing or insecure! Set these env vars before deploying.")
+        logger.critical("[SECURITY] Set SECRET_KEY and JWT_SECRET_KEY in your Railway environment variables.")
+        # Log all env var names (not values) for debugging
+        logger.critical(f"[SECURITY] Available env vars: {list(os.environ.keys())}")
         # Fail fast in production to avoid running with insecure defaults
         sys.exit(1)
 
@@ -155,14 +163,18 @@ socketio.init_app(app)
 
 # Initialize Background Workers (Beta)
 try:
+    logger.info("[Init] Starting background workers...")
     from ais_stream import ais_manager
     ais_manager.start()
+    logger.info("[Init] AIS manager started.")
 
     from routes.news import start_news_worker
     start_news_worker()
+    logger.info("[Init] News worker started.")
 
     from rating_worker import start_rating_worker
     start_rating_worker(interval_seconds=86400)
+    logger.info("[Init] Rating worker started.")
 
     @socketio.on('track_vessel')
     def handle_track_vessel(data):
@@ -170,8 +182,9 @@ try:
         logger.info(f"[AIS] Search request for MMSI: {mmsi}")
         if mmsi:
             ais_manager.add_track(mmsi)
+    logger.info("[Init] All background workers started successfully.")
 except Exception as e:
-    logger.error(f"[Init] Failed to start background workers: {e}")
+    logger.error(f"[Init] Failed to start background workers: {e}", exc_info=True)
 
 # Register blueprints
 app.register_blueprint(auth_bp,          url_prefix='/api/auth')
@@ -233,18 +246,28 @@ def telemetry():
 @app.route('/<path:path>')
 def serve_spa(path):
     # Check if the requested path is a real file (like an image or JS)
-    full_path = os.path.join(app.static_folder, path)
-    if path and os.path.isfile(full_path):
-        return send_from_directory(app.static_folder, path)
+    if app.static_folder:
+        full_path = os.path.join(app.static_folder, path)
+        if path and os.path.isfile(full_path):
+            return send_from_directory(app.static_folder, path)
 
-    # Otherwise, always serve index.html to let Flutter web router handle the URL
-    return send_from_directory(app.static_folder, 'index.html')
+        # Otherwise, always serve index.html to let Flutter web router handle the URL
+        index_path = os.path.join(app.static_folder, 'index.html')
+        if os.path.isfile(index_path):
+            return send_from_directory(app.static_folder, 'index.html')
+
+    # Fallback if no static files exist
+    return jsonify({'status': 'CUBAG API is running', 'message': 'No frontend build found. Use /api/health for API status.'}), 200
 
 # Initialize DB
 try:
+    logger.info("[Init] Initializing database...")
     init_db()
+    logger.info("[Init] Database initialized successfully.")
 except Exception as e:
-    logger.error(f"DB init failed (non-fatal): {e}")
+    logger.error(f"DB init failed (non-fatal): {e}", exc_info=True)
+
+logger.info("[Init] CUBAG Backend fully loaded and ready to accept requests.")
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
