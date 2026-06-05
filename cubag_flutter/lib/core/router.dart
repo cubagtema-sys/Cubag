@@ -142,26 +142,57 @@ final GoRouter appRouter = GoRouter(
       ],
     ),
 
-    // ── Admin pages ─────────────────────────────────────────────────────
-    GoRoute(path: '/admin/announcements',    builder: (c, s) => const AdminAnnouncementsPage()),
-    GoRoute(path: '/admin/analytics',        builder: (c, s) => const AdminAnalyticsPage()),
-    GoRoute(path: '/admin/audit-log',        builder: (c, s) => const AdminAuditLogPage()),
-    GoRoute(path: '/admin/cargo-schedules',  builder: (c, s) => const AdminCargoSchedulesPage()),
-    GoRoute(path: '/admin/dashboard',        builder: (c, s) => const AdminDashboardPage()),
-    GoRoute(path: '/admin/events',           builder: (c, s) => const AdminEventsPage()),
-    GoRoute(path: '/admin/fees',             builder: (c, s) => const AdminFeesPage()),
-    GoRoute(path: '/admin/intelligence',     builder: (c, s) => const AdminIntelligencePage()),
-    GoRoute(path: '/admin/license-renewal',  builder: (c, s) => const AdminLicenseRenewalPage()),
-    GoRoute(path: '/admin/members',          builder: (c, s) => const AdminMembersPage()),
-    GoRoute(path: '/admin/payments',         builder: (c, s) => const AdminPaymentsPage()),
-    GoRoute(path: '/admin/payment-settings', builder: (c, s) => const AdminPaymentSettingsPage()),
-    GoRoute(path: '/admin/settings',         builder: (c, s) => const AdminSettingsPage()),
-    GoRoute(path: '/admin/surveys',          builder: (c, s) => const AdminSurveysPage()),
-    GoRoute(path: '/admin/tasks',            builder: (c, s) => const AdminTasksPage()),
-    GoRoute(path: '/admin/tickets',          builder: (c, s) => const AdminTicketsPage()),
-    GoRoute(path: '/admin/sub-admins',        builder: (c, s) => const AdminSubAdminsPage()),
+    // ── Admin pages — smooth fade transition (no flash on sidebar navigation) ──
+    ShellRoute(
+      // The shell keeps the AppLayout sidebar alive; only the content fades in
+      builder: (context, state, child) => child,
+      routes: [
+        _adminRoute('/admin/announcements',    const AdminAnnouncementsPage()),
+        _adminRoute('/admin/analytics',        const AdminAnalyticsPage()),
+        _adminRoute('/admin/audit-log',        const AdminAuditLogPage()),
+        _adminRoute('/admin/cargo-schedules',  const AdminCargoSchedulesPage()),
+        _adminRoute('/admin/dashboard',        const AdminDashboardPage()),
+        _adminRoute('/admin/events',           const AdminEventsPage()),
+        _adminRoute('/admin/fees',             const AdminFeesPage()),
+        _adminRoute('/admin/intelligence',     const AdminIntelligencePage()),
+        _adminRoute('/admin/license-renewal',  const AdminLicenseRenewalPage()),
+        _adminRoute('/admin/members',          const AdminMembersPage()),
+        _adminRoute('/admin/payments',         const AdminPaymentsPage()),
+        _adminRoute('/admin/payment-settings', const AdminPaymentSettingsPage()),
+        _adminRoute('/admin/settings',         const AdminSettingsPage()),
+        _adminRoute('/admin/surveys',          const AdminSurveysPage()),
+        _adminRoute('/admin/tasks',            const AdminTasksPage()),
+        _adminRoute('/admin/tickets',          const AdminTicketsPage()),
+        _adminRoute('/admin/sub-admins',       const AdminSubAdminsPage()),
+      ],
+    ),
   ],
 );
+
+/// Returns a [GoRoute] that fades the admin content in (200 ms).
+/// The sidebar is part of [AppLayout] which stays rendered inside
+/// each page — this fade only animates the content body, giving
+/// a premium SPA-like feel with zero white flash.
+GoRoute _adminRoute(String path, Widget page) {
+  return GoRoute(
+    path: path,
+    pageBuilder: (context, state) => CustomTransitionPage<void>(
+      key: state.pageKey,
+      child: page,
+      transitionDuration: const Duration(milliseconds: 200),
+      reverseTransitionDuration: const Duration(milliseconds: 150),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOut,
+          ),
+          child: child,
+        );
+      },
+    ),
+  );
+}
 
 class _AdminUnavailablePage extends StatelessWidget {
   const _AdminUnavailablePage();
