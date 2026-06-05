@@ -48,8 +48,18 @@ class _State extends State<AdminCargoSchedulesPage> {
       'date': _dateCtrl.text, 'port': _portCtrl.text,
       'status': _status, 'origin': _originCtrl.text, 'destination': _destinationCtrl.text,
     });
-    setState(() { _loading = false; _success = true; _tab = 'history'; });
+    // Clear form fields
+    _containerCtrl.clear();
+    _vesselCtrl.clear();
+    _cargoCtrl.clear();
+    _dateCtrl.clear();
+    _portCtrl.clear();
+    _originCtrl.clear();
+    _destinationCtrl.clear();
+    setState(() { _type = 'vanning'; _status = 'Scheduled'; });
+    // Fetch latest data THEN switch tab
     await _fetch();
+    if (mounted) setState(() { _loading = false; _success = true; _tab = 'history'; });
     Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _success = false); });
   }
 
@@ -211,16 +221,23 @@ class _State extends State<AdminCargoSchedulesPage> {
             ]),
             const Divider(height: 20),
             Row(children: [
-              Expanded(child: CustomDropdown<String>(
-                value: s['status'] ?? 'Scheduled',
-                items: const [
-                  DropdownItem(value: 'Scheduled',   label: 'Scheduled'),
-                  DropdownItem(value: 'In Progress', label: 'In Progress'),
-                  DropdownItem(value: 'Completed',   label: 'Completed'),
-                  DropdownItem(value: 'Cancelled',   label: 'Cancelled'),
-                ],
-                onChanged: (v) => _updateStatus(s['id'], v),
-                dense: true,
+              Expanded(child: GestureDetector(
+                onTap: () => _showStatusPicker(s),
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _statusColor(s['status'] ?? 'Scheduled'), width: 1.5),
+                    color: _statusColor(s['status'] ?? 'Scheduled').withAlpha(15),
+                  ),
+                  child: Row(children: [
+                    Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: _statusColor(s['status'] ?? 'Scheduled'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(s['status'] ?? 'Scheduled', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _statusColor(s['status'] ?? 'Scheduled')))),
+                    Icon(Icons.keyboard_arrow_down, size: 18, color: _statusColor(s['status'] ?? 'Scheduled')),
+                  ]),
+                ),
               )),
               const SizedBox(width: 8),
               IconButton(icon: const Icon(Icons.delete_outline, color: _kRed), onPressed: () => _delete(s['id'])),
@@ -229,6 +246,48 @@ class _State extends State<AdminCargoSchedulesPage> {
         ]),
       );
     }).toList());
+  }
+
+  void _showStatusPicker(dynamic schedule) {
+    const statuses = ['Scheduled', 'In Progress', 'Completed', 'Cancelled'];
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Update Status', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 12),
+            ...statuses.map((s) {
+              final isActive = schedule['status'] == s;
+              final color = _statusColor(s);
+              return GestureDetector(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _updateStatus(schedule['id'], s);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isActive ? color.withAlpha(20) : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: isActive ? color : Colors.grey.shade200, width: isActive ? 2 : 1),
+                  ),
+                  child: Row(children: [
+                    Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(s, style: TextStyle(fontWeight: isActive ? FontWeight.w800 : FontWeight.w600, color: isActive ? color : const Color(0xFF0f172a)))),
+                    if (isActive) Icon(Icons.check_circle, color: color, size: 20),
+                  ]),
+                ),
+              );
+            }),
+          ]),
+        ),
+      ),
+    );
   }
 
   Widget _pill(IconData icon, String text, {Color? color}) => Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: color ?? Colors.grey), const SizedBox(width: 4), Text(text, style: TextStyle(fontSize: 12, color: color ?? Colors.grey))]);

@@ -41,8 +41,9 @@ class _State extends State<AdminAnnouncementsPage> {
     setState(() => _loading = true);
     await _api.postData('announcements', {'title': _titleCtrl.text, 'body': _bodyCtrl.text, 'category': _category, 'posted_by': 'System Administrator'});
     _titleCtrl.clear(); _bodyCtrl.clear();
+    setState(() => _category = 'General');
     await _fetch();
-    setState(() { _loading = false; _msg = 'Announcement broadcasted!'; });
+    if (mounted) setState(() { _loading = false; _msg = 'Announcement broadcasted!'; _tab = 'history'; });
     Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _msg = ''); });
   }
 
