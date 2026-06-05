@@ -1,123 +1,142 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
 import '../core/router.dart';
 
+// ── Local notification channel (Android) ─────────────────────────────────────
+const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+  'cubag_high_importance',        // id
+  'CUBAG Notifications',          // name
+  description: 'CUBAG platform alerts and announcements',
+  importance: Importance.high,
+  playSound: true,
+);
+
+final FlutterLocalNotificationsPlugin _localNotifications =
+    FlutterLocalNotificationsPlugin();
+
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  debugPrint("Handling a background message: ${message.messageId}");
+  debugPrint('Handling a background message: ${message.messageId}');
 }
 
 class PushNotificationService {
-  FirebaseMessaging get _firebaseMessaging => FirebaseMessaging.instance;
+  FirebaseMessaging get _messaging => FirebaseMessaging.instance;
 
   Future<void> initialize() async {
-    if (kIsWeb) {
-      debugPrint("Firebase Messaging is skipped on Web.");
-      return;
-    }
-    try {
-      await Firebase.initializeApp();
+    if (kIsWeb) return;
 
-      // Request permissions for iOS
-      NotificationSettings settings = await _firebaseMessaging.requestPermission(
+    try {
+      // ── Set up local notifications (for foreground display) ────────────────
+      await _localNotifications.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: DarwinInitializationSettings(),
+        ),
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          // Tapped on a foreground local notification
+          if (response.payload != null) {
+            _handleDeepLink({'type': response.payload!});
+          }
+        },
+      );
+
+      // Create the Android notification channel
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(_channel);
+
+      // ── Request FCM permissions ─────────────────────────────────────────────
+      final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
+      debugPrint('FCM permission: ${settings.authorizationStatus}');
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint('User granted permission');
-      } else {
-        debugPrint('User declined or has not accepted permission');
-      }
-
-      // Handle background messages
+      // ── Background handler ──────────────────────────────────────────────────
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-      // Handle foreground messages
+      // ── Foreground handler — show as local notification ─────────────────────
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('Got a message whilst in the foreground!');
-        debugPrint('Message data: ${message.data}');
-
-        if (message.notification != null) {
-          debugPrint('Message also contained a notification: ${message.notification}');
+        final notification = message.notification;
+        final android = message.notification?.android;
+        if (notification != null && android != null) {
+          _localNotifications.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                _channel.id,
+                _channel.name,
+                channelDescription: _channel.description,
+                importance: Importance.high,
+                priority: Priority.high,
+                icon: '@mipmap/ic_launcher',
+                color: const Color(0xFFf08232), // CUBAG orange
+              ),
+            ),
+            payload: message.data['type']?.toString(),
+          );
         }
       });
 
-      // ── Deep link: app opened from notification tap (background → foreground) ──
+      // ── Notification tap: background → foreground ───────────────────────────
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        debugPrint('Notification tapped (background): ${message.data}');
         _handleDeepLink(message.data);
       });
 
-      // ── Deep link: app opened from terminated state via notification ──
-      final initialMessage = await _firebaseMessaging.getInitialMessage();
+      // ── Notification tap: app was terminated ───────────────────────────────
+      final initialMessage = await _messaging.getInitialMessage();
       if (initialMessage != null) {
-        debugPrint('App launched from notification (terminated): ${initialMessage.data}');
-        // Small delay to let the app initialize before routing
         Future.delayed(const Duration(milliseconds: 500), () {
           _handleDeepLink(initialMessage.data);
         });
       }
 
-      // Get the token for this device to send it to the Flask backend
-      try {
-        String? token = await _firebaseMessaging.getToken();
-        debugPrint("FCM Token: $token");
-        if (token != null) {
-          final apiService = ApiService();
-          // Fire and forget to register the device token
-          apiService.postData('/auth/update-fcm-token', {'token': token}).catchError((e) {
-            debugPrint('Failed to save FCM token: $e');
-          });
-        }
-      } catch (e) {
-        debugPrint('Error getting FCM token: $e');
+      // ── Register FCM token with backend ────────────────────────────────────
+      final token = await _messaging.getToken();
+      debugPrint('FCM Token: $token');
+      if (token != null) {
+        ApiService()
+            .postData('/auth/update-fcm-token', {'token': token})
+            .catchError((e) => debugPrint('Failed to save FCM token: $e'));
       }
+
+      // Refresh token when it rotates
+      _messaging.onTokenRefresh.listen((newToken) {
+        ApiService()
+            .postData('/auth/update-fcm-token', {'token': newToken})
+            .catchError((e) => debugPrint('Failed to refresh FCM token: $e'));
+      });
+
     } catch (e) {
-      debugPrint('Firebase messaging initialization skipped or failed: $e');
+      debugPrint('Push notification init failed (non-fatal): $e');
     }
   }
 
-  /// Navigate to the correct page based on notification payload.
-  /// Expects data like: { "type": "announcement", "id": "123", "route": "/announcements" }
   void _handleDeepLink(Map<String, dynamic> data) {
     final route = data['route']?.toString();
-    final type = data['type']?.toString();
+    final type  = data['type']?.toString();
 
     if (route != null && route.isNotEmpty) {
-      // Explicit route from backend
       appRouter.go(route);
       return;
     }
 
-    // Infer route from type
     switch (type) {
-      case 'announcement':
-        appRouter.go('/announcements');
-        break;
-      case 'task':
-        appRouter.go('/tasks');
-        break;
-      case 'payment':
-        appRouter.go('/payments');
-        break;
-      case 'schedule':
-        appRouter.go('/vanning-schedules');
-        break;
-      case 'ticket':
-        appRouter.go('/engagement');
-        break;
-      case 'message':
-        appRouter.go('/messaging');
-        break;
-      case 'license':
-        appRouter.go('/license-renewal');
-        break;
-      default:
-        appRouter.go('/notifications');
+      case 'announcement': appRouter.go('/announcements');    break;
+      case 'task':         appRouter.go('/tasks');             break;
+      case 'payment':      appRouter.go('/payments');          break;
+      case 'schedule':     appRouter.go('/vanning-schedules'); break;
+      case 'ticket':       appRouter.go('/engagement');        break;
+      case 'message':      appRouter.go('/messaging');         break;
+      case 'license':      appRouter.go('/license-renewal');   break;
+      default:             appRouter.go('/notifications');
     }
   }
 }
