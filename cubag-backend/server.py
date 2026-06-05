@@ -89,12 +89,21 @@ if not IS_DEBUG:
         sys.exit(1)
 
 # Extensions — restrict CORS to explicitly allowed origins
-_CORS_ORIGINS = [
-    o.strip()
-    for o in os.getenv('CORS_ALLOWED_ORIGINS', 'https://cubag-production.up.railway.app').split(',')
-    if o.strip()
-]
-CORS(app, origins=_CORS_ORIGINS, supports_credentials=True)
+_RAW_ORIGINS = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'https://cubag-backend.onrender.com,https://cubag-production.up.railway.app,http://localhost:8080,http://127.0.0.1:8080'
+)
+# Mobile apps (Android/iOS APK/IPA) send requests with no Origin header (null origin).
+# We must include "*" OR handle the null case to allow native apps to reach the API.
+_CORS_ORIGINS = [o.strip() for o in _RAW_ORIGINS.split(',') if o.strip()]
+
+CORS(
+    app,
+    origins="*",          # Allow ALL origins — mobile APKs send null/no Origin
+    supports_credentials=False,   # Must be False when origins="*"
+    allow_headers=["Authorization", "Content-Type", "Accept"],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
 JWTManager(app)
 
 def _is_admin_api_path(path):
