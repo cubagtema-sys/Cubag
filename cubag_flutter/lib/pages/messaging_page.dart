@@ -20,22 +20,31 @@ class _MessagingPageState extends State<MessagingPage> {
   @override
   void initState() { super.initState(); _fetchConversations(); }
 
+  @override
+  void dispose() {
+    _msgCtrl.dispose();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _fetchConversations({bool showLoading = true}) async {
     if (showLoading) setState(() => _loading = true);
     try {
       final res = await ApiService().get('/messages/conversations');
+      if (!mounted) return;
       if (res.statusCode == 200) setState(() => _conversations = List.from(res.data ?? []));
     } catch (_) {}
-    if (showLoading) setState(() => _loading = false);
+    if (mounted && showLoading) setState(() => _loading = false);
   }
 
   Future<void> _openChat(Map<String, dynamic> target) async {
     setState(() { _activeChat = target; _messages = []; _loadingChat = true; });
     try {
       final res = await ApiService().get('/messages/${target['id']}');
+      if (!mounted) return;
       if (res.statusCode == 200) setState(() => _messages = List.from(res.data ?? []));
     } catch (_) {}
-    setState(() => _loadingChat = false);
+    if (mounted) setState(() => _loadingChat = false);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
@@ -45,6 +54,7 @@ class _MessagingPageState extends State<MessagingPage> {
     _msgCtrl.clear();
     try {
       final res = await ApiService().post('/messages/${_activeChat!['id']}', data: {'text': text});
+      if (!mounted) return;
       if (res.statusCode == 200 || res.statusCode == 201) {
         setState(() => _messages.add(res.data));
         _scrollToBottom();

@@ -32,6 +32,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     setState(() => _loading = true);
     try {
       final res = await ApiService().get('/announcements');
+      if (!mounted) return;
       if (res.statusCode == 200) {
         final data = res.data as List;
         setState(() => _notifications = data.map((a) => {
@@ -44,12 +45,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
         }).toList());
       }
     } catch (_) {}
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _markAllRead() async {
     try {
       await ApiService().post('/announcements/mark-read', data: {});
+      if (!mounted) return;
       setState(() => _notifications = _notifications.map((n) => {...n, 'read': true}).toList());
     } catch (_) {}
   }
@@ -59,6 +61,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (notification.isNotEmpty && notification['read'] != true) {
       try {
         await ApiService().post('/announcements/mark-read', data: {'announcement_id': id});
+        if (!mounted) return;
         setState(() => _notifications = _notifications.map((n) => n['id'] == id ? {...n, 'read': true} : n).toList());
       } catch (_) {}
     }
