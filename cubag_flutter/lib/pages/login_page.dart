@@ -150,15 +150,15 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildForm({bool isMobile = false}) {
     final isSmall = MediaQuery.of(context).size.width < 360;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Align(
-        alignment: isMobile ? Alignment.centerLeft : Alignment.centerLeft,
+      Center(
         child: Column(
-          crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             AppLogo(size: isSmall ? 48 : 56, borderRadius: 12, showShadow: true),
             const SizedBox(height: 16),
             Text(
               'Welcome Back',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: isSmall ? 24 : 28,
                 fontWeight: FontWeight.w900,
@@ -169,6 +169,7 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 6),
             Text(
               'Sign in to the CUBAG Member Portal',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontSize: isSmall ? 13 : 14,
@@ -218,7 +219,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
 
-      Align(alignment: Alignment.centerRight, child: TextButton(
+      Center(child: TextButton(
         onPressed: () => context.go('/forgot-password'),
         style: TextButton.styleFrom(foregroundColor: _kOrange),
         child: const Text('Forgot Password?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
@@ -250,13 +251,29 @@ class _LoginPageState extends State<LoginPage> {
       ],
       const SizedBox(height: 32),
 
-      Center(child: GestureDetector(
-        onTap: () => context.go('/register'),
-        child: const Text.rich(TextSpan(children: [
-          TextSpan(text: "Don't have an account? ", style: TextStyle(color: Colors.grey, fontSize: 14)),
-          TextSpan(text: 'Join CUBAG', style: TextStyle(color: _kOrange, fontWeight: FontWeight.bold, fontSize: 14)),
-        ])),
-      )),
+      Center(
+        child: GestureDetector(
+          onTap: () => context.go('/register'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Don't have an account?",
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Join CUBAG',
+                style: TextStyle(
+                  color: _kOrange,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     ]);
   }
 }

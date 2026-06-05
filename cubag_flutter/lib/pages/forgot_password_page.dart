@@ -96,20 +96,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   Widget _buildFormContent({bool isMobile = false}) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Align(
-        alignment: isMobile ? Alignment.centerLeft : Alignment.centerLeft,
+      Center(
         child: Column(
-          crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const AppLogo(size: 56, borderRadius: 12, showShadow: true),
             const SizedBox(height: 16),
             const Text(
               'Reset Password',
+              textAlign: TextAlign.center,
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0f172a), letterSpacing: -0.5),
             ),
             const SizedBox(height: 6),
             Text(
               "Enter your email and we'll send you a link to reset your password.",
+              textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 14, height: 1.3),
             ),
           ],
@@ -157,10 +158,29 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Send Reset Link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         )),
         const SizedBox(height: 24),
-        Center(child: TextButton(onPressed: () => context.go('/login'), child: const Text.rich(TextSpan(children: [
-          TextSpan(text: "Remember your password? ", style: TextStyle(color: Colors.grey, fontSize: 14)),
-          TextSpan(text: 'Sign In', style: TextStyle(color: _kOrange, fontWeight: FontWeight.bold, fontSize: 14)),
-        ])))),
+        Center(
+          child: GestureDetector(
+            onTap: () => context.go('/login'),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Remember your password?",
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Sign In',
+                  style: TextStyle(
+                    color: _kOrange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     ]);
   }

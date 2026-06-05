@@ -148,14 +148,14 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
             maxWidth: widget.width ?? double.infinity,
           ),
           child: Container(
-            height: widget.dense ? 40 : 48,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            height: widget.dense ? 40 : 54,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _open ? _kOrange : const Color(0xFFcbd5e1),
-                width: _open ? 1.5 : 1,
+                color: _open ? _kOrange : Colors.grey.shade300,
+                width: _open ? 2.0 : 1.5,
               ),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
