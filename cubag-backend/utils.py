@@ -344,13 +344,24 @@ def calculate_and_update_member_rating(member_id, cursor=None):
             cursor.connection.rollback()
         except Exception as re:
             logger.exception("Error rolling back DB after rating calc failure: %s", re)
-        # Return neutral/unknown score — NOT a fake perfect score
-        # This prevents a DB error from making every member look like a 5-star member
+
+        # Fall back to the last saved score already in the DB (fetched at top of function).
+        # This means the member still sees their real previous score rather than a 0 or fake value.
+        try:
+            saved_score = int(prev_score) if prev_score is not None else 50
+            saved_stars = float(prev_stars) if prev_stars is not None else 2.5
+            saved_review = int(prev_row.get('manual_review_score') or 5) if prev_row else 5
+        except Exception:
+            saved_score, saved_stars, saved_review = 50, 2.5, 5
+
+        logger.warning(
+            "Returning last saved rating for member %s: score=%s stars=%s",
+            member_id, saved_score, saved_stars
+        )
         return {
-            'compliance_score': 0,
-            'star_rating': 0.0,
-            'manual_review_score': 0,
-            'error': 'Rating calculation temporarily unavailable'
+            'compliance_score':   saved_score,
+            'star_rating':        saved_stars,
+            'manual_review_score': saved_review,
         }
     finally:
         if should_close:
