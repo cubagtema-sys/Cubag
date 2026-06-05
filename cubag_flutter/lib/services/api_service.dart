@@ -28,8 +28,12 @@ class ApiService {
     return url;
   }
 
-  /// Expose for pages that need to construct file URLs
-  String get baseUrl => _normalizedBase;
+  /// Static accessor — lets pages use ApiService.baseUrl without instantiating.
+  /// e.g. Uri.parse('${ApiService.baseUrl}/endpoint')
+  static String get baseUrl => _normalizedBase;
+
+  /// Instance accessor (kept for backward compat)
+  String get instanceBaseUrl => _normalizedBase;
 
   ApiService() {
     debugPrint('[ApiService] Base URL: $_normalizedBase');
