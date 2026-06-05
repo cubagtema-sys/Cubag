@@ -407,6 +407,89 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
+  Widget _buildPortCards() {
+    const ports = [
+      {'value': 'Tema Port',      'label': 'Tema Port',       'icon': Icons.anchor,            'desc': 'Main sea port — Greater Accra'},
+      {'value': 'Takoradi Port',  'label': 'Takoradi Port',   'icon': Icons.directions_boat,   'desc': 'Western Region sea port'},
+      {'value': 'KIA Air Cargo',  'label': 'KIA Air Cargo',   'icon': Icons.flight,            'desc': 'Kotoka International Airport'},
+      {'value': 'Elubo Border',   'label': 'Elubo Border',    'icon': Icons.swap_horiz,        'desc': 'Ghana–Côte d\'Ivoire border'},
+      {'value': 'Aflao Border',   'label': 'Aflao Border',    'icon': Icons.swap_horiz,        'desc': 'Ghana–Togo border crossing'},
+    ];
+
+    return Column(
+      children: ports.map((p) {
+        final selected = _form['portOfOperation'] == p['value'];
+        return GestureDetector(
+          onTap: () => setState(() => _form['portOfOperation'] = p['value'] as String),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: selected ? _kOrange.withAlpha(15) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? _kOrange : Colors.grey.shade300,
+                width: selected ? 2 : 1.5,
+              ),
+            ),
+            child: Row(children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: selected ? _kOrange.withAlpha(30) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  p['icon'] as IconData,
+                  color: selected ? _kOrange : Colors.grey.shade500,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    p['label'] as String,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: selected ? _kOrange : const Color(0xFF0f172a),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    p['desc'] as String,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ]),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? _kOrange : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? _kOrange : Colors.grey.shade300,
+                    width: 2,
+                  ),
+                ),
+                child: selected
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+              ),
+            ]),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildStep2() => Column(children: [
     _field('Agency or Company Name', _companyCtrl, hint: 'e.g. Global Logistics Ltd', icon: Icons.business_outlined),
     Container(
@@ -421,7 +504,12 @@ class _RegisterPageState extends State<RegisterPage> {
     ),
     _field('License # (Optional)', _licCtrl, hint: 'LIC/...', icon: Icons.assignment_outlined),
     _field('Agency Code (Optional)', _agcCtrl, hint: 'CUB-...', icon: Icons.code_outlined),
-    _dropdown('Primary Port of Operation', _form['portOfOperation']!, ['Tema Port', 'Takoradi Port', 'KIA Air Cargo', 'Elubo Border', 'Aflao Border'], (v) => setState(() => _form['portOfOperation'] = v), icon: Icons.anchor),
+    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Primary Port of Operation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+      const SizedBox(height: 10),
+      _buildPortCards(),
+      const SizedBox(height: 16),
+    ]),
     const SizedBox(height: 12),
     Row(children: [
       Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.grey.shade300, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(0, 52)), child: Text('Back', style: TextStyle(color: Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.bold)))),
