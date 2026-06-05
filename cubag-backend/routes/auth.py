@@ -155,6 +155,43 @@ def verify_email():
     finally:
         conn.close()
 
+# BUG-F31 fix: alias used by otp_verification_page.dart
+@auth_bp.route('/verify-otp', methods=['POST'])
+def verify_otp_alias():
+    """Alias for /verify-email — Flutter OTP page calls this endpoint."""
+    return verify_email()
+
+# BUG-F32 fix: resend-otp route (skips 'already registered' guard)
+@auth_bp.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    data  = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({'message': 'Email is required'}), 400
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            import secrets
+            token = str(secrets.randbelow(900000) + 100000)
+            cursor.execute("""
+                INSERT INTO otp_codes (email, code, type)
+                VALUES (%s, %s, 'email_verification')
+                ON CONFLICT (email) DO UPDATE
+                  SET code = EXCLUDED.code,
+                      type = 'email_verification',
+                      created_at = CURRENT_TIMESTAMP
+            """, (email, token))
+            conn.commit()
+        import threading
+        threading.Thread(target=send_verification_email, args=(email, token), daemon=True).start()
+        return jsonify({'message': 'New OTP sent to email.'}), 200
+    except Exception as e:
+        conn.rollback()
+        logger.error(f'[resend-otp] {e}')
+        return jsonify({'message': 'Failed to resend OTP. Please try again.'}), 500
+    finally:
+        conn.close()
+
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -185,7 +222,9 @@ def register():
             conn.commit()
             return jsonify({'message': 'Registration successful. You can now log in.'}), 201
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        conn.rollback()  # BUG-B04 fix
+        logger.error(f'[register] {e}')  # BUG-B03 fix
+        return jsonify({'message': 'Registration failed. Please try again.'}), 500
     finally:
         conn.close()
 
@@ -231,7 +270,8 @@ def login():
                     'message': 'Your account is inactive. Please contact the CUBAG Secretariat to reactivate.'
                 }), 403
 
-            if not member.get('email_verified', True):
+            # BUG-B05 fix: default False so missing column never silently bypasses verification
+            if not member.get('email_verified', False):
                 return jsonify({'message': 'Please check your email to verify your account before logging in.'}), 403
 
             from utils import calculate_and_update_member_rating
@@ -424,10 +464,14 @@ def upload_photo():
 def change_password():
     if request.method == 'OPTIONS':
         res = make_response('', 200)
-        res.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin", "*")
-        res.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        res.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-        res.headers["Access-Control-Allow-Credentials"] = "true"
+        # BUG-B08 fix: never echo arbitrary Origin — use explicit allowlist
+        allowed_origins = os.getenv('ALLOWED_ORIGINS', 'https://cubag.web.app').split(',')
+        request_origin = request.headers.get('Origin', '')
+        if request_origin in allowed_origins:
+            res.headers['Access-Control-Allow-Origin'] = request_origin
+        res.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        res.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+        res.headers['Access-Control-Allow-Credentials'] = 'true'
         return res
 
     try:
@@ -458,7 +502,8 @@ def change_password():
             conn.commit()
             return jsonify({'message': 'Password changed successfully'}), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        logger.error(f'[change-password] {e}')
+        return jsonify({'message': 'Password change failed. Please try again.'}), 500
     finally:
         conn.close()
 
@@ -488,13 +533,18 @@ def update_fcm_token():
             conn.commit()
         return jsonify({'message': 'FCM token updated'}), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        logger.error(f'[update-fcm-token] {e}')
+        return jsonify({'message': 'Failed to update token'}), 500
     finally:
         conn.close()
 
 
 def send_reset_email(to_email, token):
-    client_url = os.getenv('CLIENT_URL', 'https://cubag-backend.onrender.com/#')
+    # BUG-B11/B12 fix: strip trailing #/ from CLIENT_URL before building link
+    client_url = os.getenv('CLIENT_URL', '').rstrip('/#')
+    if not client_url:
+        logger.error('[send_reset_email] CLIENT_URL env var is not set!')
+        return False
     reset_link = f'{client_url}/#/reset-password?token={token}&email={to_email}'
     subject   = 'Reset your CUBAG Password'
     body_text = (
@@ -548,12 +598,12 @@ def forgot_password():
                 try:
                     send_reset_email(actual_email, token)
                 except Exception as mail_err:
-                    print(f"[SMTP] Non-fatal: {mail_err}")
-                
+                    logger.warning(f'[SMTP] Non-fatal: {mail_err}')  # BUG-B13 fix
+
         return jsonify({'message': 'If an account exists, a reset link has been sent.'}), 200
     except Exception as e:
-        print(f"[forgot-password] Error: {e}")
-        return jsonify({'message': str(e)}), 500
+        logger.error(f'[forgot-password] {e}')  # BUG-B14 fix
+        return jsonify({'message': 'An error occurred. Please try again.'}), 500
     finally:
 
         conn.close()

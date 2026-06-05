@@ -61,12 +61,21 @@ def tasks_summary():
 @tasks_bp.route('/<int:task_id>/complete', methods=['PATCH'])
 @jwt_required()
 def complete_task(task_id):
+    member_id = get_jwt_identity()  # BUG-B26 fix: ownership check
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("UPDATE tasks SET done = TRUE WHERE id = %s", (task_id,))
+            cursor.execute(
+                "UPDATE tasks SET done = TRUE WHERE id = %s AND member_id = %s",
+                (task_id, member_id)
+            )
+            if cursor.rowcount == 0:
+                return jsonify({'message': 'Task not found or not yours'}), 404
             conn.commit()
         return jsonify({'message': 'Task marked complete'}), 200
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'message': 'Failed to update task'}), 500
     finally:
         conn.close()
 
@@ -82,6 +91,22 @@ def submit_task(task_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # BUG-B27 fix: verify ownership before allowing submission
+            cursor.execute(
+                "SELECT id FROM tasks WHERE id = %s AND member_id = %s",
+                (task_id, member_id)
+            )
+            if not cursor.fetchone():
+                return jsonify({'message': 'Task not found or not assigned to you'}), 404
+
+            # BUG-B29 fix: prevent duplicate submissions
+            cursor.execute(
+                "SELECT id FROM task_submissions WHERE task_id = %s AND member_id = %s",
+                (task_id, member_id)
+            )
+            if cursor.fetchone():
+                return jsonify({'message': 'You have already submitted this task'}), 409
+
             # Create submission record
             cursor.execute("""
                 INSERT INTO task_submissions (task_id, member_id, completion_note)
@@ -105,20 +130,40 @@ def submit_task(task_id):
                     saved.append(f.filename)
 
             # Mark task as submitted (done = TRUE pending admin verify)
-            cursor.execute("UPDATE tasks SET done = TRUE WHERE id = %s", (task_id,))
+            cursor.execute("UPDATE tasks SET done = TRUE WHERE id = %s AND member_id = %s", (task_id, member_id))
             conn.commit()
 
         return jsonify({'message': 'Submission received', 'submission_id': submission_id, 'files': saved}), 201
     except Exception as e:
         conn.rollback()
-        return jsonify({'message': str(e)}), 500
+        return jsonify({'message': 'Submission failed. Please try again.'}), 500
     finally:
         conn.close()
 
 
-# ─── GET /tasks/uploads/<filename> ─ Serve uploaded files ────────────────────
+# ─── GET /tasks/uploads/<filename> ─ Serve uploaded files (auth required) ──────
 @tasks_bp.route('/uploads/<filename>', methods=['GET'])
+@jwt_required()  # BUG-B28 fix: was unauthenticated
 def serve_file(filename):
+    member_id = get_jwt_identity()
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            # Verify the file belongs to a submission by this member (or an admin)
+            cursor.execute("SELECT role FROM members WHERE id = %s", (member_id,))
+            member = cursor.fetchone()
+            is_admin = member and member.get('role') in ('admin', 'sub_admin')
+            if not is_admin:
+                # Check member owns the submission this file belongs to
+                cursor.execute("""
+                    SELECT tsf.id FROM task_submission_files tsf
+                    JOIN task_submissions ts ON tsf.submission_id = ts.id
+                    WHERE tsf.filename = %s AND ts.member_id = %s
+                """, (filename, member_id))
+                if not cursor.fetchone():
+                    return jsonify({'message': 'Unauthorised'}), 403
+    finally:
+        conn.close()
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
@@ -173,11 +218,17 @@ def get_all_tasks_admin():
 @sub_admin_required('members')
 def create_task_admin():
     admin_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
     member_id = data.get('member_id')
-    title = data.get('title')
-    description = data.get('description')
+    title = (data.get('title') or '').strip()
+    description = data.get('description', '')
     due_date = data.get('due_date')
+
+    # BUG-B30 fix: validate required fields
+    if not title:
+        return jsonify({'message': 'Task title is required'}), 400
+    if not member_id:
+        return jsonify({'message': 'Member ID is required'}), 400
 
     conn = get_db()
     try:
@@ -205,6 +256,9 @@ def create_task_admin():
         log_admin_action(admin_id, 'Assigned task', 'task', None, target_name, f'Task: {title}')
 
         return jsonify({'message': 'Task assigned successfully'}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'message': 'Failed to create task'}), 500
     finally:
         conn.close()
 

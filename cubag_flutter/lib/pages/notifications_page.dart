@@ -33,7 +33,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     try {
       final res = await ApiService().get('/announcements');
       if (!mounted) return;
-      if (res.statusCode == 200) {
+      if (res.statusCode == 200 && res.data is List) {  // BUG-F35 fix: type check before cast
         final data = res.data as List;
         setState(() => _notifications = data.map((a) => {
           'id': a['id'],

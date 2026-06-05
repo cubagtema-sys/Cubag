@@ -30,16 +30,29 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() { _loading = true; _message = ''; });
     try {
       final res = await ApiService().post('/auth/change-password', data: {'current_password': _currentCtrl.text, 'new_password': _newCtrl.text});
+      if (!mounted) return;  // BUG-F45 fix
       if (res.statusCode == 200) {
         setState(() { _message = '✅ Password updated successfully!'; });
         Future.delayed(const Duration(seconds: 2), () { if (mounted) setState(() { _changingPw = false; _message = ''; _currentCtrl.clear(); _newCtrl.clear(); _confirmCtrl.clear(); }); });
       } else {
-        setState(() => _message = '❌ ${res.data['message'] ?? 'Update failed'}');
+        // BUG-F46 fix: guard res.data type before indexing
+        final msg = res.data is Map ? (res.data['message'] ?? 'Update failed') : 'Update failed';
+        setState(() => _message = '❌ $msg');
       }
     } catch (_) {
+      if (!mounted) return;
       setState(() => _message = '❌ Connection error. Try again.');
     }
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  void dispose() {
+    // BUG-F44 fix: dispose all 3 controllers
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
   }
 
   @override

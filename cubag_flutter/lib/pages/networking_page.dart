@@ -34,9 +34,10 @@ class _NetworkingPageState extends State<NetworkingPage> {
     setState(() => _loading = true);
     try {
       final res = await ApiService().get('/members');
+      if (!mounted) return;
       if (res.statusCode == 200) setState(() => _members = res.data ?? []);
     } catch (_) {}
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);  // BUG-F15 fix
   }
 
   String _initials(String name) => name.trim().isEmpty ? '?' : name.split(' ').where((n) => n.isNotEmpty).map((n) => n[0]).take(2).join().toUpperCase();
@@ -46,7 +47,8 @@ class _NetworkingPageState extends State<NetworkingPage> {
     final primary = Theme.of(context).primaryColor;
 
     final filtered = _members.where((m) {
-      if (m['role'] == 'admin') return false;
+      // BUG-F17 fix: hide both admins AND sub_admins from the member directory
+      if (m['role'] == 'admin' || m['role'] == 'sub_admin') return false;
       final q = _search.toLowerCase();
       final matchSearch = (m['name'] ?? '').toString().toLowerCase().contains(q) || (m['company'] ?? '').toString().toLowerCase().contains(q);
       final matchType = _filterType == 'All' || m['member_type'] == _filterType;

@@ -1,6 +1,11 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
@@ -30,6 +35,12 @@ class _TasksPageState extends State<TasksPage> {
     _fetchTasks();
   }
 
+  @override
+  void dispose() {
+    _noteController.dispose(); // BUG-F14 fix
+    super.dispose();
+  }
+
   Future<void> _fetchTasks() async {
     setState(() {
       _isLoading = true;
@@ -38,17 +49,17 @@ class _TasksPageState extends State<TasksPage> {
     try {
       final apiService = ApiService();
       final response = await apiService.get('/tasks');
+      if (!mounted) return;
       if (response.statusCode == 200) {
-        setState(() {
-          _tasks = response.data;
-        });
+        setState(() { _tasks = response.data; });
       } else {
         setState(() => _error = 'Failed to fetch tasks');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = 'Connection failed. Please check your network.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);  // BUG-F11 fix
     }
   }
 
@@ -81,10 +92,8 @@ class _TasksPageState extends State<TasksPage> {
 
   Future<void> _handleSubmit() async {
     setState(() => _isSubmitting = true);
-    
     try {
       final apiService = ApiService();
-      
       final formData = FormData.fromMap({
         'task_id': _selectedTask?['id'],
         'notes': _noteController.text,
@@ -93,28 +102,23 @@ class _TasksPageState extends State<TasksPage> {
               ? MultipartFile.fromBytes(_selectedFile!.bytes!, filename: _selectedFile!.name)
               : await MultipartFile.fromFile(_selectedFile!.path!, filename: _selectedFile!.name),
       });
-      
-      await apiService.post('/tasks/submit', data: formData);
-      
-      setState(() {
-        _submitDone = true;
-      });
-      
-      _fetchTasks();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    } finally {
-      setState(() => _isSubmitting = false);
-      
-      if (_submitDone) {
+      final response = await apiService.post('/tasks/submit', data: formData);
+      if (!mounted) return;
+      // BUG-F13 fix: only mark done on success, show error on failure
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() { _submitDone = true; });
+        _fetchTasks();
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted && Navigator.canPop(context)) {
-            Navigator.pop(context); // Close modal
-          }
+          if (mounted && Navigator.canPop(context)) Navigator.pop(context);
         });
+      } else {
+        final msg = (response.data is Map ? response.data['message'] : null) ?? 'Submission failed';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
