@@ -12,21 +12,8 @@ class CargoSchedulesPage extends StatefulWidget {
 }
 
 class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
-  static const List<Map<String, String>> _commonVessels = [
-    { 'name': 'Maersk Charleston', 'mmsi': '563297800', 'imo': '9454199', 'flag': 'Singapore', 'type': 'Container Ship', 'length': '266', 'width': '37', 'callsign': '9V8129' },
-    { 'name': 'Maersk Cubango', 'mmsi': '477174700', 'imo': '9513361', 'flag': 'Hong Kong', 'type': 'Container Ship', 'length': '254', 'width': '32', 'callsign': 'VRJZ8' },
-    { 'name': 'Maersk Tema', 'mmsi': '477353900', 'imo': '9624275', 'flag': 'Hong Kong', 'type': 'Container Ship', 'length': '255', 'width': '37', 'callsign': 'VRNX6' },
-    { 'name': 'MSC Johannesburg V', 'mmsi': '636024423', 'imo': '9308637', 'flag': 'Liberia', 'type': 'Container Ship', 'length': '275', 'width': '40', 'callsign': 'A8IF9' },
-    { 'name': 'MSC Assunta III', 'mmsi': '636023923', 'imo': '9211028', 'flag': 'Liberia', 'type': 'Container Ship', 'length': '259', 'width': '32', 'callsign': 'A8GX6' },
-    { 'name': 'MSC Aniello', 'mmsi': '372741000', 'imo': '9203928', 'flag': 'Panama', 'type': 'Container Ship', 'length': '259', 'width': '32', 'callsign': '3FYQ9' },
-    { 'name': 'MSC Pamela', 'mmsi': '636022359', 'imo': '9290531', 'flag': 'Liberia', 'type': 'Container Ship', 'length': '337', 'width': '46', 'callsign': 'A8HR2' },
-    { 'name': 'One Presence', 'mmsi': '563290200', 'imo': '9347504', 'flag': 'Singapore', 'type': 'Container Ship', 'length': '300', 'width': '40', 'callsign': '9V7182' },
-    { 'name': 'Grande Argentina', 'mmsi': '215949000', 'imo': '9220976', 'flag': 'Malta', 'type': 'Ro-Ro/Cargo', 'length': '214', 'width': '32', 'callsign': '9HNM6' },
-    { 'name': 'Grande Tema', 'mmsi': '247343700', 'imo': '9672105', 'flag': 'Italy', 'type': 'Ro-Ro/Cargo', 'length': '236', 'width': '36', 'callsign': 'IBDR' },
-    { 'name': 'Grande Dakar', 'mmsi': '247341900', 'imo': '9680724', 'flag': 'Italy', 'type': 'Ro-Ro/Container Carrier', 'length': '236', 'width': '36', 'callsign': 'IBDK' },
-    { 'name': 'African Wind', 'mmsi': '305537000', 'imo': '9372107', 'flag': 'Antigua Barbuda', 'type': 'General Cargo', 'length': '132', 'width': '16', 'callsign': 'V2CG9' },
-    { 'name': 'Oslo Trader', 'mmsi': '636014459', 'imo': '9239082', 'flag': 'Liberia', 'type': 'Container Ship', 'length': '200', 'width': '30', 'callsign': 'A8HF8' },
-  ];
+  // Registry fetched from backend — no hardcoded vessel data in the app
+  List<Map<String, dynamic>> _registryVessels = [];
 
   String _activeTab = 'vanning';
   String _searchQuery = '';
@@ -58,6 +45,19 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
     });
     _fetchSchedules();
     _initSocketListener();
+    _fetchRegistry();
+  }
+
+  Future<void> _fetchRegistry() async {
+    try {
+      final res = await ApiService().get('/vessels/registry');
+      if (res.statusCode == 200) {
+        final list = List<Map<String, dynamic>>.from(
+          (res.data ?? []).map((e) => Map<String, dynamic>.from(e)),
+        );
+        if (mounted) setState(() => _registryVessels = list);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -186,10 +186,10 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
              (v['destination'] ?? '').toString().toLowerCase().contains(q);
     }).toList();
 
-    final suggestions = _commonVessels.where((v) {
+    final suggestions = _registryVessels.where((v) {
       final q = _searchQuery.toLowerCase();
-      return (v['name'] ?? '').toLowerCase().contains(q) ||
-             (v['mmsi'] ?? '').contains(q);
+      return (v['name'] ?? '').toString().toLowerCase().contains(q) ||
+             (v['mmsi'] ?? '').toString().contains(q);
     }).take(5).toList();
 
     // Filter schedules
@@ -202,24 +202,25 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
     Map<String, dynamic>? activeVessel;
     if (isLive && isMMSI) {
       activeVessel = _vesselsMap[_searchQuery];
-      final common = _commonVessels.firstWhere(
-        (item) => item['mmsi'] == _searchQuery,
+      final common = _registryVessels.firstWhere(
+        (item) => item['mmsi']?.toString() == _searchQuery,
         orElse: () => {},
       );
       if (activeVessel == null && common.isNotEmpty) {
+        // Registry data only — no live AIS yet. Show static specs, no fake operational data.
         activeVessel = {
-          'mmsi': common['mmsi'],
-          'name': common['name'],
-          'type': common['type'],
-          'flag': common['flag']?.toUpperCase(),
-          'imo': common['imo'],
+          'mmsi':     common['mmsi'],
+          'name':     common['name'],
+          'type':     common['type'],
+          'flag':     common['flag']?.toString().toUpperCase(),
+          'imo':      common['imo'],
           'callsign': common['callsign'],
-          'length': common['length'],
-          'width': common['width'],
-          'status': 'Underway using Engine',
-          'speed': '—',
-          'destination': 'Awaiting AIS...',
-          'eta': 'Awaiting AIS...',
+          'length':   common['length'],
+          'width':    common['width'],
+          'status':   'Awaiting AIS Signal',
+          'speed':    null,
+          'destination': null,
+          'eta':      null,
         };
       }
     }
@@ -535,9 +536,15 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                               children: [
                                 const Text('DEPARTURE PORT', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 4),
-                                const Text('International Waters', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                Text(
+                                  activeVessel['departure_port']?.toString() ?? '—',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
                                 const SizedBox(height: 2),
-                                const Text('📡 Syncing ATD...', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                Text(
+                                  activeVessel['atd'] != null ? 'ATD: ${activeVessel['atd']}' : '📡 Awaiting AIS...',
+                                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
                               ],
                             ),
                           ),

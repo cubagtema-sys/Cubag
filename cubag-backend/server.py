@@ -310,6 +310,33 @@ def get_vessels():
         logger.error(f"Error in /api/vessels: {e}")
         return jsonify([]), 200
 
+
+@app.route('/api/vessels/registry', methods=['GET'])
+def get_vessel_registry():
+    """
+    Known vessel registry for Gulf of Guinea shipping lanes.
+    Used by Flutter for autocomplete suggestions when the live AIS stream
+    doesn't yet have a vessel. Centralised here so it can be updated without
+    a new app release.
+    """
+    registry = [
+        {'name': 'Maersk Charleston',   'mmsi': '563297800', 'imo': '9454199', 'flag': 'Singapore',       'type': 'Container Ship',             'length': '266', 'width': '37', 'callsign': '9V8129'},
+        {'name': 'Maersk Cubango',       'mmsi': '477174700', 'imo': '9513361', 'flag': 'Hong Kong',        'type': 'Container Ship',             'length': '254', 'width': '32', 'callsign': 'VRJZ8'},
+        {'name': 'Maersk Tema',          'mmsi': '477353900', 'imo': '9624275', 'flag': 'Hong Kong',        'type': 'Container Ship',             'length': '255', 'width': '37', 'callsign': 'VRNX6'},
+        {'name': 'MSC Johannesburg V',   'mmsi': '636024423', 'imo': '9308637', 'flag': 'Liberia',          'type': 'Container Ship',             'length': '275', 'width': '40', 'callsign': 'A8IF9'},
+        {'name': 'MSC Assunta III',      'mmsi': '636023923', 'imo': '9211028', 'flag': 'Liberia',          'type': 'Container Ship',             'length': '259', 'width': '32', 'callsign': 'A8GX6'},
+        {'name': 'MSC Aniello',          'mmsi': '372741000', 'imo': '9203928', 'flag': 'Panama',           'type': 'Container Ship',             'length': '259', 'width': '32', 'callsign': '3FYQ9'},
+        {'name': 'MSC Pamela',           'mmsi': '636022359', 'imo': '9290531', 'flag': 'Liberia',          'type': 'Container Ship',             'length': '337', 'width': '46', 'callsign': 'A8HR2'},
+        {'name': 'One Presence',         'mmsi': '563290200', 'imo': '9347504', 'flag': 'Singapore',        'type': 'Container Ship',             'length': '300', 'width': '40', 'callsign': '9V7182'},
+        {'name': 'Grande Argentina',     'mmsi': '215949000', 'imo': '9220976', 'flag': 'Malta',            'type': 'Ro-Ro/Cargo',                'length': '214', 'width': '32', 'callsign': '9HNM6'},
+        {'name': 'Grande Tema',          'mmsi': '247343700', 'imo': '9672105', 'flag': 'Italy',            'type': 'Ro-Ro/Cargo',                'length': '236', 'width': '36', 'callsign': 'IBDR'},
+        {'name': 'Grande Dakar',         'mmsi': '247341900', 'imo': '9680724', 'flag': 'Italy',            'type': 'Ro-Ro/Container Carrier',    'length': '236', 'width': '36', 'callsign': 'IBDK'},
+        {'name': 'African Wind',         'mmsi': '305537000', 'imo': '9372107', 'flag': 'Antigua Barbuda',  'type': 'General Cargo',              'length': '132', 'width': '16', 'callsign': 'V2CG9'},
+        {'name': 'Oslo Trader',          'mmsi': '636014459', 'imo': '9239082', 'flag': 'Liberia',          'type': 'Container Ship',             'length': '200', 'width': '30', 'callsign': 'A8HF8'},
+    ]
+    return jsonify(registry), 200
+
+
 @app.route('/api/analytics/telemetry', methods=['POST'])
 def telemetry():
     try:

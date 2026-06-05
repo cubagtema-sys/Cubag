@@ -154,12 +154,14 @@ def add_ticket_reply(ticket_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT subject FROM support_tickets WHERE id = %s", (ticket_id,))
-            ticket = cursor.fetchone()
+            # Fetch the real admin's name to use as the reply author
+            cursor.execute("SELECT name FROM members WHERE id = %s", (admin_id,))
+            admin_row = cursor.fetchone()
+            admin_name = admin_row['name'] if admin_row else 'CUBAG Admin'
             cursor.execute("""
                 INSERT INTO ticket_replies (ticket_id, author, message)
-                VALUES (%s, 'Admin', %s)
-            """, (ticket_id, data.get('message')))
+                VALUES (%s, %s, %s)
+            """, (ticket_id, admin_name, data.get('message')))
             cursor.execute("""
                 UPDATE support_tickets
                 SET updated_at = CURRENT_TIMESTAMP

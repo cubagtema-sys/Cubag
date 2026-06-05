@@ -78,9 +78,12 @@ def get_all_members_admin():
 @jwt_required()
 def submit_renewal():
     member_id = get_jwt_identity()
-    data = request.get_json()
-    payment_ref = data.get('payment_ref', 'MOMO-PAYMENT')
-    
+    data = request.get_json() or {}
+    payment_ref = (data.get('payment_ref') or '').strip()
+
+    if not payment_ref:
+        return jsonify({'message': 'A valid payment reference is required to submit renewal'}), 400
+
     conn = get_db()
     try:
         with conn.cursor() as cursor:

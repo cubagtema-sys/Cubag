@@ -65,29 +65,32 @@ def mark_read():
 @sub_admin_required('announcements')
 def create_announcement():
     admin_id = get_jwt_identity()
-    data = request.get_json()
-    title = data.get('title')
-    body = data.get('body')
+    data = request.get_json() or {}
+    title    = (data.get('title') or '').strip()
+    body     = (data.get('body') or '').strip()
     category = data.get('category', 'General')
+
+    if not title or not body:
+        return jsonify({'message': 'Title and body are required'}), 400
 
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # Use the real admin's name as the author
+            cursor.execute("SELECT name FROM members WHERE id = %s", (admin_id,))
+            admin_row = cursor.fetchone()
+            posted_by = admin_row['name'] if admin_row else data.get('posted_by', 'CUBAG Secretariat')
+
             cursor.execute("""
                 INSERT INTO announcements (title, body, category, posted_by)
                 VALUES (%s, %s, %s, %s)
-            """, (
-                title,
-                body,
-                category,
-                data.get('posted_by', 'CUBAG Unit')
-            ))
+            """, (title, body, category, posted_by))
             conn.commit()
 
         # Trigger Push Notification
         send_push_to_all(
             title=f"New Announcement: {title}",
-            body=body[:100] + ("..." if len(body) > 100 else ""),
+            body=body[:100] + ('...' if len(body) > 100 else ''),
             data={'type': 'announcement', 'category': category}
         )
 
@@ -96,7 +99,7 @@ def create_announcement():
 
         return jsonify({'message': 'Announcement posted'}), 201
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        return jsonify({'message': 'Failed to create announcement'}), 500
     finally:
         conn.close()
 

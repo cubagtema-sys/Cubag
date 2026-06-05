@@ -346,6 +346,7 @@ class _AppLayoutState extends State<AppLayout> {
             currentRoute: currentRoute,
             items: [
               _NavItemData('Events', Icons.event_outlined, '/admin/events'),
+              _NavItemData('Surveys & Elections', Icons.how_to_vote_outlined, '/admin/surveys'),
             ],
             context: context,
             buildNavItem: _navItem,
@@ -377,6 +378,7 @@ class _AppLayoutState extends State<AppLayout> {
         'payments':         [_NavItemData('Financial Center', Icons.payments_outlined, '/admin/payments')],
         'fees':             [_NavItemData('Platform Fees', Icons.request_quote_outlined, '/admin/fees')],
         'events':           [_NavItemData('Events', Icons.event_outlined, '/admin/events')],
+        'surveys':          [_NavItemData('Surveys & Elections', Icons.how_to_vote_outlined, '/admin/surveys')],
         'audit_log':        [_NavItemData('Audit Log', Icons.history_outlined, '/admin/audit-log')],
         'settings':         [_NavItemData('Settings', Icons.settings_outlined, '/admin/settings')],
       };
@@ -384,7 +386,7 @@ class _AppLayoutState extends State<AppLayout> {
       // Collect permitted items in a consistent display order
       final orderedKeys = [
         'members', 'announcements', 'schedules', 'intelligence', 'tickets',
-        'payments', 'fees', 'events', 'audit_log', 'settings',
+        'payments', 'fees', 'events', 'surveys', 'audit_log', 'settings',
       ];
       final permittedItems = <_NavItemData>[];
       for (final key in orderedKeys) {
@@ -465,6 +467,7 @@ class _AppLayoutState extends State<AppLayout> {
               _NavItemData('Messaging', Icons.chat_outlined, '/messaging'),
               _NavItemData('Payments', Icons.payments_outlined, '/payments'),
               _NavItemData('Payment History', Icons.receipt_long_outlined, '/payment-history'),
+              _NavItemData('Surveys & Elections', Icons.ballot_outlined, '/surveys'),
               _NavItemData('Tasks & Compliance', Icons.task_outlined, '/tasks'),
               _NavItemData('License Renewal', Icons.card_membership_outlined, '/license-renewal'),
             ],

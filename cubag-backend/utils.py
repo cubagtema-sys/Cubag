@@ -182,8 +182,9 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         total_paid = pay_history['total_paid']
         on_time_paid = pay_history['on_time_paid'] or 0
 
+        # New members with no payment history start at 0 — they earn their score
         if total_paid == 0:
-            payment_history = 15
+            payment_history = 0
         else:
             payment_history = round((on_time_paid / total_paid) * 15)
 
@@ -194,7 +195,8 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         cursor.execute("SELECT status, license_expiry_date, manual_review_score FROM members WHERE id = %s", (member_id,))
         member_row = cursor.fetchone()
         if not member_row:
-            return {'compliance_score': 100, 'star_rating': 5.0, 'manual_review_score': 10}
+            # Member not found — return honest zeros, not a fake perfect score
+            return {'compliance_score': 0, 'star_rating': 0.0, 'manual_review_score': 0}
             
         status = member_row['status']
         expiry_date = member_row['license_expiry_date']
@@ -230,8 +232,9 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         total_tasks = task_row['total_tasks']
         completed_tasks = task_row['completed_tasks'] or 0
 
+        # New members with no tasks start at 0 — they earn their score as tasks are completed
         if total_tasks == 0:
-            task_completion_score = 15
+            task_completion_score = 0
         else:
             task_completion_score = round((completed_tasks / total_tasks) * 15)
 
@@ -250,7 +253,8 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         else:
             survey_score = round((responded_surveys / total_surveys) * 10)
 
-        # AGM attendance (10 pts) - default to 10 for active status, 5 otherwise
+        # Active Status Bonus (10 pts) — rewards members with active standing
+        # TODO: Replace with real AGM/event attendance tracking once check-in system is built
         agm_score = 10 if status == 'active' else 5
         engagement_score = survey_score + agm_score
 

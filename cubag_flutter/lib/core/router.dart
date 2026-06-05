@@ -48,6 +48,8 @@ import '../pages/verify_email_page.dart';
 import '../pages/verify_member_page.dart';
 import '../pages/vessel_movements_page.dart';
 import '../components/user_shell.dart';
+import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
 
 /// Routes accessible without a JWT token.
 const _publicRoutes = {
@@ -166,26 +168,145 @@ class _AdminUnavailablePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    // Read saved email for display
+    return _AdminUnavailableBody();
+  }
+}
+
+class _AdminUnavailableBody extends StatefulWidget {
+  @override
+  State<_AdminUnavailableBody> createState() => _AdminUnavailableBodyState();
+}
+
+class _AdminUnavailableBodyState extends State<_AdminUnavailableBody> {
+  String? _email;
+  bool _loggingOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEmail();
+  }
+
+  Future<void> _loadEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() => _email = prefs.getString('cubag_email'));
+  }
+
+  Future<void> _logout() async {
+    setState(() => _loggingOut = true);
+    final auth = Provider.of<AuthService>(context, listen: false);
+    await auth.logout();
+    if (mounted) context.go('/login');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.desktop_windows_outlined, size: 48, color: Color(0xFFf08232)),
-                SizedBox(height: 16),
-                Text(
-                  'Admin console is available on web only.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                // Icon
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFfff7ed),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFf08232).withAlpha(60), width: 2),
+                  ),
+                  child: const Icon(Icons.desktop_windows_outlined, size: 44, color: Color(0xFFf08232)),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Open the CUBAG admin portal in a browser to continue.',
+                const SizedBox(height: 24),
+
+                // Title
+                const Text(
+                  'Admin Portal',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0f172a)),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'The admin console is only available\non the web browser.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF64748b)),
+                  style: TextStyle(fontSize: 15, color: Color(0xFF64748b), height: 1.5),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Logged-in-as chip
+                if (_email != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFf1f5f9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFe2e8f0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.account_circle_outlined, size: 18, color: Color(0xFF64748b)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Logged in as $_email',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 12),
+
+                // Web URL hint
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFfff7ed),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFf08232).withAlpha(50)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.open_in_browser, size: 18, color: Color(0xFFf08232)),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'cubag-backend.onrender.com',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFf08232)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 36),
+
+                // Logout button
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _loggingOut ? null : _logout,
+                    icon: _loggingOut
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Icon(Icons.logout_rounded, size: 20),
+                    label: Text(
+                      _loggingOut ? 'Signing out...' : 'Sign Out & Switch Account',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFf08232),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -195,3 +316,4 @@ class _AdminUnavailablePage extends StatelessWidget {
     );
   }
 }
+

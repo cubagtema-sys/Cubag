@@ -159,7 +159,7 @@ def verify_email():
 def register():
     data = request.get_json()
     # licenseNumber and agencyCode are now OPTIONAL
-    required = ['name', 'email', 'phone', 'company', 'memberType', 'password']
+    required = ['name', 'email', 'phone', 'company', 'memberType', 'portOfOperation', 'password']
     for field in required:
         if not data.get(field):
             return jsonify({'message': f'{field} is required'}), 400
@@ -180,7 +180,7 @@ def register():
             """, (
                 data['name'], email, data['phone'], data['company'],
                 data.get('licenseNumber'), data.get('agencyCode'),
-                data.get('portOfOperation', 'Tema Port'), data['memberType'], pw_hash
+                data.get('portOfOperation'), data['memberType'], pw_hash
             ))
             conn.commit()
             return jsonify({'message': 'Registration successful. You can now log in.'}), 201
@@ -422,7 +422,6 @@ def upload_photo():
 @auth_bp.route('/change-password', methods=['POST', 'OPTIONS'])
 @cross_origin(supports_credentials=True)
 def change_password():
-    print(f"[DEBUG] Change Password request: {request.method}")
     if request.method == 'OPTIONS':
         res = make_response('', 200)
         res.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin", "*")
@@ -495,7 +494,7 @@ def update_fcm_token():
 
 
 def send_reset_email(to_email, token):
-    client_url = os.getenv('CLIENT_URL', 'https://cubag-backend.onrender.com')
+    client_url = os.getenv('CLIENT_URL', 'https://cubag-backend.onrender.com/#')
     reset_link = f'{client_url}/#/reset-password?token={token}&email={to_email}'
     subject   = 'Reset your CUBAG Password'
     body_text = (

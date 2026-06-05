@@ -2,6 +2,8 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
 from utils import admin_required, log_admin_action, sub_admin_required
+import json
+from socket_instance import socketio
 
 events_bp = Blueprint('events', __name__)
 surveys_bp = Blueprint('surveys', __name__)
@@ -131,6 +133,15 @@ def get_surveys():
                 ORDER BY s.created_at DESC
             """, (member_id,))
             data = cursor.fetchall()
+
+            # Parse options JSON string into object
+            for s in data:
+                if isinstance(s.get('options'), str):
+                    try:
+                        s['options'] = json.loads(s['options'])
+                    except:
+                        s['options'] = []
+
         return jsonify(data), 200
     finally:
         conn.close()
@@ -178,6 +189,34 @@ def delete_survey(survey_id):
     finally:
         conn.close()
 
+@surveys_bp.route('/<int:survey_id>/toggle-active', methods=['PUT'])
+@sub_admin_required('events')
+def toggle_survey_active(survey_id):
+    """Toggle the active status of a survey (close or reopen)."""
+    admin_id = get_jwt_identity()
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT title, active FROM surveys WHERE id = %s", (survey_id,))
+            survey = cursor.fetchone()
+            if not survey:
+                return jsonify({'message': 'Survey not found'}), 404
+            new_active = not survey['active']
+            cursor.execute("UPDATE surveys SET active = %s WHERE id = %s", (new_active, survey_id))
+            conn.commit()
+        action = 'Reopened survey' if new_active else 'Closed survey'
+        log_admin_action(admin_id, action, 'survey', survey_id, survey['title'])
+        # Emit real-time update to admin room
+        try:
+            socketio.emit('survey_update', {'survey_id': survey_id, 'active': new_active}, room='admin_dashboard')
+        except Exception as se:
+            print(f"Socket emit failed: {se}")
+        return jsonify({'message': action, 'active': new_active}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
 @surveys_bp.route('/admin/all', methods=['GET'])
 @sub_admin_required('events')
 def get_all_surveys_admin():
@@ -199,6 +238,14 @@ def get_all_surveys_admin():
             data = cursor.fetchall()
             cursor.execute("SELECT COUNT(*) as total FROM surveys")
             total = cursor.fetchone().get('total', 0)
+
+            # Parse options JSON string into object
+            for s in data:
+                if isinstance(s.get('options'), str):
+                    try:
+                        s['options'] = json.loads(s['options'])
+                    except:
+                        s['options'] = []
 
         return jsonify({'items': data, 'page': page, 'per_page': per_page, 'total': total}), 200
     except Exception as e:
@@ -241,9 +288,11 @@ def get_survey_participation(survey_id):
                 r_data = responded_ids[m['id']]
                 ans = {}
                 try:
-                    ans = json.loads(r_data['answers']) if r_data['answers'] else {}
+                    if isinstance(r_data['answers'], dict):
+                        ans = r_data['answers']
+                    elif r_data['answers']:
+                        ans = json.loads(r_data['answers'])
                 except Exception as e:
-                    # Ignore malformed answer payloads but log for debugging
                     import logging as _logging
                     _logging.getLogger(__name__).debug("Malformed survey answer for member %s: %s", m['id'], e)
                 
@@ -303,8 +352,15 @@ def submit_response(survey_id):
                 VALUES (%s, %s, %s)
                 ON CONFLICT (survey_id, member_id) 
                 DO UPDATE SET answers = EXCLUDED.answers, submitted_at = CURRENT_TIMESTAMP
-            """, (survey_id, member_id, json_lib.dumps(data.get('answers', {}))))
+            """, (survey_id, member_id, json.dumps(data.get('answers', {}))))
             conn.commit()
+
+        # Emit real-time update to admin room
+        try:
+            socketio.emit('survey_update', {'survey_id': survey_id}, room='admin_dashboard')
+        except Exception as se:
+            print(f"Socket emit failed: {se}")
+
         return jsonify({'message': 'Response submitted'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
