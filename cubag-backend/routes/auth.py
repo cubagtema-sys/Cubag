@@ -220,6 +220,17 @@ def login():
             if not member or not check_password_hash(member['password_hash'], password):
                 return jsonify({'message': 'Invalid credentials'}), 401
 
+            # ── Block suspended / inactive accounts ───────────────────────────
+            member_status = str(member.get('status') or 'active').lower()
+            if member_status == 'suspended':
+                return jsonify({
+                    'message': 'Your account has been suspended. Please contact the CUBAG Secretariat for assistance.'
+                }), 403
+            if member_status == 'inactive':
+                return jsonify({
+                    'message': 'Your account is inactive. Please contact the CUBAG Secretariat to reactivate.'
+                }), 403
+
             if not member.get('email_verified', True):
                 return jsonify({'message': 'Please check your email to verify your account before logging in.'}), 403
 

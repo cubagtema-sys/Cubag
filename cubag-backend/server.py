@@ -123,7 +123,20 @@ def require_admin_role_for_admin_api():
             admin_id = get_jwt_identity()
             if admin_id:
                 action_desc = f"{request.method} {request.path.replace('/api/admin/', '')}"
-                log_admin_action(admin_id, 'Admin Action', 'system', None, action_desc, f"Payload: {request.get_data(as_text=True)[:200]}")
+                # ── Scrub sensitive fields before logging ─────────────────────
+                import json as _json
+                _SENSITIVE = {'password', 'password_hash', 'current_password',
+                              'new_password', 'token', 'secret', 'api_key', 'key'}
+                try:
+                    _body = _json.loads(request.get_data(as_text=True) or '{}')
+                    if isinstance(_body, dict):
+                        _body = {k: ('***' if k.lower() in _SENSITIVE else v)
+                                 for k, v in _body.items()}
+                    _payload_log = _json.dumps(_body)[:300]
+                except Exception:
+                    _payload_log = '[unreadable body]'
+                log_admin_action(admin_id, 'Admin Action', 'system', None, action_desc,
+                                 f"Payload: {_payload_log}")
         except Exception as e:
             logger.exception("Failed to log admin action: %s", e)
 

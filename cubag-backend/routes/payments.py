@@ -256,15 +256,35 @@ def verify_payment_code():
         return jsonify({'message': str(e)}), 500
 
 
-# ─── GET /payments/verify/<reference> — Poll WhitsunPay for status ────────────
+# ─── GET /payments/verify/<reference> — Poll WhitsunPay for status (auth required) ────
 @payments_bp.route('/verify/<string:reference>', methods=['GET', 'OPTIONS'])
 @cross_origin()
+@jwt_required()  # ✔ SECURITY: must be authenticated to trigger payment verification
 def verify_payment_manually(reference):
     if request.method == 'OPTIONS':
         return jsonify({'ok': True}), 200
 
+    member_id = get_jwt_identity()
+
     if not reference or reference.lower() in ('n/a', 'pending', 'null', 'undefined'):
         return jsonify({'message': 'Invalid reference code', 'status': 'error'}), 200
+
+    # Ownership check: verify this reference belongs to the calling member
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, member_id FROM payments WHERE payment_ref = %s",
+                (reference,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'message': 'Payment reference not found', 'status': 'error'}), 404
+            if str(row['member_id']) != str(member_id):
+                return jsonify({'message': 'Unauthorised', 'status': 'error'}), 403
+            payment_id = row['id']
+    finally:
+        conn.close()
 
     try:
         wp_res = requests.get(
@@ -276,23 +296,8 @@ def verify_payment_manually(reference):
         wp_status = str(wp_data.get('status', 'pending')).lower()
 
         if wp_status in ('successful', 'success', 'completed'):
-            # Look up payment by reference
-            payment_id = None
-            conn = get_db()
-            try:
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT id FROM payments WHERE payment_ref = %s", (reference,))
-                    row = cursor.fetchone()
-                    if row:
-                        payment_id = row['id']
-            finally:
-                conn.close()
-
-            if payment_id:
-                _mark_payment_as_paid(payment_id)
-                return jsonify({'message': 'Payment verified and updated!', 'status': 'success'}), 200
-            else:
-                return jsonify({'message': 'Payment success on WhitsunPay, but could not link to member record.', 'status': 'orphan_success'}), 200
+            _mark_payment_as_paid(payment_id)
+            return jsonify({'message': 'Payment verified and updated!', 'status': 'success'}), 200
 
         elif wp_status in ('failed', 'abandoned', 'reversed', 'declined', 'cancelled'):
             return jsonify({'message': f'Payment {wp_status}', 'status': 'failed'}), 200
