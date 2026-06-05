@@ -316,10 +316,96 @@ class _RegisterPageState extends State<RegisterPage> {
     _field('Full Name', _nameCtrl, hint: 'e.g. John Mensah', icon: Icons.person_outline),
     _field('Email Address', _emailCtrl, type: TextInputType.emailAddress, hint: 'e.g. john@agency.com', icon: Icons.email_outlined),
     _field('Phone Number', _phoneCtrl, type: TextInputType.phone, hint: 'e.g. 024 5678 901', icon: Icons.phone_outlined),
-    _dropdown('Membership Type', _form['memberType']!, ['Individual Broker', 'Corporate Agency', 'Associate Member'], (v) => setState(() => _form['memberType'] = v), icon: Icons.badge_outlined),
+    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Membership Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+      const SizedBox(height: 10),
+      _buildMemberTypeCards(),
+      const SizedBox(height: 16),
+    ]),
     const SizedBox(height: 12),
     SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: _step1Next, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Next Step', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
   ]);
+
+  Widget _buildMemberTypeCards() {
+    const types = [
+      {'value': 'Individual Broker', 'label': 'Individual Broker', 'icon': Icons.person_outline, 'desc': 'Licensed customs broker'},
+      {'value': 'Corporate Agency', 'label': 'Corporate Agency', 'icon': Icons.business_outlined, 'desc': 'Registered logistics firm'},
+      {'value': 'Associate Member', 'label': 'Associate Member', 'icon': Icons.groups_outlined, 'desc': 'Supporting partner'},
+    ];
+
+    return Column(
+      children: types.map((t) {
+        final selected = _form['memberType'] == t['value'];
+        return GestureDetector(
+          onTap: () => setState(() => _form['memberType'] = t['value'] as String),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: selected ? _kOrange.withAlpha(15) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? _kOrange : Colors.grey.shade300,
+                width: selected ? 2 : 1.5,
+              ),
+            ),
+            child: Row(children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: selected ? _kOrange.withAlpha(30) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  t['icon'] as IconData,
+                  color: selected ? _kOrange : Colors.grey.shade500,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    t['label'] as String,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: selected ? _kOrange : const Color(0xFF0f172a),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    t['desc'] as String,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ]),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? _kOrange : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? _kOrange : Colors.grey.shade300,
+                    width: 2,
+                  ),
+                ),
+                child: selected
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+              ),
+            ]),
+          ),
+        );
+      }).toList(),
+    );
+  }
 
   Widget _buildStep2() => Column(children: [
     _field('Agency or Company Name', _companyCtrl, hint: 'e.g. Global Logistics Ltd', icon: Icons.business_outlined),
