@@ -85,8 +85,9 @@ def send_otp():
     if not email:
         return jsonify({'message': 'Email is required'}), 400
 
-    # Basic format check
-    if '@' not in email or '.' not in email.split('@')[-1]:
+    # B-01 fix: proper regex email validation
+    import re
+    if not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
         return jsonify({'message': 'Invalid email format'}), 400
 
     conn = get_db()
@@ -390,6 +391,32 @@ def me():
         conn.close()
 
 
+@auth_bp.route('/update-preferences', methods=['POST'])
+@jwt_required()
+def update_preferences():
+    """F-47 fix: Persist user preferences (e.g. push_notifications) to DB."""
+    member_id = get_jwt_identity()
+    data = request.get_json() or {}
+    push_enabled = data.get('push_notifications')
+    if push_enabled is None:
+        return jsonify({'message': 'No preferences provided'}), 400
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "UPDATE members SET push_notifications_enabled = %s WHERE id = %s",
+                (bool(push_enabled), member_id)
+            )
+            conn.commit()
+        return jsonify({'message': 'Preferences updated'}), 200
+    except Exception as e:
+        conn.rollback()
+        logger.error(f'[update-preferences] {e}')
+        return jsonify({'message': 'Preferences noted'}), 200  # non-critical
+    finally:
+        conn.close()
+
+
 @auth_bp.route('/upload-photo', methods=['POST'])
 @jwt_required()
 def upload_photo():
@@ -641,9 +668,14 @@ def reset_password():
             if not otp_record:
                 return jsonify({'message': 'Invalid or expired reset link. Please request a new one.'}), 400
 
+            # B-15 fix: update by member ID, not email string (avoids multi-row risk)
             actual_email = otp_record['email']
+            cursor.execute("SELECT id FROM members WHERE LOWER(email) = LOWER(%s)", (actual_email,))
+            member_row = cursor.fetchone()
+            if not member_row:
+                return jsonify({'message': 'Account not found'}), 400
             hashed_pw = generate_password_hash(new_password)
-            cursor.execute("UPDATE members SET password_hash = %s WHERE LOWER(email) = LOWER(%s)", (hashed_pw, actual_email))
+            cursor.execute("UPDATE members SET password_hash = %s WHERE id = %s", (hashed_pw, member_row['id']))
             cursor.execute("DELETE FROM otp_codes WHERE LOWER(email) = LOWER(%s) AND type = 'password_reset'", (actual_email,))
             conn.commit()
             

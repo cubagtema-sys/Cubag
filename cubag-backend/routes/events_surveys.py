@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
@@ -5,6 +6,7 @@ from utils import admin_required, log_admin_action, sub_admin_required
 import json
 from socket_instance import socketio
 
+logger = logging.getLogger(__name__)
 events_bp = Blueprint('events', __name__)
 surveys_bp = Blueprint('surveys', __name__)
 
@@ -15,10 +17,15 @@ surveys_bp = Blueprint('surveys', __name__)
 @events_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_events():
+    # B-16 fix: allow members to request past events via ?include_past=true
+    include_past = request.args.get('include_past', 'false').lower() == 'true'
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM events WHERE date >= CURRENT_DATE ORDER BY date ASC")
+            if include_past:
+                cursor.execute("SELECT * FROM events ORDER BY date DESC")
+            else:
+                cursor.execute("SELECT * FROM events WHERE date >= CURRENT_DATE ORDER BY date ASC")
             data = cursor.fetchall()
         return jsonify(data), 200
     finally:
@@ -27,21 +34,30 @@ def get_events():
 @events_bp.route('/', methods=['POST'])
 @sub_admin_required('events')
 def create_event():
+    # B-17 fix: validate required fields before inserting
     admin_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
+    title = (data.get('title') or '').strip()
+    event_date = (data.get('date') or '').strip()
+    if not title:
+        return jsonify({'message': 'Event title is required'}), 400
+    if not event_date:
+        return jsonify({'message': 'Event date is required'}), 400
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
                 INSERT INTO events (title, description, date, time, location, capacity)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (data.get('title'), data.get('description'), data.get('date'),
+            """, (title, data.get('description'), event_date,
                   data.get('time'), data.get('location'), data.get('capacity') or None))
             conn.commit()
-        log_admin_action(admin_id, 'Created event', 'event', None, data.get('title'), f"Date: {data.get('date')}, Location: {data.get('location')}")
+        log_admin_action(admin_id, 'Created event', 'event', None, title, f"Date: {event_date}, Location: {data.get('location')}")
         return jsonify({'message': 'Event created'}), 201
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        conn.rollback()
+        logger.error(f'[create_event] {e}')
+        return jsonify({'message': 'Failed to create event'}), 500
     finally:
         conn.close()
 
@@ -210,7 +226,7 @@ def toggle_survey_active(survey_id):
         try:
             socketio.emit('survey_update', {'survey_id': survey_id, 'active': new_active}, room='admin_dashboard')
         except Exception as se:
-            print(f"Socket emit failed: {se}")
+            logger.warning(f'Socket emit failed: {se}')
         return jsonify({'message': action, 'active': new_active}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -359,7 +375,7 @@ def submit_response(survey_id):
         try:
             socketio.emit('survey_update', {'survey_id': survey_id}, room='admin_dashboard')
         except Exception as se:
-            print(f"Socket emit failed: {se}")
+            logger.warning(f'Socket emit failed: {se}')
 
         return jsonify({'message': 'Response submitted'}), 200
     except Exception as e:

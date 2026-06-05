@@ -67,7 +67,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  void _delete(dynamic id) => setState(() => _notifications = _notifications.where((n) => n['id'] != id).toList());
+  // F-36 fix: delete from server first, then remove locally
+  Future<void> _delete(dynamic id) async {
+    try {
+      await ApiService().delete('/announcements/$id');
+    } catch (_) {
+      // If server call fails, still remove locally (graceful degradation)
+    }
+    if (mounted) {
+      setState(() => _notifications = _notifications.where((n) => n['id'] != id).toList());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

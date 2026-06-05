@@ -12,10 +12,13 @@ class _MessagingPageState extends State<MessagingPage> {
   bool _loading = true;
   bool _loadingChat = false;
   List<dynamic> _conversations = [];
+  List<dynamic> _filteredConversations = [];  // F-25 fix
+  String _search = '';  // F-25 fix
   Map<String, dynamic>? _activeChat;
   List<dynamic> _messages = [];
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  final _searchCtrl = TextEditingController();  // F-25 fix
 
   @override
   void initState() { super.initState(); _fetchConversations(); }
@@ -24,6 +27,7 @@ class _MessagingPageState extends State<MessagingPage> {
   void dispose() {
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
+    _searchCtrl.dispose();  // F-25 fix
     super.dispose();
   }
 
@@ -32,9 +36,27 @@ class _MessagingPageState extends State<MessagingPage> {
     try {
       final res = await ApiService().get('/messages/conversations');
       if (!mounted) return;
-      if (res.statusCode == 200) setState(() => _conversations = List.from(res.data ?? []));
+      if (res.statusCode == 200) {
+        final all = List.from(res.data ?? []);
+        setState(() {
+          _conversations = all;
+          _applySearch(_search);
+        });
+      }
     } catch (_) {}
     if (mounted && showLoading) setState(() => _loading = false);
+  }
+
+  // F-25 fix: filter conversations by name or company
+  void _applySearch(String q) {
+    _search = q;
+    final lower = q.toLowerCase();
+    _filteredConversations = lower.isEmpty
+        ? List.from(_conversations)
+        : _conversations.where((c) {
+            return (c['name']?.toString().toLowerCase() ?? '').contains(lower) ||
+                   (c['company']?.toString().toLowerCase() ?? '').contains(lower);
+          }).toList();
   }
 
   Future<void> _openChat(Map<String, dynamic> target) async {
@@ -94,13 +116,15 @@ class _MessagingPageState extends State<MessagingPage> {
 
   Widget _buildList(Color primary) {
     return Column(children: [
-      // Search bar
+      // F-25 fix: functional search wired to _searchCtrl and _applySearch
       TextField(
-        decoration: InputDecoration(prefixIcon: const Icon(Icons.search, color: Colors.grey), hintText: 'Search messages...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Theme.of(context).cardColor),
+        controller: _searchCtrl,
+        onChanged: (v) => setState(() => _applySearch(v)),
+        decoration: InputDecoration(prefixIcon: const Icon(Icons.search, color: Colors.grey), hintText: 'Search conversations...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Theme.of(context).cardColor),
       ),
       const SizedBox(height: 12),
 
-      if (_conversations.isEmpty)
+      if (_filteredConversations.isEmpty)
         Container(
           padding: const EdgeInsets.all(60),
           alignment: Alignment.center,
@@ -108,9 +132,9 @@ class _MessagingPageState extends State<MessagingPage> {
           child: Column(children: [
             Container(width: 60, height: 60, decoration: BoxDecoration(color: primary.withValues(alpha: 0.08), shape: BoxShape.circle), child: Icon(Icons.chat_bubble_outline, color: primary, size: 28)),
             const SizedBox(height: 16),
-            const Text('No messages', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(_search.isEmpty ? 'No messages' : 'No results for "$_search"', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 6),
-            const Text('Conversations appear here.\nConnect with members via the directory.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13)),
+            Text(_search.isEmpty ? 'Conversations appear here.\nConnect with members via the directory.' : 'Try a different search term.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 13)),
           ]),
         )
       else
@@ -120,7 +144,7 @@ class _MessagingPageState extends State<MessagingPage> {
             children: [
               Card(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Column(children: _conversations.map((conv) {
+                child: Column(children: _filteredConversations.map((conv) {
                   final initials = _getInitials(Map<String, dynamic>.from(conv));
                   final unread = (conv['unread'] ?? 0) as int;
                   return Column(children: [

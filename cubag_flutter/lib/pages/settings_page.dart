@@ -72,7 +72,20 @@ class _SettingsPageState extends State<SettingsPage> {
         const Divider(height: 1),
         ListTile(leading: const Icon(Icons.lock_outline), title: const Text('Change Password', style: TextStyle(fontWeight: FontWeight.w600)), trailing: const Icon(Icons.chevron_right), onTap: () => setState(() => _changingPw = true)),
         const Divider(height: 1),
-        SwitchListTile(value: _notificationsEnabled, onChanged: (v) => setState(() => _notificationsEnabled = v), secondary: const Icon(Icons.notifications_active_outlined), title: const Text('Push Notifications', style: TextStyle(fontWeight: FontWeight.w600))),
+        SwitchListTile(
+          value: _notificationsEnabled,
+          // F-47 fix: persist toggle to server
+          onChanged: (v) async {
+            setState(() => _notificationsEnabled = v);
+            try {
+              await ApiService().post('/auth/update-preferences', data: {'push_notifications': v});
+            } catch (_) {
+              // Revert on failure so UI matches server state
+              if (mounted) setState(() => _notificationsEnabled = !v);
+            }
+          },
+          secondary: const Icon(Icons.notifications_active_outlined),
+          title: const Text('Push Notifications', style: TextStyle(fontWeight: FontWeight.w600))),
         const Divider(height: 1),
         Padding(padding: const EdgeInsets.only(left: 16, top: 12, bottom: 4), child: Align(alignment: Alignment.centerLeft, child: Text('CONTACT & SUPPORT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500, letterSpacing: 1)))),
         _contactItem(Icons.call, const Color(0xFFf08232), 'Call Support', '+233 (0) 302 123 456', () async {

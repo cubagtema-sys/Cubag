@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';  // F-39 fix
 import '../components/app_layout.dart';
 import '../services/cache_service.dart';
+import '../services/api_service.dart';  // F-39 fix
 
 class LicenseRenewalPage extends StatefulWidget {
   const LicenseRenewalPage({super.key});
@@ -265,7 +267,20 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
             const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => _showCertificate(rec, yr),
+                // F-39 fix: download opens the cert PDF URL in browser, not the in-app dialog
+                onPressed: () async {
+                  final memberId = _memberInfo?['id'];
+                  final licenseNum = rec['license_number']?.toString();
+                  if (memberId == null) return;
+                  final url = Uri.parse('${ApiService.baseUrl}/members/$memberId/certificate-pdf');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else if (licenseNum != null) {
+                    // Fallback: open QR verification link
+                    final fallback = Uri.parse('${ApiService.baseUrl}/verify-member/$memberId');
+                    if (await canLaunchUrl(fallback)) await launchUrl(fallback, mode: LaunchMode.externalApplication);
+                  }
+                },
                 icon: const Icon(Icons.download, size: 16, color: Colors.white),
                 label: const Text('Download', style: TextStyle(color: Colors.white, fontSize: 13)),
                 style: ElevatedButton.styleFrom(
