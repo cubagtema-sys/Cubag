@@ -147,92 +147,93 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildForm() {
     final isSmall = MediaQuery.of(context).size.width < 360;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-    Center(child: Column(children: [
-      AppLogo(size: isSmall ? 50 : 60, borderRadius: 14, showShadow: true),
-      const SizedBox(height: 12),
-      Text('Welcome Back', style: TextStyle(fontSize: isSmall ? 22 : 26, fontWeight: FontWeight.bold, color: const Color(0xFF0f172a))),
-      const SizedBox(height: 4),
-      Text('Sign in to the CUBAG Member Portal', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: isSmall ? 11 : 13)),
-    ])),
-    const SizedBox(height: 24),
-
-    if (_error != null)
-      Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: const Color(0x19ef4444), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x33ef4444))),
-        child: Row(children: [const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18), const SizedBox(width: 8), Expanded(child: Text(_error!, style: const TextStyle(color: Color(0xFFef4444), fontSize: 13, fontWeight: FontWeight.w600)))]),
-      ),
-
-    const Text('Email Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0f172a))),
-    const SizedBox(height: 8),
-    TextFormField(
-      controller: _emailCtrl,
-      keyboardType: TextInputType.emailAddress,
-      decoration: InputDecoration(
-        hintText: 'broker@example.com',
-        prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey, size: 20),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kOrange, width: 2)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      ),
-    ),
-    const SizedBox(height: 16),
-
-    const Text('Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0f172a))),
-    const SizedBox(height: 8),
-    TextFormField(
-      controller: _passCtrl,
-      obscureText: !_showPw,
-      decoration: InputDecoration(
-        hintText: '••••••••',
-        prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey, size: 20),
-        suffixIcon: IconButton(icon: Icon(_showPw ? Icons.visibility_off : Icons.visibility, color: Colors.grey, size: 20), onPressed: () => setState(() => _showPw = !_showPw)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kOrange, width: 2)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      ),
-    ),
-
-    Align(alignment: Alignment.centerRight, child: TextButton(
-      onPressed: () => context.go('/forgot-password'),
-      style: TextButton.styleFrom(foregroundColor: _kOrange),
-      child: const Text('Forgot Password?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-    )),
-    const SizedBox(height: 8),
-
-    SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
-      onPressed: _loading ? null : _handleLogin,
-      style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-      child: _loading
-        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-        : const Text('Sign In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-    )),
-
-    // ── Biometric quick login (mobile only) ──
-    if (_bioAvailable && _bioEnabled && !kIsWeb) ...[
-      const SizedBox(height: 12),
-      Row(children: [
-        const Expanded(child: Divider(color: Color(0xFFe2e8f0))),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text('or', style: TextStyle(color: Colors.grey.shade500, fontSize: 11))),
-        const Expanded(child: Divider(color: Color(0xFFe2e8f0))),
-      ]),
-      const SizedBox(height: 12),
-      SizedBox(width: double.infinity, height: 48, child: OutlinedButton.icon(
-        onPressed: _loading ? null : _handleBiometricLogin,
-        icon: const Icon(Icons.fingerprint, size: 20, color: _kOrange),
-        label: const Text('Sign in with Biometrics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        style: OutlinedButton.styleFrom(foregroundColor: _kOrange, side: const BorderSide(color: _kOrange, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-      )),
-    ],
-    const SizedBox(height: 24),
-
-    Center(child: GestureDetector(
-      onTap: () => context.go('/register'),
-      child: const Text.rich(TextSpan(children: [
-        TextSpan(text: "Don't have an account? ", style: TextStyle(color: Colors.grey)),
-        TextSpan(text: 'Join CUBAG', style: TextStyle(color: _kOrange, fontWeight: FontWeight.bold)),
+      Center(child: Column(children: [
+        AppLogo(size: isSmall ? 50 : 60, borderRadius: 14, showShadow: true),
+        const SizedBox(height: 12),
+        Text('Welcome Back', style: TextStyle(fontSize: isSmall ? 22 : 26, fontWeight: FontWeight.bold, color: const Color(0xFF0f172a))),
+        const SizedBox(height: 4),
+        Text('Sign in to the CUBAG Member Portal', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: isSmall ? 11 : 13)),
       ])),
-    )),
-  ]);
+      const SizedBox(height: 24),
+
+      if (_error != null)
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: const Color(0x19ef4444), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x33ef4444))),
+          child: Row(children: [const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18), const SizedBox(width: 8), Expanded(child: Text(_error!, style: const TextStyle(color: Color(0xFFef4444), fontSize: 13, fontWeight: FontWeight.w600)))]),
+        ),
+
+      const Text('Email Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0f172a))),
+      const SizedBox(height: 8),
+      TextFormField(
+        controller: _emailCtrl,
+        keyboardType: TextInputType.emailAddress,
+        decoration: InputDecoration(
+          hintText: 'broker@example.com',
+          prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey, size: 20),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kOrange, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        ),
+      ),
+      const SizedBox(height: 16),
+
+      const Text('Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0f172a))),
+      const SizedBox(height: 8),
+      TextFormField(
+        controller: _passCtrl,
+        obscureText: !_showPw,
+        decoration: InputDecoration(
+          hintText: '••••••••',
+          prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey, size: 20),
+          suffixIcon: IconButton(icon: Icon(_showPw ? Icons.visibility_off : Icons.visibility, color: Colors.grey, size: 20), onPressed: () => setState(() => _showPw = !_showPw)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kOrange, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        ),
+      ),
+
+      Align(alignment: Alignment.centerRight, child: TextButton(
+        onPressed: () => context.go('/forgot-password'),
+        style: TextButton.styleFrom(foregroundColor: _kOrange),
+        child: const Text('Forgot Password?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      )),
+      const SizedBox(height: 8),
+
+      SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
+        onPressed: _loading ? null : _handleLogin,
+        style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+        child: _loading
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : const Text('Sign In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+      )),
+
+      // ── Biometric quick login (mobile only) ──
+      if (_bioAvailable && _bioEnabled && !kIsWeb) ...[
+        const SizedBox(height: 12),
+        Row(children: [
+          const Expanded(child: Divider(color: Color(0xFFe2e8f0))),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text('or', style: TextStyle(color: Colors.grey.shade500, fontSize: 11))),
+          const Expanded(child: Divider(color: Color(0xFFe2e8f0))),
+        ]),
+        const SizedBox(height: 12),
+        SizedBox(width: double.infinity, height: 48, child: OutlinedButton.icon(
+          onPressed: _loading ? null : _handleBiometricLogin,
+          icon: const Icon(Icons.fingerprint, size: 20, color: _kOrange),
+          label: const Text('Sign in with Biometrics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          style: OutlinedButton.styleFrom(foregroundColor: _kOrange, side: const BorderSide(color: _kOrange, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        )),
+      ],
+      const SizedBox(height: 24),
+
+      Center(child: GestureDetector(
+        onTap: () => context.go('/register'),
+        child: const Text.rich(TextSpan(children: [
+          TextSpan(text: "Don't have an account? ", style: TextStyle(color: Colors.grey)),
+          TextSpan(text: 'Join CUBAG', style: TextStyle(color: _kOrange, fontWeight: FontWeight.bold)),
+        ])),
+      )),
+    ]);
+  }
 }
