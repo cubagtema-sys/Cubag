@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() { _loading = true; _error = null; });
 
     final authService = Provider.of<AuthService>(context, listen: false);
-    final error = await authService.login(_emailCtrl.text.trim(), _passCtrl.text);
+    final error = await authService.login(_emailCtrl.text.trim().toLowerCase(), _passCtrl.text);
 
     if (mounted) {
       setState(() { _loading = false; _error = error; });
@@ -194,6 +194,8 @@ class _LoginPageState extends State<LoginPage> {
       TextFormField(
         controller: _emailCtrl,
         keyboardType: TextInputType.emailAddress,
+        autocorrect: false,
+        textCapitalization: TextCapitalization.none,
         decoration: InputDecoration(
           hintText: 'broker@example.com',
           prefixIcon: Icon(Icons.email_outlined, color: Colors.grey.shade400, size: 20),

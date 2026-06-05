@@ -46,7 +46,7 @@ def send_verification_email(to_email, token):
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
     data = request.get_json()
-    email = data.get('email')
+    email = (data.get('email') or '').strip().lower()
     if not email:
         return jsonify({'message': 'Email is required'}), 400
 
@@ -114,7 +114,8 @@ def register():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT id FROM members WHERE email = %s", (data['email'],))
+            email = (data.get('email') or '').strip().lower()
+            cursor.execute("SELECT id FROM members WHERE email = %s", (email,))
             if cursor.fetchone():
                 return jsonify({'message': 'Email already registered'}), 409
 
@@ -124,7 +125,7 @@ def register():
                                      port_of_operation, member_type, password_hash, email_verified, status)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE, 'pending')
             """, (
-                data['name'], data['email'], data['phone'], data['company'],
+                data['name'], email, data['phone'], data['company'],
                 data.get('licenseNumber'), data.get('agencyCode'),
                 data.get('portOfOperation', 'Tema Port'), data['memberType'], pw_hash
             ))
