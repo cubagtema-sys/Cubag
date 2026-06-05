@@ -2,7 +2,9 @@ import os
 import uuid
 import random
 import logging
-import resend
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
@@ -14,34 +16,66 @@ import requests as http_req
 auth_bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
 
+# ─── Shared SMTP sender ───────────────────────────────────────────────────────
+def _send_email(to_email: str, subject: str, body_text: str, body_html: str = None):
+    """Send an email via Hostinger SMTP. Raises on failure."""
+    smtp_host = os.getenv('SMTP_HOST', 'smtp.hostinger.com')
+    smtp_port = int(os.getenv('SMTP_PORT', 587))
+    smtp_user = os.getenv('SMTP_USER', '')
+    smtp_pass = os.getenv('SMTP_PASS', '')
+
+    if not smtp_user or not smtp_pass:
+        logger.error('[SMTP] SMTP_USER or SMTP_PASS not configured — email not sent.')
+        return False
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From']    = f'CUBAG Support <{smtp_user}>'
+    msg['To']      = to_email
+
+    msg.attach(MIMEText(body_text, 'plain'))
+    if body_html:
+        msg.attach(MIMEText(body_html, 'html'))
+
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, [to_email], msg.as_string())
+        logger.info(f'[SMTP] Email sent to {to_email} — {subject}')
+        return True
+    except Exception as e:
+        logger.error(f'[SMTP] Failed to send email to {to_email}: {e}')
+        return False
+
 # ─── Supabase config ──────────────────────────────────────────────────────────
 SUPABASE_URL  = os.getenv('SUPABASE_URL', '')
 SUPABASE_KEY  = os.getenv('SUPABASE_SERVICE_KEY', '')
 PHOTO_BUCKET  = os.getenv('SUPABASE_BUCKET', 'uploads')
 
 def send_verification_email(to_email, token):
-    resend.api_key = os.getenv('RESEND_API_KEY')
-    
-    if not resend.api_key:
-        print("[Resend] API key not configured. Skipping.")
-        return
-
-    body = f"Hello,\n\nYour CUBAG verification code is:\n\n{token}\n\nPlease enter this code in the app to complete your registration.\n\nThanks,\nCUBAG Secretariat"
-
-    params = {
-        "from": "CUBAG Support <onboarding@resend.dev>",
-        "to": [to_email],
-        "subject": "Verify your CUBAG Account",
-        "text": body,
-    }
-
-    try:
-        email_response = resend.Emails.send(params)
-        print(f"[Resend] Email sent to {to_email}")
-        return True
-    except Exception as e:
-        print(f"[Resend] Failed to send email: {e}")
-        return False
+    subject   = 'Your CUBAG Verification Code'
+    body_text = (
+        f'Hello,\n\n'
+        f'Your CUBAG email verification code is:\n\n'
+        f'  {token}\n\n'
+        f'Enter this 6-digit code in the app to complete your registration.\n'
+        f'This code expires in 15 minutes.\n\n'
+        f'If you did not request this, please ignore this email.\n\n'
+        f'Thanks,\nCUBAG Secretariat'
+    )
+    body_html = (
+        f'<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px;">'
+        f'<h2 style="color:#f08232;margin-bottom:8px;">CUBAG Email Verification</h2>'
+        f'<p style="color:#475569;">Enter the code below in the app to verify your email address:</p>'
+        f'<div style="font-size:36px;font-weight:900;letter-spacing:12px;text-align:center;'
+        f'background:#f8fafc;border:2px solid #f08232;border-radius:10px;padding:20px 0;margin:24px 0;color:#0f172a;">'
+        f'{token}</div>'
+        f'<p style="color:#94a3b8;font-size:12px;">This code expires in 15 minutes. If you did not register on CUBAG, ignore this email.</p>'
+        f'</div>'
+    )
+    return _send_email(to_email, subject, body_text, body_html)
 
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
@@ -431,30 +465,28 @@ def update_fcm_token():
 
 
 def send_reset_email(to_email, token):
-    resend.api_key = os.getenv('RESEND_API_KEY')
-    client_url = os.getenv('CLIENT_URL', 'https://cub-production.up.railway.app')
-    
-    if not resend.api_key:
-        print("[Resend] API key not configured for reset. Skipping.")
-        return
-
-    reset_link = f"{client_url}/reset-password?token={token}&email={to_email}"
-    body = f"Hello,\n\nYou requested a password reset. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email.\n\nThanks,\nCUBAG Secretariat"
-
-    params = {
-        "from": "CUBAG Support <onboarding@resend.dev>",
-        "to": [to_email],
-        "subject": "Reset your CUBAG Password",
-        "text": body,
-    }
-
-    try:
-        email_response = resend.Emails.send(params)
-        print(f"[Resend] Password reset email sent to {to_email}")
-        return True
-    except Exception as e:
-        print(f"[Resend] Failed to send reset email: {e}")
-        return False
+    client_url = os.getenv('CLIENT_URL', 'https://cubag-backend.onrender.com')
+    reset_link = f'{client_url}/#/reset-password?token={token}&email={to_email}'
+    subject   = 'Reset your CUBAG Password'
+    body_text = (
+        f'Hello,\n\n'
+        f'You requested a password reset for your CUBAG account.\n\n'
+        f'Click the link below to reset your password:\n\n'
+        f'  {reset_link}\n\n'
+        f'If you did not request this, please ignore this email.\n\n'
+        f'Thanks,\nCUBAG Secretariat'
+    )
+    body_html = (
+        f'<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px;">'
+        f'<h2 style="color:#f08232;margin-bottom:8px;">CUBAG Password Reset</h2>'
+        f'<p style="color:#475569;">You requested a password reset. Click the button below:</p>'
+        f'<a href="{reset_link}" style="display:block;text-align:center;background:#f08232;color:#fff;'
+        f'font-weight:bold;padding:14px 24px;border-radius:10px;text-decoration:none;margin:24px 0;">'
+        f'Reset My Password</a>'
+        f'<p style="color:#94a3b8;font-size:12px;">If you did not request this, ignore this email. This link expires shortly.</p>'
+        f'</div>'
+    )
+    return _send_email(to_email, subject, body_text, body_html)
 
 
 @auth_bp.route('/forgot-password', methods=['POST', 'OPTIONS'])
