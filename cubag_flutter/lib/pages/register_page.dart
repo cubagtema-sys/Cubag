@@ -154,33 +154,41 @@ class _RegisterPageState extends State<RegisterPage> {
   );
 
   Widget _buildFormContent() {
+    final isSmall = MediaQuery.of(context).size.width < 360;
     final stepLabels = ['Identity', 'Professional', 'Verify', 'Security'];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       Center(child: Column(children: [
-        const AppLogo(size: 56, borderRadius: 14, showShadow: true),
-        const SizedBox(height: 14),
-        Text(['Join CUBAG', 'Professional Profile', 'Verify Identity', 'Secure Account'][_step - 1], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
-        const SizedBox(height: 6),
-        Text(['Provide contact information to get started.', 'Tell us about your agency or brokerage.', 'Enter the verification code sent to your email.', 'Choose a strong password for your account.'][_step - 1], textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        AppLogo(size: isSmall ? 44 : 56, borderRadius: 12, showShadow: true),
+        const SizedBox(height: 12),
+        Text(['Join CUBAG', 'Professional Profile', 'Verify Identity', 'Secure Account'][_step - 1], style: TextStyle(fontSize: isSmall ? 18 : 22, fontWeight: FontWeight.bold, color: const Color(0xFF0f172a))),
+        const SizedBox(height: 4),
+        Text(['Provide contact information.', 'Tell us about your agency.', 'Enter verification code.', 'Choose a password.'][_step - 1], textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 11)),
       ])),
-      const SizedBox(height: 24),
+      const SizedBox(height: 20),
 
-      // Step progress indicator — numbers directly above labels
+      // Step progress indicator — optimized for mobile
       Row(children: List.generate(4, (i) {
         final n = i + 1;
         final done = _step > n;
         final active = _step == n;
         return Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
           Row(children: [
-            if (i > 0) Expanded(child: Container(height: 2.5, color: _step > n - 1 ? _kOrange : Colors.grey.shade200)),
-            CircleAvatar(radius: 14, backgroundColor: done || active ? _kOrange : Colors.grey.shade200, child: done ? const Icon(Icons.check, color: Colors.white, size: 14) : Text('$n', style: TextStyle(color: done || active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: 11))),
-            if (i < 3) Expanded(child: Container(height: 2.5, color: done ? _kOrange : Colors.grey.shade200)),
+            if (i > 0) Expanded(child: Container(height: 2, color: _step > n - 1 ? _kOrange : Colors.grey.shade200)),
+            CircleAvatar(radius: isSmall ? 11 : 13, backgroundColor: done || active ? _kOrange : Colors.grey.shade200, child: done ? const Icon(Icons.check, color: Colors.white, size: 12) : Text('$n', style: TextStyle(color: done || active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: 10))),
+            if (i < 3) Expanded(child: Container(height: 2, color: done ? _kOrange : Colors.grey.shade200)),
           ]),
-          const SizedBox(height: 6),
-          Text(stepLabels[i], textAlign: TextAlign.center, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: done || active ? _kOrange : Colors.grey)),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              stepLabels[i], 
+              textAlign: TextAlign.center, 
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: done || active ? _kOrange : Colors.grey),
+            ),
+          ),
         ]));
       })),
-      const SizedBox(height: 24),
+      const SizedBox(height: 20),
 
       // Error
       if (_error.isNotEmpty)
@@ -261,9 +269,9 @@ class _RegisterPageState extends State<RegisterPage> {
     _dropdown('Primary Port of Operation', _form['portOfOperation']!, ['Tema Port', 'Takoradi Port', 'KIA Air Cargo', 'Elubo Border', 'Aflao Border'], (v) => setState(() => _form['portOfOperation'] = v), icon: Icons.anchor),
     const SizedBox(height: 10),
     Row(children: [
-      Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.grey), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), minimumSize: const Size(0, 48)), child: const Text('Back', style: TextStyle(color: Colors.grey)))),
-      const SizedBox(width: 12),
-      Expanded(flex: 2, child: ElevatedButton(onPressed: _loading ? null : _step2Next, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), minimumSize: const Size(0, 48)), child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Verify Email', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)))),
+      Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.grey), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), minimumSize: const Size(0, 44)), child: const Text('Back', style: TextStyle(color: Colors.grey, fontSize: 13)))),
+      const SizedBox(width: 8),
+      Expanded(flex: 2, child: ElevatedButton(onPressed: _loading ? null : _step2Next, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), minimumSize: const Size(0, 44)), child: _loading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Verify Email', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)))),
     ]),
   ]);
 

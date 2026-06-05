@@ -28,7 +28,7 @@ class AppTheme {
       primaryColor: accentLight,
       scaffoldBackgroundColor: bgLight,
       textTheme: GoogleFonts.interTextTheme().copyWith(
-        bodyMedium: GoogleFonts.inter(color: textLight, fontSize: 18),
+        bodyMedium: GoogleFonts.inter(color: textLight, fontSize: 14),
         headlineLarge: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.w500),
         headlineMedium: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.w500),
       ),
@@ -84,7 +84,7 @@ class AppTheme {
       primaryColor: accentDark,
       scaffoldBackgroundColor: bgDark,
       textTheme: GoogleFonts.interTextTheme().copyWith(
-        bodyMedium: GoogleFonts.inter(color: textDark, fontSize: 18),
+        bodyMedium: GoogleFonts.inter(color: textDark, fontSize: 14),
         headlineLarge: GoogleFonts.inter(color: textHDark, fontWeight: FontWeight.w500),
         headlineMedium: GoogleFonts.inter(color: textHDark, fontWeight: FontWeight.w500),
       ),

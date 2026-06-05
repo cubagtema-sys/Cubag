@@ -10,7 +10,7 @@ class ApiService {
   // Set dynamically via --dart-define=API_URL=https://your-api-url.com
   static const _base = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://127.0.0.1:5000/api',
+    defaultValue: 'https://cubag-production.up.railway.app/api',
   );
 
   static String get _normalizedBase {

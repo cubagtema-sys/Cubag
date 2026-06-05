@@ -33,12 +33,31 @@ class LandingPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Logo
-                    const AppLogo(size: 88, borderRadius: 22, showShadow: true),
+                    const AppLogo(size: 80, borderRadius: 20, showShadow: true),
                     const SizedBox(height: 20),
-                    const Text('CUBAG', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1.5)),
-                    const SizedBox(height: 6),
-                    const Text('Enterprise Mobility Platform', style: TextStyle(color: Colors.white70, fontSize: 14, letterSpacing: 0.3)),
-                    const SizedBox(height: 36),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'CUBAG',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isMobile ? 32 : 42,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Enterprise Mobility Platform',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: isMobile ? 13 : 15,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
 
                     // 4 Feature Cards
                     GridView.count(
@@ -47,12 +66,12 @@ class LandingPage extends StatelessWidget {
                       crossAxisCount: 2,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: isMobile ? 1.35 : 1.5,
+                      childAspectRatio: isMobile ? 0.9 : 1.5,
                       children: const [
-                        _FeatureCard(icon: Icons.local_shipping_outlined, label: 'Live Logistics', description: 'Track vessels & cargo'),
-                        _FeatureCard(icon: Icons.payments_outlined, label: 'Payment', description: 'Dues & license renewal'),
-                        _FeatureCard(icon: Icons.verified_user_outlined, label: 'Compliance', description: 'Tasks & certifications'),
-                        _FeatureCard(icon: Icons.group_outlined, label: 'Networking', description: 'Connect with brokers'),
+                        _FeatureCard(icon: Icons.local_shipping_outlined, label: 'Live Logistics', description: 'Track vessels\n& cargo'),
+                        _FeatureCard(icon: Icons.payments_outlined, label: 'Payment', description: 'Dues & license\nrenewal'),
+                        _FeatureCard(icon: Icons.verified_user_outlined, label: 'Compliance', description: 'Tasks &\ncertifications'),
+                        _FeatureCard(icon: Icons.group_outlined, label: 'Networking', description: 'Connect with\nbrokers'),
                       ],
                     ),
                     const SizedBox(height: 32),
@@ -120,7 +139,7 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(20),
         borderRadius: BorderRadius.circular(16),
@@ -128,20 +147,33 @@ class _FeatureCard extends StatelessWidget {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white.withAlpha(25),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Colors.white, size: 24),
+            child: Icon(icon, color: Colors.white, size: 20),
           ),
-          const SizedBox(height: 10),
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), textAlign: TextAlign.center),
-          const SizedBox(height: 3),
-          Text(description, style: TextStyle(color: Colors.white.withAlpha(150), fontSize: 10), textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          Text(
+            label, 
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), 
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            description, 
+            style: TextStyle(color: Colors.white.withAlpha(150), fontSize: 10, height: 1.2), 
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );

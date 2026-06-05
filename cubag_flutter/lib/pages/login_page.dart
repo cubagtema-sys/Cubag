@@ -144,15 +144,17 @@ class _LoginPageState extends State<LoginPage> {
     ))),
   );
 
-  Widget _buildForm() => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+  Widget _buildForm() {
+    final isSmall = MediaQuery.of(context).size.width < 360;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
     Center(child: Column(children: [
-      const AppLogo(size: 60, borderRadius: 16, showShadow: true),
-      const SizedBox(height: 16),
-      const Text('Welcome Back', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
-      const SizedBox(height: 6),
-      const Text('Sign in to the CUBAG Member Portal', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13)),
+      AppLogo(size: isSmall ? 50 : 60, borderRadius: 14, showShadow: true),
+      const SizedBox(height: 12),
+      Text('Welcome Back', style: TextStyle(fontSize: isSmall ? 22 : 26, fontWeight: FontWeight.bold, color: const Color(0xFF0f172a))),
+      const SizedBox(height: 4),
+      Text('Sign in to the CUBAG Member Portal', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: isSmall ? 11 : 13)),
     ])),
-    const SizedBox(height: 32),
+    const SizedBox(height: 24),
 
     if (_error != null)
       Container(
@@ -199,27 +201,27 @@ class _LoginPageState extends State<LoginPage> {
     )),
     const SizedBox(height: 8),
 
-    SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
+    SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
       onPressed: _loading ? null : _handleLogin,
       style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
       child: _loading
-        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-        : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+        : const Text('Sign In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
     )),
 
     // ── Biometric quick login (mobile only) ──
     if (_bioAvailable && _bioEnabled && !kIsWeb) ...[
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
       Row(children: [
         const Expanded(child: Divider(color: Color(0xFFe2e8f0))),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text('or', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text('or', style: TextStyle(color: Colors.grey.shade500, fontSize: 11))),
         const Expanded(child: Divider(color: Color(0xFFe2e8f0))),
       ]),
-      const SizedBox(height: 16),
-      SizedBox(width: double.infinity, height: 50, child: OutlinedButton.icon(
+      const SizedBox(height: 12),
+      SizedBox(width: double.infinity, height: 48, child: OutlinedButton.icon(
         onPressed: _loading ? null : _handleBiometricLogin,
-        icon: const Icon(Icons.fingerprint, size: 22, color: _kOrange),
-        label: const Text('Sign in with Biometrics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        icon: const Icon(Icons.fingerprint, size: 20, color: _kOrange),
+        label: const Text('Sign in with Biometrics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         style: OutlinedButton.styleFrom(foregroundColor: _kOrange, side: const BorderSide(color: _kOrange, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
       )),
     ],

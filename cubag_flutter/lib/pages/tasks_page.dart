@@ -337,25 +337,31 @@ class _TasksPageState extends State<TasksPage> {
                       Color iconColor = verified ? const Color(0xFF10b981) : submitted ? const Color(0xFF3b82f6) : Theme.of(context).primaryColor;
                       IconData icon = verified ? Icons.verified : submitted ? Icons.hourglass_top : Icons.description;
 
+                      final isSmall = MediaQuery.of(context).size.width < 360;
                       return Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
                             Container(
-                              width: 36, height: 36,
-                              decoration: BoxDecoration(color: iconBgColor, borderRadius: BorderRadius.circular(10)),
-                              child: Icon(icon, color: iconColor, size: 20),
+                              width: 32, height: 32,
+                              decoration: BoxDecoration(color: iconBgColor, borderRadius: BorderRadius.circular(8)),
+                              child: Icon(icon, color: iconColor, size: 18),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(task['title'] ?? 'Unknown Task', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text(
+                                    task['title'] ?? 'Unknown Task', 
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmall ? 13 : 15),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                   Text(
                                     verified ? '✅ Verified' : submitted ? '⏳ Reviewing' : task['due_date'] != null ? 'Due: ${task['due_date']}' : 'No due date',
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       color: verified ? const Color(0xFF10b981) : submitted ? const Color(0xFF3b82f6) : urgent ? const Color(0xFFef4444) : Colors.grey
                                     ),
                                   )
@@ -363,11 +369,20 @@ class _TasksPageState extends State<TasksPage> {
                               ),
                             ),
                             if (!submitted)
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, foregroundColor: Colors.white),
-                                icon: const Icon(Icons.upload, size: 16),
-                                label: const Text('Submit'),
-                                onPressed: () => _openSubmitModal(task),
+                              const SizedBox(width: 8),
+                            if (!submitted)
+                              SizedBox(
+                                height: 32,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Theme.of(context).primaryColor, 
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () => _openSubmitModal(task),
+                                  child: const Text('Submit'),
+                                ),
                               )
                           ],
                         ),

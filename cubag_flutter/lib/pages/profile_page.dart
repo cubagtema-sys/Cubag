@@ -252,16 +252,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(_user['name']?.toString() ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 Text(_user['role']?.toString() ?? '', style: const TextStyle(color: Colors.grey, fontSize: 14)),
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
                   children: [
                     const Icon(Icons.star, color: Color(0xFFFFD700), size: 18),
-                    const SizedBox(width: 4),
                     Text(
                       '${starRating.toStringAsFixed(1)} / 5.0 Stars',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
-                    const SizedBox(width: 6),
                     Text(
                       '(${tier.label})',
                       style: TextStyle(color: tier.color, fontWeight: FontWeight.w600, fontSize: 13),
@@ -270,7 +270,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 6),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     children: [
                       ClipRRect(
@@ -279,13 +279,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           value: complianceScore / 100.0,
                           backgroundColor: Colors.grey.shade200,
                           color: tier.color,
-                          minHeight: 8,
+                          minHeight: 6,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '$complianceScore/100 Compliance Score',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                        style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),

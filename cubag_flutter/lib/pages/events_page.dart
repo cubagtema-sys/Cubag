@@ -39,27 +39,28 @@ class _EventsPageState extends State<EventsPage> {
             DateTime? date;
             try { date = DateTime.parse(e['date'].toString()); } catch (_) {}
             final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            final isSmall = MediaQuery.of(context).size.width < 360;
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               child: IntrinsicHeight(child: Row(children: [
                 Container(
-                  width: 76,
+                  width: isSmall ? 60 : 70,
                   decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [primary, primary.withValues(alpha: 0.7)]), borderRadius: const BorderRadius.horizontal(left: Radius.circular(14))),
                   alignment: Alignment.center,
                   child: date == null ? const Icon(Icons.calendar_month, color: Colors.white) : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text(months[date.month - 1].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                    Text('${date.day}', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, height: 1)),
+                    Text(months[date.month - 1].toUpperCase(), style: TextStyle(color: Colors.white, fontSize: isSmall ? 9 : 10, fontWeight: FontWeight.bold)),
+                    Text('${date.day}', style: TextStyle(color: Colors.white, fontSize: isSmall ? 22 : 26, fontWeight: FontWeight.bold, height: 1)),
                   ]),
                 ),
-                Expanded(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(e['title']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Expanded(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(e['title']?.toString() ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmall ? 13 : 15)),
                   const SizedBox(height: 4),
-                  Text(e['description']?.toString() ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(e['description']?.toString() ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 8),
-                  Wrap(spacing: 12, children: [
-                    if (e['time'] != null) Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.schedule, size: 14, color: Colors.grey), const SizedBox(width: 4), Text(e['time'].toString(), style: const TextStyle(fontSize: 11, color: Colors.grey))]),
-                    if (e['location'] != null) Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.location_on, size: 14, color: Colors.grey), const SizedBox(width: 4), Text(e['location'].toString(), style: const TextStyle(fontSize: 11, color: Colors.grey))]),
+                  Wrap(spacing: 8, runSpacing: 4, children: [
+                    if (e['time'] != null) Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.schedule, size: 12, color: Colors.grey), const SizedBox(width: 4), Text(e['time'].toString(), style: const TextStyle(fontSize: 10, color: Colors.grey))]),
+                    if (e['location'] != null) Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.location_on, size: 12, color: Colors.grey), const SizedBox(width: 4), Flexible(child: Text(e['location'].toString(), style: const TextStyle(fontSize: 10, color: Colors.grey), overflow: TextOverflow.ellipsis))]),
                   ]),
                 ]))),
               ])),

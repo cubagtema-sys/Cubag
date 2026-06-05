@@ -96,10 +96,11 @@ class _DashboardPageState extends State<DashboardPage> {
                             const SizedBox(height: 6),
                             Text('You have ${pending.length} pending item${pending.length != 1 ? 's' : ''}.', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
                             const SizedBox(height: 14),
-                            Row(
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
                                 _forexBadge('USD: ${_forex['USD']}'),
-                                const SizedBox(width: 8),
                                 _forexBadge('EUR: ${_forex['EUR']}'),
                               ],
                             ),
@@ -201,7 +202,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     crossAxisCount: isMobile ? 2 : 4,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: isMobile ? 2.2 : 1.3,
+                    childAspectRatio: isMobile ? 2.5 : 1.3,
                     padding: const EdgeInsets.all(12),
                     children: [
                       _quickAction(context, Icons.payments, 'Pay Dues', '/payments', isMobile),
@@ -293,9 +294,16 @@ class _DashboardPageState extends State<DashboardPage> {
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: primary, size: 20),
-                  const SizedBox(width: 8),
-                  Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  Icon(icon, color: primary, size: 18),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      label, 
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
                 ],
               )
             : Column(

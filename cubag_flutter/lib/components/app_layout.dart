@@ -78,7 +78,12 @@ class _AppLayoutState extends State<AppLayout> {
         elevation: 0,
         shadowColor: Colors.black.withAlpha(20),
         bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: const Color(0xFFf0f0f0), height: 1)),
-        title: Text(widget.title, style: const TextStyle(color: Color(0xFF0f172a), fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(
+          widget.title, 
+          style: const TextStyle(color: Color(0xFF0f172a), fontWeight: FontWeight.bold, fontSize: 16),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           if (!widget.hideSearch)
             IconButton(
