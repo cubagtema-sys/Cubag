@@ -77,7 +77,7 @@ class PushNotificationService {
                 importance: Importance.high,
                 priority: Priority.high,
                 icon: '@mipmap/ic_launcher',
-                color: const Color(0xFFf08232), // CUBAG orange
+                color: Color(0xFFf08232), // CUBAG orange
               ),
             ),
             payload: message.data['type']?.toString(),
