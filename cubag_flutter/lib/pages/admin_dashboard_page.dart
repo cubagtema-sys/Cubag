@@ -981,6 +981,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     if (auth.hasPermission('announcements')) {
       items.add(_mgmtTile(context, '/admin/announcements', Icons.campaign, const Color(0xFFf08232), 'Broadcast Alerts', 'Send push notifications'));
     }
+    if (auth.hasPermission('surveys')) {
+      items.add(_mgmtTile(context, '/admin/surveys', Icons.how_to_vote, const Color(0xFFf08232), 'Surveys & Elections', 'Manage polls and elections'));
+    }
     if (auth.hasPermission('schedules')) {
       items.add(_mgmtTile(context, '/admin/cargo-schedules', Icons.local_shipping, const Color(0xFFf08232), 'Logistics Master', 'Update vanning schedules'));
     }

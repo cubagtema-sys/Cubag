@@ -17,7 +17,7 @@ sub_admins_bp = Blueprint('sub_admins', __name__)
 # All permission keys the system understands
 ALL_PERMISSIONS = [
     'members', 'payments', 'tickets', 'announcements',
-    'schedules', 'events', 'intelligence', 'audit_log',
+    'schedules', 'events', 'surveys', 'intelligence', 'audit_log',
     'fees', 'settings',
 ]
 

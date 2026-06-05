@@ -7,7 +7,7 @@ import '../services/auth_service.dart';
 // All available permission modules — must match backend ALL_PERMISSIONS list.
 const _kAllPermissions = [
   'members', 'payments', 'tickets', 'announcements',
-  'schedules', 'events', 'intelligence', 'audit_log',
+  'schedules', 'events', 'surveys', 'intelligence', 'audit_log',
   'fees', 'settings',
 ];
 
@@ -17,7 +17,8 @@ const _kPermissionLabels = {
   'tickets':          'Support Tickets',
   'announcements':    'Announcements',
   'schedules':        'Cargo Schedules',
-  'events':           'Events & Surveys',
+  'events':           'Events',
+  'surveys':          'Surveys & Elections',
   'intelligence':     'Intelligence Hub',
   'audit_log':        'Audit Log',
   'fees':             'Platform Fees',
@@ -31,6 +32,7 @@ const _kPermissionIcons = {
   'announcements':    Icons.campaign_outlined,
   'schedules':        Icons.local_shipping_outlined,
   'events':           Icons.event_outlined,
+  'surveys':          Icons.how_to_vote_outlined,
   'intelligence':     Icons.cell_tower,
   'audit_log':        Icons.history_outlined,
   'fees':             Icons.request_quote_outlined,
