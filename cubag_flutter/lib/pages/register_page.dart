@@ -50,13 +50,17 @@ class _RegisterPageState extends State<RegisterPage> {
     _err(''); setState(() => _loading = true);
     try {
       final res = await ApiService().post('/auth/send-otp', data: {'email': _emailCtrl.text.trim()});
+      if (!mounted) return;
       if (res.statusCode == 200) {
         setState(() { _step = 3; _error = ''; });
       } else {
         _err(res.data['message'] ?? 'Failed to send verification code.');
       }
-    } catch (_) { _err('Network error. Please try again.'); }
-    setState(() => _loading = false);
+    } catch (_) {
+      if (!mounted) return;
+      _err('Network error. Please try again.');
+    }
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _verifyOtp() async {
@@ -64,13 +68,17 @@ class _RegisterPageState extends State<RegisterPage> {
     _err(''); setState(() => _loading = true);
     try {
       final res = await ApiService().post('/auth/verify-email', data: {'email': _emailCtrl.text.trim(), 'token': _otpCtrl.text.trim()});
+      if (!mounted) return;
       if (res.statusCode == 200) {
         setState(() { _step = 4; _error = ''; });
       } else {
         _err(res.data['message'] ?? 'Invalid or expired code.');
       }
-    } catch (_) { _err('Connection error. Try again.'); }
-    setState(() => _loading = false);
+    } catch (_) {
+      if (!mounted) return;
+      _err('Connection error. Try again.');
+    }
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _register() async {
@@ -85,11 +93,29 @@ class _RegisterPageState extends State<RegisterPage> {
         'portOfOperation': _form['portOfOperation'], 'memberType': _form['memberType'],
         'password': _pwCtrl.text,
       });
+      if (!mounted) return;
       if (res.statusCode == 200 || res.statusCode == 201) {
-        if (mounted) context.go('/login');
+        context.go('/login');
       } else { _err(res.data['message'] ?? 'Registration failed.'); }
-    } catch (_) { _err('Connection error. Please try again.'); }
-    setState(() => _loading = false);
+    } catch (_) {
+      if (!mounted) return;
+      _err('Connection error. Please try again.');
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    _companyCtrl.dispose();
+    _licCtrl.dispose();
+    _agcCtrl.dispose();
+    _otpCtrl.dispose();
+    _pwCtrl.dispose();
+    _cpwCtrl.dispose();
+    super.dispose();
   }
 
   @override

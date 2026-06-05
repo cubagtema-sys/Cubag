@@ -28,19 +28,21 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _loadData() async {
     setState(() => _loading = true);
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() => _user = {'name': prefs.getString('cubag_name') ?? 'Member', 'role': prefs.getString('cubag_role') ?? ''});
 
     try {
       final api = ApiService();
       final taskRes = await api.get('/tasks');
-      final annRes = await api.get('/announcements');
-
+      final annRes  = await api.get('/announcements');
+      if (!mounted) return;
       if (taskRes.statusCode == 200) setState(() => _tasks = taskRes.data ?? []);
-      if (annRes.statusCode == 200) setState(() => _announcements = (annRes.data as List).take(3).toList());
+      if (annRes.statusCode  == 200) setState(() => _announcements = (annRes.data as List).take(3).toList());
     } catch (_) {}
 
     try {
       final res = await http.get(Uri.parse('https://open.er-api.com/v6/latest/GHS'));
+      if (!mounted) return;
       if (res.statusCode == 200) {
         final body = res.body;
         String extractRate(String currency) {
@@ -57,7 +59,7 @@ class _DashboardPageState extends State<DashboardPage> {
       }
     } catch (_) {}
 
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   @override

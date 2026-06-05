@@ -79,15 +79,49 @@ class _LoginPageState extends State<LoginPage> {
     if (mounted) {
       setState(() { _loading = false; _error = error; });
       if (error == null) {
-        // Save credentials for biometric re-login on next visit
-        if (_bioAvailable) {
-          await _bioService.saveCredentials(_identifierCtrl.text.trim(), _passCtrl.text);
-          await _bioService.setBiometricEnabled(true);
+        // BUG-13 fix: ask for user consent before saving biometric credentials
+        if (_bioAvailable && !kIsWeb) {
+          final alreadyEnabled = await _bioService.isBiometricEnabled();
+          if (!alreadyEnabled && mounted) {
+            final consent = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Enable Biometric Login?'),
+                content: const Text(
+                  'Would you like to use fingerprint or face recognition to sign in faster next time?'
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Not Now'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    style: ElevatedButton.styleFrom(backgroundColor: _kOrange),
+                    child: const Text('Enable', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            );
+            if (consent == true) {
+              await _bioService.saveCredentials(_identifierCtrl.text.trim(), _passCtrl.text);
+              await _bioService.setBiometricEnabled(true);
+            }
+          }
         }
-        final role = authService.userRole;
-        context.go((role == 'admin' || role == 'sub_admin') ? '/admin/dashboard' : '/dashboard');
+        if (mounted) {
+          final role = authService.userRole;
+          context.go((role == 'admin' || role == 'sub_admin') ? '/admin/dashboard' : '/dashboard');
+        }
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _identifierCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
   }
 
   Widget _loginTab(String mode, IconData icon, String label) {
