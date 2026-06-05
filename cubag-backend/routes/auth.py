@@ -300,22 +300,33 @@ def upload_photo():
     file_bytes = file.read()
     content_type = file.content_type or 'image/jpeg'
 
-    # Upload to Supabase Storage
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return jsonify({'message': 'Storage not configured'}), 500
+    # Read Supabase config at request time (not module load time)
+    supabase_url = os.getenv('SUPABASE_URL', '')
+    supabase_key = os.getenv('SUPABASE_SERVICE_KEY', '')
+    photo_bucket = os.getenv('SUPABASE_BUCKET', 'uploads')
 
-    storage_url = f"{SUPABASE_URL}/storage/v1/object/{PHOTO_BUCKET}/{safe_name}"
+    if not supabase_url or not supabase_key:
+        logger.error("[upload-photo] SUPABASE_URL or SUPABASE_SERVICE_KEY not set")
+        return jsonify({'message': 'Storage not configured. Set SUPABASE_URL and SUPABASE_SERVICE_KEY.'}), 500
+
+    storage_url = f"{supabase_url}/storage/v1/object/{photo_bucket}/{safe_name}"
     headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
         "Content-Type": content_type,
         "x-upsert": "true",
     }
-    resp = http_req.post(storage_url, data=file_bytes, headers=headers, timeout=30)
-    if resp.status_code not in (200, 201):
-        return jsonify({'message': f'Upload failed: {resp.text}'}), 500
 
-    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{PHOTO_BUCKET}/{safe_name}"
+    try:
+        resp = http_req.post(storage_url, data=file_bytes, headers=headers, timeout=30)
+        if resp.status_code not in (200, 201):
+            logger.error(f"[upload-photo] Supabase upload failed: {resp.status_code} - {resp.text}")
+            return jsonify({'message': f'Upload failed: {resp.text}'}), 500
+    except Exception as e:
+        logger.error(f"[upload-photo] Request to Supabase failed: {e}")
+        return jsonify({'message': 'Failed to connect to storage service'}), 500
+
+    public_url = f"{supabase_url}/storage/v1/object/public/{photo_bucket}/{safe_name}"
 
     # Save URL to DB
     conn = get_db()
@@ -325,6 +336,7 @@ def upload_photo():
             conn.commit()
         return jsonify({'message': 'Photo uploaded', 'photo_url': public_url}), 200
     except Exception as e:
+        logger.error(f"[upload-photo] DB update failed: {e}")
         return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
