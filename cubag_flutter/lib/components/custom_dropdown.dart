@@ -142,11 +142,8 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
       link: _link,
       child: GestureDetector(
         onTap: _toggle,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minWidth: widget.width ?? 120,
-            maxWidth: widget.width ?? double.infinity,
-          ),
+        child: SizedBox(
+          width: widget.width ?? double.infinity,
           child: Container(
             height: widget.dense ? 40 : 54,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -158,13 +155,12 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
                 width: _open ? 2.0 : 1.5,
               ),
             ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
+            child: Row(children: [
               if (widget.prefixIcon != null) ...[
                 widget.prefixIcon!,
                 const SizedBox(width: 8),
               ],
-              Flexible(
-                fit: FlexFit.loose,
+              Expanded(
                 child: Text(
                   currentLabel.isEmpty ? (widget.hint ?? '') : currentLabel,
                   style: TextStyle(
