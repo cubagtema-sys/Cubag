@@ -189,18 +189,80 @@ def get_audit_log():
                 if not cursor.fetchone():
                     return jsonify({'message': 'Permission denied'}), 403
 
-            limit = request.args.get('limit', 50, type=int)
-            cursor.execute("""
-                SELECT a.*, m.name as admin_name
+            # Query params
+            limit = request.args.get('limit', 30, type=int)
+            offset = request.args.get('offset', 0, type=int)
+            target_type = request.args.get('target_type', '').strip()
+            action_type = request.args.get('action_type', '').strip()
+            date_from = request.args.get('date_from', '').strip()
+            date_to = request.args.get('date_to', '').strip()
+            actor_id = request.args.get('actor_id', '').strip()
+
+            # Build WHERE clauses
+            conditions = []
+            params = []
+            if target_type:
+                conditions.append("LOWER(a.target_type) = LOWER(%s)")
+                params.append(target_type)
+            if action_type:
+                conditions.append("LOWER(a.action) LIKE LOWER(%s)")
+                params.append(f"%{action_type}%")
+            if date_from:
+                conditions.append("a.created_at >= %s::date")
+                params.append(date_from)
+            if date_to:
+                conditions.append("a.created_at < (%s::date + INTERVAL '1 day')")
+                params.append(date_to)
+            if actor_id:
+                conditions.append("a.admin_id = %s")
+                params.append(actor_id)
+
+            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+            # Total count
+            cursor.execute(f"SELECT COUNT(*) as cnt FROM audit_log a {where}", params)
+            total = int(cursor.fetchone()['cnt'] or 0)
+
+            # Fetch logs with admin info
+            cursor.execute(f"""
+                SELECT a.*, m.name as admin_name, m.email as admin_email, m.role as admin_role
                 FROM audit_log a
                 LEFT JOIN members m ON a.admin_id = m.id
+                {where}
                 ORDER BY a.created_at DESC
-                LIMIT %s
-            """, (limit,))
+                LIMIT %s OFFSET %s
+            """, params + [limit, offset])
             logs = cursor.fetchall()
             for l in logs:
                 if hasattr(l.get('created_at'), 'isoformat'):
                     l['created_at'] = l['created_at'].isoformat()
-            return jsonify(logs), 200
+
+            # Filter options — distinct target types
+            cursor.execute("SELECT DISTINCT target_type FROM audit_log WHERE target_type IS NOT NULL ORDER BY target_type")
+            target_types = [r['target_type'] for r in cursor.fetchall()]
+
+            # Filter options — distinct actors
+            cursor.execute("""
+                SELECT DISTINCT a.admin_id as id, m.name, m.role
+                FROM audit_log a
+                JOIN members m ON a.admin_id = m.id
+                WHERE a.admin_id IS NOT NULL
+                ORDER BY m.name
+            """)
+            actors = [{'id': r['id'], 'name': r['name'] or 'Unknown', 'role': r['role'] or 'admin'} for r in cursor.fetchall()]
+
+            return jsonify({
+                'logs': logs,
+                'total': total,
+                'filter_options': {
+                    'target_types': target_types,
+                    'actors': actors,
+                }
+            }), 200
+    except Exception as e:
+        import traceback
+        print(f"[Audit Log Error] {e}")
+        print(traceback.format_exc())
+        return jsonify({'message': str(e), 'logs': [], 'total': 0, 'filter_options': {'target_types': [], 'actors': []}}), 500
     finally:
         conn.close()
