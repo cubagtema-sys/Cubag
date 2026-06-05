@@ -79,33 +79,52 @@ def send_verification_email(to_email, token):
 
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
-    data = request.get_json()
+    data  = request.get_json() or {}
     email = (data.get('email') or '').strip().lower()
+
     if not email:
         return jsonify({'message': 'Email is required'}), 400
+
+    # Basic format check
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return jsonify({'message': 'Invalid email format'}), 400
 
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             # Check if email is already registered
-            cursor.execute("SELECT id FROM members WHERE email = %s", (email,))
+            cursor.execute("SELECT id FROM members WHERE LOWER(email) = %s", (email,))
             if cursor.fetchone():
                 return jsonify({'message': 'Email already registered'}), 409
-            
-            token = str(random.randint(100000, 999999))
-            
-            # Upsert into otp_codes
+
+            import secrets
+            token = str(secrets.randbelow(900000) + 100000)  # cryptographically secure 6-digit OTP
+
+            # Upsert — include 'type' column required by otp_codes schema
             cursor.execute("""
-                INSERT INTO otp_codes (email, code) VALUES (%s, %s)
-                ON CONFLICT (email) DO UPDATE SET code = EXCLUDED.code, created_at = CURRENT_TIMESTAMP
+                INSERT INTO otp_codes (email, code, type)
+                VALUES (%s, %s, 'email_verification')
+                ON CONFLICT (email) DO UPDATE
+                  SET code = EXCLUDED.code,
+                      type = 'email_verification',
+                      created_at = CURRENT_TIMESTAMP
             """, (email, token))
             conn.commit()
-            
-            import threading
-            threading.Thread(target=send_verification_email, args=(email, token), daemon=True).start()
-            return jsonify({'message': 'OTP sent to email.'}), 200
+
+        # Send email outside the cursor context
+        import threading
+        threading.Thread(
+            target=send_verification_email,
+            args=(email, token),
+            daemon=True
+        ).start()
+
+        return jsonify({'message': 'OTP sent to email.'}), 200
+
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        logger.error(f'[send-otp] Error: {e}')
+        conn.rollback()
+        return jsonify({'message': 'Failed to generate OTP. Please try again.'}), 500
     finally:
         conn.close()
 
