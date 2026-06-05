@@ -57,21 +57,24 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     setState(() { _loading = true; _error = ''; });
     try {
       final res = await ApiService().post('/auth/verify-otp', data: {'email': widget.email ?? '', 'otp': code});
+      if (!mounted) return;
       if (res.statusCode == 200) {
-        if (mounted) context.go('/dashboard');
+        context.go('/dashboard');
       } else {
         setState(() => _error = res.data['message'] ?? 'Invalid or expired code');
       }
-    } catch (_) { setState(() => _error = 'Connection error. Please try again.'); }
-    setState(() => _loading = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Connection error. Please try again.');
+    }
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _resend() async {
     setState(() => _resending = true);
     try { await ApiService().post('/auth/resend-otp', data: {'email': widget.email ?? ''}); } catch (_) {}
-    for (final c in _ctrls) {
-      c.clear();
-    }
+    if (!mounted) return;
+    for (final c in _ctrls) { c.clear(); }
     _nodes[0].requestFocus();
     _startTimer();
     setState(() => _resending = false);

@@ -23,13 +23,23 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     setState(() { _loading = true; _error = ''; });
     try {
       final res = await ApiService().post('/auth/forgot-password', data: {'email': _emailCtrl.text.trim()});
+      if (!mounted) return;
       if (res.statusCode == 200) {
         setState(() => _sent = true);
       } else {
         setState(() => _error = res.data['message'] ?? "We couldn't find an account with that email.");
       }
-    } catch (_) { setState(() => _error = 'Connection failed. Please check your network.'); }
-    setState(() => _loading = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Connection failed. Please check your network.');
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    super.dispose();
   }
 
   @override
