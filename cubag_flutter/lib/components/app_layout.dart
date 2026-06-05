@@ -229,9 +229,9 @@ class _AppLayoutState extends State<AppLayout> {
                     : MemberSearchDelegate(),
               ),
             ),
-          _buildNotificationIcon(context, authService.userRole),
+          _buildNotificationIcon(context, authService.userRole, false),
           const SizedBox(width: 8),
-          _buildProfileMenu(context, authService),
+          _buildProfileMenu(context, authService, false),
         ],
       ),
     );
