@@ -38,8 +38,11 @@ class BiometricService {
     try {
       return await _localAuth.authenticate(
         localizedReason: reason,
-        biometricOnly: false,
-        persistAcrossBackgrounding: true,
+        options: const AuthenticationOptions(
+          biometricOnly: false,    // allow PIN/pattern as fallback
+          stickyAuth: true,        // keep prompt alive if user switches apps briefly
+          useErrorDialogs: true,   // show OS error dialogs automatically
+        ),
       );
     } on PlatformException catch (e) {
       debugPrint('Biometric authentication failed: $e');
