@@ -11,20 +11,20 @@ logger = logging.getLogger(__name__)
 @members_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_members():
+    """Returns a safe public list — no PII (email/phone/license) for other members."""
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                SELECT id, name, email, phone, company, member_type,
-                       port_of_operation, license_number, status,
-                       compliance_score, star_rating, manual_review_score
+                SELECT id, name, company, member_type,
+                       port_of_operation, star_rating
                 FROM members WHERE LOWER(status) = 'active'
                 ORDER BY name ASC
             """)
             members = cursor.fetchall()
         return jsonify(members), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        return jsonify({'message': 'Unable to fetch members'}), 500
     finally:
         conn.close()
 
@@ -321,20 +321,20 @@ def get_my_license_history():
 
 
 @members_bp.route('/public-directory', methods=['GET'])
+@jwt_required()  # Require login — phone/email are not exposed
 def get_public_directory():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                SELECT id, company as name, member_type as type, port_of_operation as location, 
-                       phone, email, '4.8' as rating 
+                SELECT id, company as name, member_type as type,
+                       port_of_operation as location, star_rating as rating
                 FROM members WHERE LOWER(status) = 'active' AND company IS NOT NULL
             """)
             companies = cursor.fetchall()
-            
         return jsonify(companies), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        return jsonify({'message': 'Unable to fetch directory'}), 500
     finally:
         conn.close()
 
@@ -342,44 +342,59 @@ def get_public_directory():
 @members_bp.route('/<int:member_id>', methods=['GET'])
 @jwt_required()
 def get_member(member_id):
+    caller_id = get_jwt_identity()
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT id, name, email, phone, company, member_type, port_of_operation, status,
-                       compliance_score, star_rating, manual_review_score
-                FROM members WHERE id = %s
-            """, (member_id,))
+            # Check caller's role
+            cursor.execute("SELECT role FROM members WHERE id = %s", (caller_id,))
+            caller = cursor.fetchone()
+            is_admin = caller and caller.get('role') in ('admin', 'sub_admin')
+            is_owner = str(caller_id) == str(member_id)
+
+            if is_owner or is_admin:
+                # Full profile for self or admins
+                cursor.execute("""
+                    SELECT id, name, email, phone, company, member_type, port_of_operation,
+                           status, compliance_score, star_rating, manual_review_score,
+                           license_number, profile_photo
+                    FROM members WHERE id = %s
+                """, (member_id,))
+            else:
+                # Other members see only safe public fields — no PII
+                cursor.execute("""
+                    SELECT id, name, company, member_type, port_of_operation,
+                           status, star_rating
+                    FROM members WHERE id = %s AND LOWER(status) = 'active'
+                """, (member_id,))
+
             member = cursor.fetchone()
             if not member:
                 return jsonify({'message': 'Member not found'}), 404
-            
-            from utils import calculate_and_update_member_rating
-            rating_data = calculate_and_update_member_rating(member_id, cursor)
-            
-            # Get rating history
-            cursor.execute("""
-                SELECT compliance_score, star_rating, recorded_at
-                FROM member_rating_history
-                WHERE member_id = %s
-                ORDER BY recorded_at ASC
-            """, (member_id,))
-            history_rows = cursor.fetchall()
-            history = []
-            for h in history_rows:
-                history.append({
-                    'compliance_score': h['compliance_score'],
-                    'star_rating': float(h['star_rating']),
-                    'recorded_at': str(h['recorded_at'])
-                })
 
-            result = dict(member)
-            result['compliance_score'] = rating_data['compliance_score']
-            result['star_rating'] = rating_data['star_rating']
-            result['manual_review_score'] = rating_data['manual_review_score']
-            result['breakdown'] = rating_data.get('breakdown', {})
-            result['rating_history'] = history
-            return jsonify(result), 200
+            if is_owner or is_admin:
+                from utils import calculate_and_update_member_rating
+                rating_data = calculate_and_update_member_rating(member_id, cursor)
+                cursor.execute("""
+                    SELECT compliance_score, star_rating, recorded_at
+                    FROM member_rating_history WHERE member_id = %s
+                    ORDER BY recorded_at ASC
+                """, (member_id,))
+                history = [
+                    {'compliance_score': h['compliance_score'],
+                     'star_rating': float(h['star_rating']),
+                     'recorded_at': str(h['recorded_at'])}
+                    for h in cursor.fetchall()
+                ]
+                result = dict(member)
+                result['compliance_score']    = rating_data['compliance_score']
+                result['star_rating']          = rating_data['star_rating']
+                result['manual_review_score']  = rating_data['manual_review_score']
+                result['breakdown']            = rating_data.get('breakdown', {})
+                result['rating_history']       = history
+                return jsonify(result), 200
+
+            return jsonify(dict(member)), 200
     finally:
         conn.close()
 

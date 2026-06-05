@@ -344,7 +344,14 @@ def calculate_and_update_member_rating(member_id, cursor=None):
             cursor.connection.rollback()
         except Exception as re:
             logger.exception("Error rolling back DB after rating calc failure: %s", re)
-        return {'compliance_score': 100, 'star_rating': 5.0, 'manual_review_score': 10}
+        # Return neutral/unknown score — NOT a fake perfect score
+        # This prevents a DB error from making every member look like a 5-star member
+        return {
+            'compliance_score': 0,
+            'star_rating': 0.0,
+            'manual_review_score': 0,
+            'error': 'Rating calculation temporarily unavailable'
+        }
     finally:
         if should_close:
             cursor.close()

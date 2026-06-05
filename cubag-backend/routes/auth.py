@@ -572,16 +572,26 @@ def reset_password():
     
     if not email or not token or not new_password:
         return jsonify({'message': 'Email, code, and new password are required'}), 400
-        
+
+    if len(new_password) < 8:
+        return jsonify({'message': 'Password must be at least 8 characters'}), 400
+
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM otp_codes WHERE LOWER(email) = LOWER(%s) AND code = %s AND type = 'password_reset'", (email, token))
+            # Token must exist, match type, AND be less than 1 hour old
+            cursor.execute("""
+                SELECT * FROM otp_codes
+                WHERE LOWER(email) = LOWER(%s)
+                  AND code = %s
+                  AND type = 'password_reset'
+                  AND created_at > NOW() - INTERVAL '1 hour'
+            """, (email, token))
             otp_record = cursor.fetchone()
-            
+
             if not otp_record:
-                return jsonify({'message': 'Invalid or expired reset code'}), 400
-                
+                return jsonify({'message': 'Invalid or expired reset link. Please request a new one.'}), 400
+
             actual_email = otp_record['email']
             hashed_pw = generate_password_hash(new_password)
             cursor.execute("UPDATE members SET password_hash = %s WHERE LOWER(email) = LOWER(%s)", (hashed_pw, actual_email))

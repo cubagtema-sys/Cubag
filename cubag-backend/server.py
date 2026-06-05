@@ -160,6 +160,61 @@ def require_admin_role_for_admin_api():
 
 
 @app.before_request
+def enforce_account_status():
+    """
+    CROSS-04: Check live member status on every authenticated API call.
+    This makes account suspension/deactivation take effect immediately
+    without needing a JWT blocklist or Redis — the DB is the source of truth.
+    Skips: OPTIONS preflight, public auth endpoints, static files.
+    """
+    if request.method == 'OPTIONS':
+        return None
+
+    # Only check protected API routes (skip auth, public, static)
+    _OPEN_PREFIXES = ('/api/auth/', '/static/', '/#')
+    if any(request.path.startswith(p) for p in _OPEN_PREFIXES):
+        return None
+    if not request.path.startswith('/api/'):
+        return None
+
+    try:
+        verify_jwt_in_request(optional=True)
+        member_id = get_jwt_identity()
+        if not member_id:
+            return None  # unauthenticated request — let route handle it
+
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT status FROM members WHERE id = %s",
+                    (member_id,)
+                )
+                row = cursor.fetchone()
+        finally:
+            conn.close()
+
+        if not row:
+            return None  # member deleted — JWT will naturally fail on next call
+
+        status = str(row.get('status') or '').lower()
+        if status == 'suspended':
+            return jsonify({
+                'message': 'Your account has been suspended. Please contact the CUBAG Secretariat.'
+            }), 403
+        if status == 'inactive':
+            return jsonify({
+                'message': 'Your account is inactive. Please contact the CUBAG Secretariat.'
+            }), 403
+
+    except Exception:
+        pass  # Don't block requests if the status check itself fails
+
+    return None
+
+
+
+@app.before_request
 def _start_request_timer():
     try:
         g._start_time = time.time()

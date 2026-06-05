@@ -55,6 +55,14 @@ def create_payment():
     if not amount or not description:
         return jsonify({'message': 'Amount and description are required'}), 400
 
+    # Validate amount is a positive number
+    try:
+        amount = float(amount)
+        if amount <= 0:
+            return jsonify({'message': 'Amount must be greater than zero'}), 400
+    except (TypeError, ValueError):
+        return jsonify({'message': 'Amount must be a valid number'}), 400
+
     conn = get_db()
     try:
         with conn.cursor() as cursor:
