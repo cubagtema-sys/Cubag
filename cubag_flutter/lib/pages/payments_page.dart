@@ -210,26 +210,55 @@ class _PaymentsPageState extends State<PaymentsPage>
             child: Column(children: [
               // Step Indicator
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(color: Theme.of(context).cardColor.withValues(alpha: 0.5), borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(4, (i) {
-                  final n = i + 1;
-                  final labels = ['Type', 'Method', 'Review', 'Verify'];
-                  final active = _step >= n;
-                  final current = _step == n;
-                  return Expanded(child: Row(children: [
-                    Column(children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: active ? primary : Colors.grey.shade200,
-                        child: _step > n ? const Icon(Icons.check, color: Colors.white, size: 14) : Text('$n', style: TextStyle(color: active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
+                child: Row(
+                  children: List.generate(4, (i) {
+                    final n = i + 1;
+                    final labels = ['Type', 'Method', 'Review', 'Verify'];
+                    final active = _step >= n;
+                    final current = _step == n;
+                    
+                    return Expanded(
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(child: Divider(thickness: 2, color: i == 0 ? Colors.transparent : (_step >= i ? primary : Colors.grey.shade200))),
+                              Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: active ? primary : Colors.grey.shade200,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: _step > n 
+                                    ? const Icon(Icons.check, color: Colors.white, size: 14)
+                                    : Text('$n', style: TextStyle(color: active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: 11)),
+                                ),
+                              ),
+                              Expanded(child: Divider(thickness: 2, color: i == 3 ? Colors.transparent : (_step > n ? primary : Colors.grey.shade200))),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              labels[i], 
+                              style: TextStyle(
+                                fontSize: 10, 
+                                color: current ? primary : Colors.grey, 
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(labels[i], style: TextStyle(fontSize: 10, color: current ? primary : Colors.grey, fontWeight: FontWeight.bold)),
-                    ]),
-                    if (i < 3) Expanded(child: Container(height: 2, color: _step > n ? primary : Colors.grey.shade200, margin: const EdgeInsets.only(bottom: 16))),
-                  ]));
-                })),
+                    );
+                  }),
+                ),
               ),
 
               Padding(padding: const EdgeInsets.all(24), child: _buildStepContent(primary, bank)),
@@ -342,12 +371,18 @@ class _PaymentsPageState extends State<PaymentsPage>
           keyboardType: TextInputType.number,
           readOnly: _reason.isNotEmpty && _reason != 'Other',
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          decoration: InputDecoration(labelText: 'Amount to Pay', prefixText: '₵ ', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+          decoration: InputDecoration(
+            labelText: 'Amount to Pay',
+            prefixText: '₵ ',
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
         ),
         const SizedBox(height: 24),
-        SizedBox(width: double.infinity, height: 56, child: ElevatedButton(
+        SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
           onPressed: _reason.isEmpty || _amountCtrl.text.isEmpty ? null : () => setState(() => _step = 2),
-          style: ElevatedButton.styleFrom(backgroundColor: primary),
+          style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
           child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text('Continue to Methods ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), Icon(Icons.arrow_forward, color: Colors.white)]),
         )),
       ]);
@@ -375,7 +410,17 @@ class _PaymentsPageState extends State<PaymentsPage>
             onChanged: (v) => setState(() => _momoNetwork = v),
           ),
           const SizedBox(height: 12),
-          TextField(onChanged: (v) { _momoPhone = v; setState(() {}); }, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'MoMo Phone Number', hintText: '0245-678-901', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+          TextField(
+            onChanged: (v) { _momoPhone = v; setState(() {}); },
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: 'MoMo Phone Number',
+              hintText: '0245-678-901',
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+          ),
         ],
         if (_method == 'bank') ...[
           Container(
@@ -390,19 +435,27 @@ class _PaymentsPageState extends State<PaymentsPage>
             ]),
           ),
           const SizedBox(height: 12),
-          TextField(onChanged: (v) { _bankTxId = v; setState(() {}); }, decoration: InputDecoration(labelText: 'Transaction ID / Ref', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+          TextField(
+            onChanged: (v) { _bankTxId = v; setState(() {}); },
+            decoration: InputDecoration(
+              labelText: 'Transaction ID / Ref',
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+          ),
         ],
         const SizedBox(height: 24),
         Row(children: [
-          Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52)), child: const Text('Back'))),
+          Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Back'))),
           const SizedBox(width: 12),
           Expanded(flex: 2, child: ElevatedButton(
-            onPressed: (_method == 'momo' && (_momoNetwork.isEmpty || _momoPhone.trim().length < 9)) || 
-                       (_method == 'bank' && _bankTxId.trim().isEmpty) 
-                ? null 
+            onPressed: (_method == 'momo' && (_momoNetwork.isEmpty || _momoPhone.trim().length < 9)) ||
+                       (_method == 'bank' && _bankTxId.trim().isEmpty)
+                ? null
                 : () => setState(() => _step = 3),
-            style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52)),
-            child: const Text('Review Summary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+            child: const Text('Review Summary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           )),
         ]),
       ]);
@@ -434,11 +487,11 @@ class _PaymentsPageState extends State<PaymentsPage>
         ),
         const SizedBox(height: 20),
         Row(children: [
-          OutlinedButton(onPressed: () => setState(() => _step = 2), style: OutlinedButton.styleFrom(minimumSize: const Size(52, 52)), child: const Icon(Icons.arrow_back)),
+          OutlinedButton(onPressed: () => setState(() => _step = 2), style: OutlinedButton.styleFrom(minimumSize: const Size(52, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Icon(Icons.arrow_back)),
           const SizedBox(width: 12),
           Expanded(child: ElevatedButton(
             onPressed: _loading ? null : _submitPayment,
-            style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52)),
+            style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
             child: _loading ? const CircularProgressIndicator(color: Colors.white) : Text(_method == 'momo' ? 'Initiate Payment' : 'Confirm Payment', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           )),
         ]),
@@ -500,11 +553,12 @@ class _PaymentsPageState extends State<PaymentsPage>
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : const Icon(Icons.check_circle_outline, color: Colors.white),
           label: Text(_manualChecking ? 'Checking...' : "I've Approved — Check Now",
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green.shade600,
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 0,
           ),
         ),
       ),

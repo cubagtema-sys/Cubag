@@ -51,6 +51,7 @@ def get_db():
                 user=os.getenv('DB_USER', 'postgres'),
                 password=os.getenv('DB_PASSWORD', ''),
                 dbname=os.getenv('DB_NAME', 'Customs'),
+                sslmode='require',
                 cursor_factory=RealDictCursor
             )
 

@@ -37,9 +37,9 @@ class _VanningSchedulesPageState extends State<VanningSchedulesPage> {
         else
           ..._schedules.map((s) => Card(
             margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-              Container(width: 44, height: 44, decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.local_shipping, color: primary)),
+              Container(width: 44, height: 44, decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.local_shipping, color: primary)),
               const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(s['container_number']?.toString() ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -47,7 +47,7 @@ class _VanningSchedulesPageState extends State<VanningSchedulesPage> {
               ])),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: const Color(0xFF10b981).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: const Color(0xFF10b981).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                 child: Text((s['status'] ?? 'Scheduled').toString().toUpperCase(), style: const TextStyle(color: Color(0xFF10b981), fontSize: 10, fontWeight: FontWeight.bold)),
               ),
             ])),

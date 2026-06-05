@@ -161,7 +161,10 @@ class _TasksPageState extends State<TasksPage> {
                         maxLines: 4,
                         decoration: InputDecoration(
                           hintText: 'Describe what you did to complete this task...',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2)),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -196,16 +199,20 @@ class _TasksPageState extends State<TasksPage> {
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
-                        height: 50,
+                        height: 52,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
                           onPressed: _isSubmitting ? null : () {
                             setModalState(() => _isSubmitting = true);
                             _handleSubmit();
                           },
                           child: _isSubmitting 
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text('Submit for Admin Review', style: TextStyle(color: Colors.white)),
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text('Submit for Admin Review', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         ),
                       )
                     ],
@@ -287,9 +294,13 @@ class _TasksPageState extends State<TasksPage> {
                   const Text('Connection Failed', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFef4444)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFef4444),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
                     onPressed: _fetchTasks,
-                    child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                    child: const Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   )
                 ],
               ),
@@ -371,19 +382,21 @@ class _TasksPageState extends State<TasksPage> {
                             if (!submitted)
                               const SizedBox(width: 8),
                             if (!submitted)
-                              SizedBox(
-                                height: 32,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(context).primaryColor, 
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                SizedBox(
+                                  height: 32,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Theme.of(context).primaryColor, 
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                    onPressed: () => _openSubmitModal(task),
+                                    child: const Text('Submit'),
                                   ),
-                                  onPressed: () => _openSubmitModal(task),
-                                  child: const Text('Submit'),
-                                ),
-                              )
+                                )
                           ],
                         ),
                       );

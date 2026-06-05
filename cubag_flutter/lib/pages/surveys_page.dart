@@ -100,7 +100,7 @@ class _SurveysPageState extends State<SurveysPage> {
             child: SafeArea(child: Center(child: Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(color: _toastSuccess ? const Color(0xFF10b981) : Colors.red, borderRadius: BorderRadius.circular(8), boxShadow: [const BoxShadow(color: Colors.black26, blurRadius: 16)]),
+              decoration: BoxDecoration(color: _toastSuccess ? const Color(0xFF10b981) : Colors.red, borderRadius: BorderRadius.circular(12), boxShadow: [const BoxShadow(color: Colors.black26, blurRadius: 16)]),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(_toastSuccess ? Icons.check_circle : Icons.error, color: Colors.white, size: 18),
                 const SizedBox(width: 8),
@@ -114,7 +114,7 @@ class _SurveysPageState extends State<SurveysPage> {
 
   Widget _activeTab(String id, String label, Color primary) => GestureDetector(
     onTap: () => setState(() => _tab = id),
-    child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(10), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4)]), alignment: Alignment.center, child: Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: primary))),
+    child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4)]), alignment: Alignment.center, child: Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: primary))),
   );
 
   Widget _inactiveTab(String id, String label, Color primary) => GestureDetector(
@@ -148,8 +148,13 @@ class _SurveysPageState extends State<SurveysPage> {
               ? const Row(children: [Icon(Icons.check_circle, color: Color(0xFF10b981), size: 18), SizedBox(width: 4), Text('Voted', style: TextStyle(color: Color(0xFF10b981), fontWeight: FontWeight.bold, fontSize: 13))])
               : ElevatedButton(
                   onPressed: () => setState(() { _answering = Map<String, dynamic>.from(s); _selected = ''; }),
-                  style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-                  child: const Text('Participate', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Participate', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                 )
           else
             const Text('Closed', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
@@ -220,9 +225,13 @@ class _SurveysPageState extends State<SurveysPage> {
         ),
       ],
       const SizedBox(height: 24),
-      SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
+      SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
         onPressed: _submitting || _selected.isEmpty ? null : _submit,
-        style: ElevatedButton.styleFrom(backgroundColor: primary),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primary,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
         child: _submitting ? const CircularProgressIndicator(color: Colors.white) : const Text('Submit Response', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       )),
     ]);

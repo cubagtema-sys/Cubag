@@ -100,7 +100,7 @@ class _State extends State<AdminTasksPage> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(12)),
                 alignment: Alignment.center,
                 child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.center),
               ),
@@ -111,7 +111,7 @@ class _State extends State<AdminTasksPage> {
 
         if (_message.isNotEmpty) Container(
           margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12)),
           child: Text(_message, style: const TextStyle(color: _kGreen, fontWeight: FontWeight.w700)),
         ),
 
@@ -129,7 +129,7 @@ class _State extends State<AdminTasksPage> {
   Widget _buildCreate() => Container(
     constraints: const BoxConstraints(maxWidth: 600),
     padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('New Assignment', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
       const SizedBox(height: 16),
@@ -153,17 +153,38 @@ class _State extends State<AdminTasksPage> {
           final picked = await showDatePicker(context: context, initialDate: DateTime.now().add(const Duration(days: 1)), firstDate: DateTime.now(), lastDate: DateTime(2099));
           if (picked != null) setState(() => _dueDate = '${picked.year}-${picked.month.toString().padLeft(2,'0')}-${picked.day.toString().padLeft(2,'0')}');
         },
-        child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)), child: Row(children: [const Icon(Icons.calendar_today, size: 16, color: Colors.grey), const SizedBox(width: 8), Text(_dueDate.isEmpty ? 'Pick date' : _dueDate, style: TextStyle(color: _dueDate.isEmpty ? Colors.grey : Colors.black))])),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300, width: 1.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+              const SizedBox(width: 8),
+              Text(
+                _dueDate.isEmpty ? 'Pick date' : _dueDate,
+                style: TextStyle(color: _dueDate.isEmpty ? Colors.grey.shade600 : Colors.black, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
       ),
       const SizedBox(height: 14),
       const Text('Instructions', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)), const SizedBox(height: 6),
       TextField(controller: _descCtrl, maxLines: 4, decoration: _deco(hint: 'Task details...')),
       const SizedBox(height: 16),
-      SizedBox(width: double.infinity, height: 48, child: ElevatedButton.icon(
+      SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(
         onPressed: _loading ? null : _assignTask,
         icon: const Icon(Icons.send),
         label: const Text('Assign Now', style: TextStyle(fontWeight: FontWeight.bold)),
-        style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kOrange,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
+        ),
       )),
     ]),
   );
@@ -185,14 +206,14 @@ class _State extends State<AdminTasksPage> {
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
           child: Row(children: [
             Expanded(child: Text(m['member_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: (m['done'] == true ? _kGreen : Colors.orange).withAlpha(25), borderRadius: BorderRadius.circular(20)), child: Text(m['done'] == true ? 'Submitted' : 'Pending', style: TextStyle(color: m['done'] == true ? _kGreen : Colors.orange, fontSize: 11, fontWeight: FontWeight.w700))),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: (m['done'] == true ? _kGreen : Colors.orange).withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Text(m['done'] == true ? 'Submitted' : 'Pending', style: TextStyle(color: m['done'] == true ? _kGreen : Colors.orange, fontSize: 11, fontWeight: FontWeight.w700))),
             const SizedBox(width: 8),
             Text(m['admin_verified'] == true ? '✅ Verified' : m['submission_id'] != null ? '⏳ Awaiting' : '—', style: const TextStyle(fontSize: 12)),
           ]),
         )),
       ]);
     }
-    if (groups.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No assignments found.', style: TextStyle(color: Colors.grey))));
+    if (groups.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No assignments found.', style: TextStyle(color: Colors.grey))));
     return Column(children: groups.map((g) {
       final total = g['total'] as int, done = g['completed'] as int;
       return Container(
@@ -220,7 +241,7 @@ class _State extends State<AdminTasksPage> {
   }
 
   Widget _buildSubmissions() {
-    if (_submissions.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No submissions yet.', style: TextStyle(color: Colors.grey))));
+    if (_submissions.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No submissions yet.', style: TextStyle(color: Colors.grey))));
     return Column(children: _submissions.map((task) {
       final sid = task['submission_id'] as int?;
       _verifyCtrl.putIfAbsent(sid ?? 0, () => TextEditingController());
@@ -235,21 +256,52 @@ class _State extends State<AdminTasksPage> {
               Row(children: [const Icon(Icons.person_outline, size: 14, color: _kOrange), const SizedBox(width: 4), Text(task['member_name'] ?? '', style: const TextStyle(color: _kOrange, fontSize: 12, fontWeight: FontWeight.w600))]),
             ])),
             task['admin_verified'] == true
-              ? Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(20)), child: const Text('Verified', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w800, fontSize: 12)))
-              : ElevatedButton(onPressed: () => setState(() => _verifyingId = _verifyingId == sid ? null : sid), style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap), child: const Text('Mark Verified', style: TextStyle(fontSize: 12))),
+              ? Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: const Text('Verified', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w800, fontSize: 12)))
+              : ElevatedButton(
+                  onPressed: () => setState(() => _verifyingId = _verifyingId == sid ? null : sid),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Mark Verified', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
           ])),
           if (task['completion_note'] != null) Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('MEMBER NOTE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey)), const SizedBox(height: 6), Text(task['completion_note'], style: const TextStyle(fontSize: 14, height: 1.5))])),
           if (_verifyingId == sid) Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('Admin Notes (optional)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 8),
-              TextField(controller: _verifyCtrl[sid ?? 0], maxLines: 2, onChanged: (v) => _verifyNotes[sid ?? 0] = v, decoration: InputDecoration(hintText: 'Any notes for the member...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.all(12))),
+              TextField(
+                controller: _verifyCtrl[sid ?? 0],
+                maxLines: 2,
+                onChanged: (v) => _verifyNotes[sid ?? 0] = v,
+                decoration: _deco(hint: 'Any notes for the member...'),
+              ),
               const SizedBox(height: 10),
               Row(children: [
-                ElevatedButton(onPressed: () => _verify(sid!), style: ElevatedButton.styleFrom(backgroundColor: _kGreen, foregroundColor: Colors.white), child: const Text('Confirm Verified')),
+                ElevatedButton(
+                  onPressed: () => _verify(sid!),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(140, 52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Confirm Verified', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
                 const SizedBox(width: 10),
-                TextButton(onPressed: () => setState(() => _verifyingId = null), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => setState(() => _verifyingId = null),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Cancel'),
+                ),
               ]),
             ]),
           ),
@@ -258,5 +310,13 @@ class _State extends State<AdminTasksPage> {
     }).toList());
   }
 
-  InputDecoration _deco({String? hint}) => InputDecoration(hintText: hint, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.all(12));
+  InputDecoration _deco({String? hint}) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 2)),
+      );
 }

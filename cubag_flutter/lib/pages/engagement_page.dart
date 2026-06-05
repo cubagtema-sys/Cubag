@@ -103,9 +103,9 @@ class _EngagementPageState extends State<EngagementPage> {
         const Text("We'll respond within 24 hours.", style: TextStyle(color: Colors.grey)),
         const SizedBox(height: 20),
         Column(children: [
-          SizedBox(width: double.infinity, height: 44, child: ElevatedButton(onPressed: () => setState(() => _tab = 1), style: ElevatedButton.styleFrom(backgroundColor: primary), child: const Text('View Tickets', style: TextStyle(color: Colors.white)))),
+          SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: () => setState(() => _tab = 1), style: ElevatedButton.styleFrom(backgroundColor: primary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('View Tickets', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
           const SizedBox(height: 8),
-          SizedBox(width: double.infinity, height: 44, child: OutlinedButton(onPressed: () => setState(() => _sent = false), child: const Text('Another Request'))),
+          SizedBox(width: double.infinity, height: 52, child: OutlinedButton(onPressed: () => setState(() => _sent = false), style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Another Request', style: TextStyle(fontWeight: FontWeight.bold)))),
         ]),
       ]),
     );
@@ -134,13 +134,16 @@ class _EngagementPageState extends State<EngagementPage> {
           onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
             hintText: 'Explain your issue...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
           ),
         ),
         const SizedBox(height: 16),
-        SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
+        SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
           onPressed: (_loading || _subject.isEmpty || _msgCtrl.text.trim().isEmpty) ? null : _submit,
-          style: ElevatedButton.styleFrom(backgroundColor: primary),
+          style: ElevatedButton.styleFrom(backgroundColor: primary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Submit Ticket', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         )),
       ]),
@@ -163,7 +166,7 @@ class _EngagementPageState extends State<EngagementPage> {
               Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3), decoration: BoxDecoration(color: sm['bg'] as Color, borderRadius: BorderRadius.circular(20)), child: Text((sm['label'] as String).toUpperCase(), style: TextStyle(color: sm['color'] as Color, fontSize: 10, fontWeight: FontWeight.bold))),
             ]),
             const SizedBox(height: 12),
-            Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(10)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('YOU · ${_selectedTicket!['date'] ?? ''}', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text(_selectedTicket!['message']?.toString() ?? '', style: const TextStyle(fontSize: 13)),
@@ -171,7 +174,7 @@ class _EngagementPageState extends State<EngagementPage> {
             if (_selectedTicket!['replies'] != null) ...((_selectedTicket!['replies'] as List).map((r) => Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: r['author'] == 'Admin' ? primary.withValues(alpha: 0.05) : Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: r['author'] == 'Admin' ? primary.withValues(alpha: 0.05) : Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('${r['author']} · ${r['date'] ?? ''}', style: TextStyle(fontSize: 10, color: r['author'] == 'Admin' ? primary : Colors.grey, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
@@ -205,7 +208,15 @@ class _EngagementPageState extends State<EngagementPage> {
           Row(children: [
             Text('Updated: ${t['lastUpdate'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
             const Spacer(),
-            OutlinedButton(onPressed: () => setState(() => _selectedTicket = Map<String, dynamic>.from(t)), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), minimumSize: const Size(0, 30)), child: const Text('View', style: TextStyle(fontSize: 12))),
+            OutlinedButton(
+              onPressed: () => setState(() => _selectedTicket = Map<String, dynamic>.from(t)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                minimumSize: const Size(0, 30),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('View', style: TextStyle(fontSize: 12)),
+            ),
           ]),
         ]),
       );

@@ -215,18 +215,16 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
           Row(children: [
             Expanded(
               flex: 4,
-              child: SizedBox(
-                height: 44,
-                child: TextField(
-                  onChanged: (v) => setState(() => _search = v),
-                  style: const TextStyle(fontSize: 13),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
-                    hintText: 'Search by name, email...',
-                    hintStyle: const TextStyle(fontSize: 13),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
+              child: TextField(
+                onChanged: (v) => setState(() => _search = v),
+                style: const TextStyle(fontSize: 13),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                  hintText: 'Search by name, email...',
+                  hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
                 ),
               ),
             ),
@@ -321,9 +319,9 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
                       ),
                       const Spacer(),
                       Row(children: [
-                        Expanded(child: OutlinedButton(onPressed: () => _selectMember(m), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 4)), child: const Text('Details', style: TextStyle(fontSize: 11)))),
-                        if (m['status'] == 'pending') ...[const SizedBox(width: 6), Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'active'), style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(vertical: 4)), child: const Text('Approve', style: TextStyle(color: Colors.white, fontSize: 11))))],
-                        if (m['status'] == 'active') ...[const SizedBox(width: 6), Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'suspended'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 4)), child: const Text('Suspend', style: TextStyle(color: Colors.white, fontSize: 11))))],
+                        Expanded(child: OutlinedButton(onPressed: () => _selectMember(m), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 4), minimumSize: const Size(0, 36), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Details', style: TextStyle(fontSize: 11)))),
+                        if (m['status'] == 'pending') ...[const SizedBox(width: 6), Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'active'), style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(vertical: 4), minimumSize: const Size(0, 36), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Approve', style: TextStyle(color: Colors.white, fontSize: 11))))],
+                        if (m['status'] == 'active') ...[const SizedBox(width: 6), Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'suspended'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 4), minimumSize: const Size(0, 36), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Suspend', style: TextStyle(color: Colors.white, fontSize: 11))))],
                       ]),
                     ]),
                   ),
@@ -414,7 +412,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
           ),
           const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             child: LinearProgressIndicator(
               value: complianceScore / 100.0,
               backgroundColor: Colors.grey.shade200,
@@ -442,6 +440,8 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
                 ),
                 child: const Text('Save Score', style: TextStyle(color: Colors.white, fontSize: 11)),
               ),
@@ -494,7 +494,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
       ].where((r) => r[1] != null)).map((r) => Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(r[0].toString().toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
           Text(r[1].toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
@@ -509,9 +509,9 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
         ]),
         const SizedBox(height: 12),
         Row(children: [
-          if (m['status'] != 'active') Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'active'), style: ElevatedButton.styleFrom(backgroundColor: primary), child: const Text('Activate', style: TextStyle(color: Colors.white)))),
-          if (m['status'] != 'suspended') ...[const SizedBox(width: 6), Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'suspended'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Suspend', style: TextStyle(color: Colors.white))))],
-          if (m['status'] != 'inactive') ...[const SizedBox(width: 6), Expanded(child: OutlinedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'inactive'), child: const Text('Disable')))],
+          if (m['status'] != 'active') Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'active'), style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Activate', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+          if (m['status'] != 'suspended') ...[const SizedBox(width: 6), Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'suspended'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Suspend', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))],
+          if (m['status'] != 'inactive') ...[const SizedBox(width: 6), Expanded(child: OutlinedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'inactive'), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Disable', style: TextStyle(fontWeight: FontWeight.bold))))],
         ]),
       ])),
       const SizedBox(height: 12),

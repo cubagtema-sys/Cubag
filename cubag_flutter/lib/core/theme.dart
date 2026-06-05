@@ -27,10 +27,13 @@ class AppTheme {
       brightness: Brightness.light,
       primaryColor: accentLight,
       scaffoldBackgroundColor: bgLight,
+      useMaterial3: true,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
       textTheme: GoogleFonts.interTextTheme().copyWith(
         bodyMedium: GoogleFonts.inter(color: textLight, fontSize: 14),
-        headlineLarge: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.w500),
-        headlineMedium: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.w500),
+        headlineLarge: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.bold, fontSize: 28),
+        headlineMedium: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.bold, fontSize: 20),
+        titleLarge: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.bold, fontSize: 16),
       ),
       colorScheme: const ColorScheme.light(
         primary: accentLight,

@@ -116,7 +116,7 @@ class _AdminSubAdminsPageState extends State<AdminSubAdminsPage> {
       content: Text(msg),
       backgroundColor: error ? const Color(0xFFef4444) : const Color(0xFF10b981),
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
   }
 
@@ -124,14 +124,24 @@ class _AdminSubAdminsPageState extends State<AdminSubAdminsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Remove Sub-Admin'),
         content: Text('Demote ${sa['name']} back to a regular member?\nAll their permissions will be revoked.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFef4444)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFef4444),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             child: const Text('Remove', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -196,12 +206,12 @@ class _AdminSubAdminsPageState extends State<AdminSubAdminsPage> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: LinearGradient(colors: [primary, primary.withValues(alpha: 0.7)]),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.white.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: Colors.white.withAlpha(30), borderRadius: BorderRadius.circular(12)),
               child: const Icon(Icons.admin_panel_settings, color: Colors.white, size: 22),
             ),
             const SizedBox(width: 14),
@@ -216,7 +226,7 @@ class _AdminSubAdminsPageState extends State<AdminSubAdminsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white.withAlpha(40),
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ]),
@@ -264,7 +274,7 @@ class _AdminSubAdminsPageState extends State<AdminSubAdminsPage> {
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 6, offset: const Offset(0, 2))],
               ),
@@ -297,7 +307,7 @@ class _AdminSubAdminsPageState extends State<AdminSubAdminsPage> {
                         final color = match?.color ?? (perms.isEmpty ? const Color(0xFFef4444) : const Color(0xFF6366f1));
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(color: color.withAlpha(18), borderRadius: BorderRadius.circular(20)),
+                          decoration: BoxDecoration(color: color.withAlpha(18), borderRadius: BorderRadius.circular(12)),
                           child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.3)),
                         );
                       }),
@@ -327,7 +337,7 @@ class _AdminSubAdminsPageState extends State<AdminSubAdminsPage> {
                     padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                     child: Wrap(spacing: 6, runSpacing: 6, children: perms.map((p) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: primary.withAlpha(12), borderRadius: BorderRadius.circular(20)),
+                      decoration: BoxDecoration(color: primary.withAlpha(12), borderRadius: BorderRadius.circular(12)),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(_kPermissionIcons[p] ?? Icons.check, size: 11, color: primary),
                         const SizedBox(width: 4),
@@ -409,7 +419,7 @@ class _CreateSubAdminSheetState extends State<_CreateSubAdminSheet> {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 32),
       child: SingleChildScrollView(child: Form(key: _formKey, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -422,25 +432,24 @@ class _CreateSubAdminSheetState extends State<_CreateSubAdminSheet> {
 
         TextFormField(
           controller: _nameCtrl,
-          decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_outline, size: 18), border: OutlineInputBorder()),
+          decoration: _inputDeco(label: 'Full Name', icon: Icons.person_outline),
           validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(labelText: 'Email Address', prefixIcon: Icon(Icons.email_outlined, size: 18), border: OutlineInputBorder()),
+          decoration: _inputDeco(label: 'Email Address', icon: Icons.email_outlined),
           validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: _passCtrl,
           obscureText: _obscure,
-          decoration: InputDecoration(
-            labelText: 'Temporary Password',
-            prefixIcon: const Icon(Icons.lock_outline, size: 18),
-            border: const OutlineInputBorder(),
-            suffixIcon: IconButton(
+          decoration: _inputDeco(
+            label: 'Temporary Password',
+            icon: Icons.lock_outline,
+            suffix: IconButton(
               icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
               onPressed: () => setState(() => _obscure = !_obscure),
             ),
@@ -466,13 +475,13 @@ class _CreateSubAdminSheetState extends State<_CreateSubAdminSheet> {
             final isSelected = _selectedTemplate == tpl.id;
             return InkWell(
               onTap: () => _applyTemplate(tpl.id),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected ? tpl.color.withAlpha(20) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected ? tpl.color : const Color(0xFFe2e8f0),
                     width: isSelected ? 2 : 1,
@@ -495,13 +504,13 @@ class _CreateSubAdminSheetState extends State<_CreateSubAdminSheet> {
         const SizedBox(height: 8),
         InkWell(
           onTap: () => setState(() { _selectedTemplate = 'custom'; _selectedPerms.clear(); }),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: _selectedTemplate == 'custom' ? const Color(0xFF6366f1).withAlpha(15) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: _selectedTemplate == 'custom' ? const Color(0xFF6366f1) : const Color(0xFFe2e8f0),
                 width: _selectedTemplate == 'custom' ? 2 : 1,
@@ -553,16 +562,34 @@ class _CreateSubAdminSheetState extends State<_CreateSubAdminSheet> {
 
         const SizedBox(height: 16),
         SizedBox(
-          width: double.infinity, height: 50,
+          width: double.infinity, height: 52,
           child: ElevatedButton(
             onPressed: _loading ? null : _submit,
-            style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
             child: _loading
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Text('Create Sub-Admin', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
           ),
         ),
       ]))),
+    );
+  }
+
+  InputDecoration _inputDeco({required String label, required IconData icon, Widget? suffix}) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 18),
+      suffixIcon: suffix,
+      labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2)),
+      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 2)),
     );
   }
 }
@@ -614,7 +641,7 @@ class _EditPermissionsSheetState extends State<_EditPermissionsSheet> {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 32),
       child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -650,10 +677,14 @@ class _EditPermissionsSheetState extends State<_EditPermissionsSheet> {
 
         const SizedBox(height: 16),
         SizedBox(
-          width: double.infinity, height: 50,
+          width: double.infinity, height: 52,
           child: ElevatedButton(
             onPressed: _loading ? null : _save,
-            style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
             child: _loading
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Text('Save Permissions', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),

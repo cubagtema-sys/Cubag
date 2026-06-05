@@ -193,7 +193,7 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
           decoration: BoxDecoration(
             color: isConnected ? primary.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.05),
             border: Border.all(color: isConnected ? primary.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.15)),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(children: [
             Icon(Icons.circle, color: isConnected ? primary : Colors.grey, size: 10),
@@ -229,7 +229,10 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search, color: Colors.grey),
             hintText: 'Search by vessel name, MMSI or destination...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2)),
             suffixIcon: _search.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear),

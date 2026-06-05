@@ -221,7 +221,8 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> with SingleTick
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFf08232),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
             child: const Text('Financial Ledger'),
           ),
@@ -233,7 +234,8 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> with SingleTick
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF3b82f6),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
             child: const Text('Members Roster'),
           ),
@@ -451,7 +453,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> with SingleTick
                             foregroundColor: const Color(0xFFf08232),
                             elevation: 0,
                             side: const BorderSide(color: Color(0xFFf08232)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           ),
                         ),

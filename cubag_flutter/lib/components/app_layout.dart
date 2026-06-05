@@ -68,7 +68,9 @@ class _AppLayoutState extends State<AppLayout> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final isDesktop = MediaQuery.of(context).size.width > 800;
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width > 800;
+    final isSmall = size.width < 360;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -76,18 +78,20 @@ class _AppLayoutState extends State<AppLayout> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
+        titleSpacing: isSmall ? 0 : 16,
         shadowColor: Colors.black.withAlpha(20),
         bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: const Color(0xFFf0f0f0), height: 1)),
         title: Text(
           widget.title, 
-          style: const TextStyle(color: Color(0xFF0f172a), fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(color: const Color(0xFF0f172a), fontWeight: FontWeight.bold, fontSize: isSmall ? 15 : 16),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
           if (!widget.hideSearch)
             IconButton(
-              icon: const Icon(Icons.search, color: Color(0xFF64748b)),
+              icon: Icon(Icons.search, color: const Color(0xFF64748b), size: isSmall ? 20 : 24),
               tooltip: 'Search',
               onPressed: () => showSearch(
                 context: context,
@@ -96,10 +100,10 @@ class _AppLayoutState extends State<AppLayout> {
                     : MemberSearchDelegate(),
               ),
             ),
-          _buildNotificationIcon(context, authService.userRole),
+          _buildNotificationIcon(context, authService.userRole, isSmall),
           Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: _buildProfileMenu(context, authService),
+            padding: EdgeInsets.only(right: isSmall ? 4 : 8),
+            child: _buildProfileMenu(context, authService, isSmall),
           ),
         ],
       ),
@@ -116,11 +120,11 @@ class _AppLayoutState extends State<AppLayout> {
                 Expanded(
                   child: widget.scrollable
                       ? SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                          padding: EdgeInsets.fromLTRB(isSmall ? 12 : 16, isSmall ? 12 : 16, isSmall ? 12 : 16, 16),
                           child: widget.child,
                         )
                       : Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                          padding: EdgeInsets.fromLTRB(isSmall ? 12 : 16, isSmall ? 12 : 16, isSmall ? 12 : 16, 16),
                           child: widget.child,
                         ),
                 ),
@@ -132,7 +136,7 @@ class _AppLayoutState extends State<AppLayout> {
     );
   }
 
-  Widget _buildNotificationIcon(BuildContext context, String? role) {
+  Widget _buildNotificationIcon(BuildContext context, String? role, bool isSmall) {
     final isAdmin = role == 'admin';
     final targetRoute = isAdmin ? '/admin/announcements' : '/notifications';
     
@@ -140,13 +144,13 @@ class _AppLayoutState extends State<AppLayout> {
       alignment: Alignment.center,
       children: [
         IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: Color(0xFF64748b)),
+          icon: Icon(Icons.notifications_outlined, color: const Color(0xFF64748b), size: isSmall ? 20 : 24),
           onPressed: () => context.go(targetRoute),
         ),
         if (_unreadCount > 0)
           Positioned(
-            right: 8,
-            top: 8,
+            right: isSmall ? 6 : 8,
+            top: isSmall ? 6 : 8,
             child: Container(
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
@@ -172,7 +176,7 @@ class _AppLayoutState extends State<AppLayout> {
     );
   }
 
-  Widget _buildProfileMenu(BuildContext context, AuthService authService) {
+  Widget _buildProfileMenu(BuildContext context, AuthService authService, bool isSmall) {
     final photoUrl = authService.userPhotoUrl;
     final primary = Theme.of(context).primaryColor;
     // Cache-bust so Flutter Web doesn't serve a stale image after upload
@@ -182,11 +186,11 @@ class _AppLayoutState extends State<AppLayout> {
 
     return PopupMenuButton<String>(
       icon: CircleAvatar(
-        radius: 16,
+        radius: isSmall ? 14 : 16,
         backgroundColor: primary,
         backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
         child: imageUrl == null
-            ? const Icon(Icons.person, color: Colors.white, size: 18)
+            ? Icon(Icons.person, color: Colors.white, size: isSmall ? 16 : 18)
             : null,
       ),
       offset: const Offset(0, 48),

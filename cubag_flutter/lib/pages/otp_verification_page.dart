@@ -92,17 +92,19 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     Expanded(flex: 6, child: _buildFormPanel()),
   ]);
 
-  Widget _buildMobileLayout() => Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [_kOrange, _kOrangeDark, Color(0xFF1a1a2e)]),
+  Widget _buildMobileLayout() => Scaffold(
+    backgroundColor: Colors.white,
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: _buildFormContent(isMobile: true),
+          ),
+        ),
+      ),
     ),
-    child: SafeArea(child: Center(child: SingleChildScrollView(child: Container(
-      margin: const EdgeInsets.all(24),
-      padding: const EdgeInsets.all(28),
-      constraints: const BoxConstraints(maxWidth: 420),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withAlpha(40), blurRadius: 40, offset: const Offset(0, 20))]),
-      child: _buildFormContent(),
-    )))),
   );
 
   Widget _buildSidebar() => Container(
@@ -123,7 +125,7 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
   );
 
   Widget _sidebarFeature(IconData icon, String label) => Row(children: [
-    Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white.withAlpha(25), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: Colors.white, size: 20)),
+    Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: Colors.white, size: 20)),
     const SizedBox(width: 14),
     Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
   ]);
@@ -133,28 +135,40 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     child: Center(child: SingleChildScrollView(child: Container(
       padding: const EdgeInsets.all(48),
       constraints: const BoxConstraints(maxWidth: 480),
-      child: _buildFormContent(),
+      child: _buildFormContent(isMobile: false),
     ))),
   );
 
-  Widget _buildFormContent() {
+  Widget _buildFormContent({bool isMobile = false}) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Center(child: Column(children: [
-        const AppLogo(size: 60, borderRadius: 16, showShadow: true),
-        const SizedBox(height: 16),
-        const Text('Verify Your Email', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
-        const SizedBox(height: 8),
-        Text('We sent a 6-digit code to:\n${widget.email ?? "your email"}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-      ])),
-      const SizedBox(height: 28),
+      Align(
+        alignment: isMobile ? Alignment.centerLeft : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.start,
+          children: [
+            const AppLogo(size: 56, borderRadius: 12, showShadow: true),
+            const SizedBox(height: 16),
+            const Text(
+              'Verify Your Email',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0f172a), letterSpacing: -0.5),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'We sent a 6-digit code to:\n${widget.email ?? "your email"}',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14, height: 1.3),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 32),
 
       if (_error.isNotEmpty)
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: const Color(0x19ef4444), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x33ef4444))),
-          child: Row(children: [const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18), const SizedBox(width: 8), Expanded(child: Text(_error, style: const TextStyle(color: Color(0xFFef4444), fontSize: 13, fontWeight: FontWeight.w600)))]),
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: const Color(0x19ef4444), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x33ef4444))),
+          child: Row(children: [const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18), const SizedBox(width: 10), Expanded(child: Text(_error, style: const TextStyle(color: Color(0xFFef4444), fontSize: 13, fontWeight: FontWeight.w600)))]),
         ),
 
       Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(6, (i) => Expanded(
@@ -166,9 +180,9 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a)),
             decoration: InputDecoration(
               counterText: '',
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.grey, width: 1)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
-              contentPadding: EdgeInsets.zero,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
             ),
             onChanged: (v) {
               if (v.isNotEmpty && i < 5) _nodes[i+1].requestFocus();
@@ -177,19 +191,19 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
           ),
         ),
       ))),
-      const SizedBox(height: 28),
+      const SizedBox(height: 32),
 
-      SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
+      SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
         onPressed: _loading ? null : _verify,
-        style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-        child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Verify & Activate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+        child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Verify & Activate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
       )),
-      const SizedBox(height: 16),
+      const SizedBox(height: 24),
       Center(child: _canResend
-        ? TextButton(onPressed: _resending ? null : _resend, child: Text(_resending ? 'Sending...' : 'Resend Code', style: const TextStyle(color: _kOrange, fontWeight: FontWeight.bold)))
-        : Text('Resend code in $_countdown s', style: const TextStyle(color: Colors.grey, fontSize: 13))),
-      const SizedBox(height: 8),
-      Center(child: TextButton(onPressed: () => context.go('/register'), child: const Text('Wrong email? Go Back', style: TextStyle(color: _kOrange, fontWeight: FontWeight.bold)))),
+        ? TextButton(onPressed: _resending ? null : _resend, child: Text(_resending ? 'Sending...' : 'Resend Code', style: const TextStyle(color: _kOrange, fontWeight: FontWeight.bold, fontSize: 14)))
+        : Text('Resend code in $_countdown s', style: TextStyle(color: Colors.grey.shade500, fontSize: 14))),
+      const SizedBox(height: 12),
+      Center(child: TextButton(onPressed: () => context.go('/register'), child: const Text('Wrong email? Go Back', style: TextStyle(color: _kOrange, fontWeight: FontWeight.bold, fontSize: 14)))),
     ]);
   }
 }

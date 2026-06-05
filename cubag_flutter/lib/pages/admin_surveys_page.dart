@@ -166,7 +166,23 @@ class _State extends State<AdminSurveysPage> {
           final picked = await showDatePicker(context: context, initialDate: DateTime.now().add(const Duration(days: 1)), firstDate: DateTime.now(), lastDate: DateTime(2099));
           if (picked != null) setState(() => _deadline = '${picked.year}-${picked.month.toString().padLeft(2,'0')}-${picked.day.toString().padLeft(2,'0')}');
         },
-        child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)), child: Row(children: [const Icon(Icons.calendar_today, size: 16, color: Colors.grey), const SizedBox(width: 8), Text(_deadline.isEmpty ? 'Pick deadline' : _deadline, style: TextStyle(color: _deadline.isEmpty ? Colors.grey : Colors.black))])),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300, width: 1.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+              const SizedBox(width: 8),
+              Text(
+                _deadline.isEmpty ? 'Pick deadline' : _deadline,
+                style: TextStyle(color: _deadline.isEmpty ? Colors.grey.shade600 : Colors.black, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
       ),
       if (_method == 'Multiple Choice') ...[
         const SizedBox(height: 14),
@@ -181,9 +197,14 @@ class _State extends State<AdminSurveysPage> {
         )),
       ],
       const SizedBox(height: 16),
-      SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
+      SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
         onPressed: _submitting ? null : _create,
-        style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kOrange,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
+        ),
         child: Text(_submitting ? 'Creating...' : 'Publish Poll', style: const TextStyle(fontWeight: FontWeight.bold)),
       )),
     ]),
@@ -264,5 +285,13 @@ class _State extends State<AdminSurveysPage> {
     TextField(controller: ctrl, maxLines: maxLines, decoration: _deco(hint: hint)),
   ]);
 
-  InputDecoration _deco({String? hint}) => InputDecoration(hintText: hint, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.all(12));
+  InputDecoration _deco({String? hint}) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 2)),
+      );
 }

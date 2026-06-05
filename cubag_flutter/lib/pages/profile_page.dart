@@ -199,7 +199,7 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Stack(children: [
         Column(children: [
           // Profile Header Card
-          Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), clipBehavior: Clip.antiAlias, child: Column(children: [
+          Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), clipBehavior: Clip.antiAlias, child: Column(children: [
             Container(height: 100, decoration: BoxDecoration(gradient: LinearGradient(colors: [primary, primary.withValues(alpha: 0.7)]))),
             Transform.translate(
               offset: const Offset(0, -40),
@@ -274,7 +274,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                         child: LinearProgressIndicator(
                           value: complianceScore / 100.0,
                           backgroundColor: Colors.grey.shade200,
@@ -294,7 +294,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: tier.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)), child: Text(tier.badgeText, style: TextStyle(color: tier.color, fontWeight: FontWeight.bold, fontSize: 12))),
                   const SizedBox(width: 8),
-                  OutlinedButton.icon(onPressed: () => setState(() => _showIdCard = true), icon: const Icon(Icons.badge, size: 16), label: const Text('ID Card', style: TextStyle(fontSize: 12)), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4))),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _showIdCard = true),
+                    icon: const Icon(Icons.badge, size: 16),
+                    label: const Text('ID Card', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                 ]),
                 const SizedBox(height: 16),
               ]),
@@ -304,7 +312,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           // Professional Details Card
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(children: [
               const Padding(padding: EdgeInsets.all(16), child: Align(alignment: Alignment.centerLeft, child: Text('Professional Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
               const Divider(height: 1),
@@ -325,19 +333,45 @@ class _ProfilePageState extends State<ProfilePage> {
                     ])),
                     // Show Renew only if license is expired or expiring within 60 days
                     if (_user['status'] != 'active')
-                      OutlinedButton(onPressed: () => context.go('/payments'), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)), child: const Text('Pay to Activate', style: TextStyle(fontSize: 12)))
+                      OutlinedButton(
+                        onPressed: () => context.go('/payments'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Pay to Activate', style: TextStyle(fontSize: 12)),
+                      )
                     else if (daysLeft != null && daysLeft <= 60)
-                      OutlinedButton(onPressed: () => context.go('/payments'), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), foregroundColor: daysLeft < 0 ? Colors.red : Colors.orange), child: Text(daysLeft < 0 ? 'Renew Now' : 'Renew Soon', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                      OutlinedButton(
+                        onPressed: () => context.go('/payments'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          foregroundColor: daysLeft < 0 ? Colors.red : Colors.orange,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(daysLeft < 0 ? 'Renew Now' : 'Renew Soon', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
                   ]),
                 ]),
               ),
-              Padding(padding: const EdgeInsets.all(12), child: OutlinedButton.icon(onPressed: () => context.go('/payment-history'), style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)), icon: const Icon(Icons.history, size: 18), label: const Text('View License History'))),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: OutlinedButton.icon(
+                  onPressed: () => context.go('/payment-history'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.history, size: 18),
+                  label: const Text('View License History'),
+                ),
+              ),
             ]),
           ),
           const SizedBox(height: 16),
 
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -360,7 +394,7 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 16),
 
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: _buildMathBreakdownSection(_user, primary),
@@ -392,9 +426,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     Row(children: [
                       Container(
                         width: 90, height: 90,
-                        decoration: BoxDecoration(border: Border.all(color: tier.color, width: 3), borderRadius: BorderRadius.circular(16)),
+                        decoration: BoxDecoration(border: Border.all(color: tier.color, width: 3), borderRadius: BorderRadius.circular(12)),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(13),
+                          borderRadius: BorderRadius.circular(12),
                           child: _user['profile_photo'] != null && _user['profile_photo'].toString().isNotEmpty
                             ? Image.network(_user['profile_photo'].toString(), width: 90, height: 90, fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))))
@@ -411,7 +445,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ])),
                     ]),
                     const SizedBox(height: 20),
-                    Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.grey.shade50, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(16)), child: Column(children: [
+                    Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.grey.shade50, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)), child: Column(children: [
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('MEMBER ID', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), Text(_uniqueMemberId, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black))]),
                       const SizedBox(height: 12),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -590,7 +624,7 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.grey.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
       ),
       child: Column(

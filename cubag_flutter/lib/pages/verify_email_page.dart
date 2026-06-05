@@ -67,17 +67,19 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     Expanded(flex: 6, child: _buildFormPanel()),
   ]);
 
-  Widget _buildMobileLayout() => Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [_kOrange, _kOrangeDark, Color(0xFF1a1a2e)]),
+  Widget _buildMobileLayout() => Scaffold(
+    backgroundColor: Colors.white,
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: _buildFormContent(isMobile: true),
+          ),
+        ),
+      ),
     ),
-    child: SafeArea(child: Center(child: SingleChildScrollView(child: Container(
-      margin: const EdgeInsets.all(24),
-      padding: const EdgeInsets.all(28),
-      constraints: const BoxConstraints(maxWidth: 420),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withAlpha(40), blurRadius: 40, offset: const Offset(0, 20))]),
-      child: _buildFormContent(),
-    )))),
   );
 
   Widget _buildSidebar() => Container(
@@ -98,7 +100,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   );
 
   Widget _sidebarFeature(IconData icon, String label) => Row(children: [
-    Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white.withAlpha(25), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: Colors.white, size: 20)),
+    Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: Colors.white, size: 20)),
     const SizedBox(width: 14),
     Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
   ]);
@@ -108,25 +110,65 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     child: Center(child: SingleChildScrollView(child: Container(
       padding: const EdgeInsets.all(48),
       constraints: const BoxConstraints(maxWidth: 480),
-      child: _buildFormContent(),
+      child: _buildFormContent(isMobile: false),
     ))),
   );
 
-  Widget _buildFormContent() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-      const AppLogo(size: 60, borderRadius: 16, showShadow: true),
-      const SizedBox(height: 24),
-      if (_status == 'verifying') const SizedBox(width: 40, height: 40, child: CircularProgressIndicator(color: _kOrange, strokeWidth: 3)),
-      if (_status == 'success') Container(width: 64, height: 64, decoration: const BoxDecoration(color: Color(0x1910b981), shape: BoxShape.circle), child: const Icon(Icons.check_circle, color: Color(0xFF10b981), size: 40)),
-      if (_status == 'error') Container(width: 64, height: 64, decoration: const BoxDecoration(color: Color(0x19ef4444), shape: BoxShape.circle), child: const Icon(Icons.error, color: Color(0xFFef4444), size: 40)),
-      const SizedBox(height: 20),
-      const Text('Email Verification', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
-      const SizedBox(height: 8),
-      Text(_message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 14, height: 1.5)),
-      if (_status != 'verifying') ...[
-        const SizedBox(height: 28),
-        SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () => context.go('/login'), style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), child: const Text('Go to Login', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)))),
+  Widget _buildFormContent({bool isMobile = false}) {
+    return Column(
+      crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Align(
+          alignment: isMobile ? Alignment.centerLeft : Alignment.center,
+          child: const AppLogo(size: 60, borderRadius: 12, showShadow: true),
+        ),
+        const SizedBox(height: 24),
+        Align(
+          alignment: isMobile ? Alignment.centerLeft : Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_status == 'verifying') const SizedBox(width: 40, height: 40, child: CircularProgressIndicator(color: _kOrange, strokeWidth: 3)),
+              if (_status == 'success') Container(width: 52, height: 52, decoration: const BoxDecoration(color: Color(0x1910b981), shape: BoxShape.circle), child: const Icon(Icons.check_circle, color: Color(0xFF10b981), size: 32)),
+              if (_status == 'error') Container(width: 52, height: 52, decoration: const BoxDecoration(color: Color(0x19ef4444), shape: BoxShape.circle), child: const Icon(Icons.error, color: Color(0xFFef4444), size: 32)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Email Verification',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF0f172a),
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _message,
+          textAlign: isMobile ? TextAlign.left : TextAlign.center,
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14, height: 1.5),
+        ),
+        if (_status != 'verifying') ...[
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () => context.go('/login'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _kOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: const Text('Go to Login', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+          ),
+        ],
       ],
-    ]);
+    );
   }
 }

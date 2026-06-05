@@ -50,7 +50,7 @@ class _VerifyMemberPageState extends State<VerifyMemberPage> {
         const SizedBox(height: 8),
         Text(_error ?? 'This QR code does not correspond to an active CUBAG member.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, height: 1.6)),
         const SizedBox(height: 24),
-        SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () => context.go('/'), style: ElevatedButton.styleFrom(backgroundColor: primary), child: const Text('Return to Home', style: TextStyle(color: Colors.white)))),
+        SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: () => context.go('/'), style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Return to Home', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
       ]),
     )));
     }

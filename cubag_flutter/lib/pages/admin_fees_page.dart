@@ -55,7 +55,13 @@ class _State extends State<AdminFeesPage> {
           onPressed: _addFee,
           icon: const Icon(Icons.add, size: 16),
           label: const Text('Add Fee'),
-          style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _kOrange,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 0,
+            minimumSize: const Size(0, 40),
+          ),
         ),
       ]),
       const SizedBox(height: 16),
@@ -88,7 +94,13 @@ class _State extends State<AdminFeesPage> {
                 const SizedBox(height: 6),
                 TextFormField(
                   initialValue: fee['label'],
-                  decoration: InputDecoration(hintText: 'e.g. Annual Subscription', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.all(12)),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Annual Subscription',
+                    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
+                  ),
                   onChanged: (v) => _fees[i]['label'] = v,
                 ),
               ])),
@@ -99,7 +111,11 @@ class _State extends State<AdminFeesPage> {
                 TextFormField(
                   initialValue: fee['amount'].toString(),
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.all(12)),
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
+                  ),
                   style: const TextStyle(color: _kOrange, fontWeight: FontWeight.w800),
                   textAlign: TextAlign.right,
                   onChanged: (v) => _fees[i]['amount'] = v,
@@ -116,7 +132,12 @@ class _State extends State<AdminFeesPage> {
         const SizedBox(height: 8),
         SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
           onPressed: _loading ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26))),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _kOrange,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 0,
+          ),
           child: Text(_loading ? 'Saving Changes...' : 'Save All Fees', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         )),
       ],

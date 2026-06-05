@@ -61,17 +61,19 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     Expanded(flex: 6, child: _buildFormPanel()),
   ]);
 
-  Widget _buildMobileLayout() => Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [_kOrange, _kOrangeDark, Color(0xFF1a1a2e)]),
+  Widget _buildMobileLayout() => Scaffold(
+    backgroundColor: Colors.white,
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: _buildFormContent(isMobile: true),
+          ),
+        ),
+      ),
     ),
-    child: SafeArea(child: Center(child: SingleChildScrollView(child: Container(
-      margin: const EdgeInsets.all(24),
-      padding: const EdgeInsets.all(28),
-      constraints: const BoxConstraints(maxWidth: 420),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withAlpha(40), blurRadius: 40, offset: const Offset(0, 20))]),
-      child: _buildFormContent(),
-    )))),
   );
 
   Widget _buildSidebar() => Container(
@@ -92,7 +94,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   );
 
   Widget _sidebarFeature(IconData icon, String label) => Row(children: [
-    Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white.withAlpha(25), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: Colors.white, size: 20)),
+    Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: Colors.white, size: 20)),
     const SizedBox(width: 14),
     Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
   ]);
@@ -102,65 +104,123 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     child: Center(child: SingleChildScrollView(child: Container(
       padding: const EdgeInsets.all(48),
       constraints: const BoxConstraints(maxWidth: 480),
-      child: _buildFormContent(),
+      child: _buildFormContent(isMobile: false),
     ))),
   );
 
-  Widget _buildFormContent() {
+  Widget _buildFormContent({bool isMobile = false}) {
     if (widget.email == null || widget.token == null) {
-      return Column(mainAxisSize: MainAxisSize.min, children: [
-        const AppLogo(size: 60, borderRadius: 16, showShadow: true),
-        const SizedBox(height: 24),
-        Container(width: 64, height: 64, decoration: const BoxDecoration(color: Color(0x19ef4444), shape: BoxShape.circle), child: const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 40)),
-        const SizedBox(height: 16),
-        const Text('Invalid Link', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
-        const SizedBox(height: 8),
-        const Text('The password reset link is invalid or missing required parameters.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5)),
-        const SizedBox(height: 24),
-        SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () => context.go('/forgot-password'), style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), child: const Text('Request New Link', style: TextStyle(fontWeight: FontWeight.bold)))),
-      ]);
+      return Column(
+        crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Align(
+            alignment: isMobile ? Alignment.centerLeft : Alignment.center,
+            child: const AppLogo(size: 56, borderRadius: 12, showShadow: true),
+          ),
+          const SizedBox(height: 24),
+          Center(
+            child: Container(width: 64, height: 64, decoration: const BoxDecoration(color: Color(0x19ef4444), shape: BoxShape.circle), child: const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 40)),
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: isMobile ? Alignment.centerLeft : Alignment.center,
+            child: const Text('Invalid Link', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
+          ),
+          const SizedBox(height: 8),
+          Text('The password reset link is invalid or missing required parameters.', textAlign: isMobile ? TextAlign.left : TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 14, height: 1.5)),
+          const SizedBox(height: 24),
+          SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: () => context.go('/forgot-password'), style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Request New Link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
+        ],
+      );
     }
 
     if (_success) {
-      return Column(mainAxisSize: MainAxisSize.min, children: [
-        const AppLogo(size: 60, borderRadius: 16, showShadow: true),
-        const SizedBox(height: 24),
-        Container(width: 64, height: 64, decoration: const BoxDecoration(color: Color(0x1910b981), shape: BoxShape.circle), child: const Icon(Icons.check_circle, color: Color(0xFF10b981), size: 40)),
-        const SizedBox(height: 20),
-        const Text('Password Reset', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
-        const SizedBox(height: 8),
-        const Text('Your password has been updated successfully. Redirecting to login...', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5)),
-        const SizedBox(height: 24),
-        SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () => context.go('/login'), style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), child: const Text('Back to Login', style: TextStyle(fontWeight: FontWeight.bold)))),
-      ]);
+      return Column(
+        crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Align(
+            alignment: isMobile ? Alignment.centerLeft : Alignment.center,
+            child: const AppLogo(size: 56, borderRadius: 12, showShadow: true),
+          ),
+          const SizedBox(height: 24),
+          Center(
+            child: Container(width: 64, height: 64, decoration: const BoxDecoration(color: Color(0x1910b981), shape: BoxShape.circle), child: const Icon(Icons.check_circle, color: Color(0xFF10b981), size: 40)),
+          ),
+          const SizedBox(height: 20),
+          Align(
+            alignment: isMobile ? Alignment.centerLeft : Alignment.center,
+            child: const Text('Password Reset', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
+          ),
+          const SizedBox(height: 8),
+          Text('Your password has been updated successfully. Redirecting to login...', textAlign: isMobile ? TextAlign.left : TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 14, height: 1.5)),
+          const SizedBox(height: 24),
+          SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: () => context.go('/login'), style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Back to Login', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
+        ],
+      );
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Center(child: Column(children: [
-        const AppLogo(size: 60, borderRadius: 16, showShadow: true),
-        const SizedBox(height: 16),
-        const Text('Set New Password', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
-        const SizedBox(height: 8),
-        const Text('Choose a new, secure password for your account.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13)),
-      ])),
-      const SizedBox(height: 24),
+      Align(
+        alignment: isMobile ? Alignment.centerLeft : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.start,
+          children: [
+            const AppLogo(size: 56, borderRadius: 12, showShadow: true),
+            const SizedBox(height: 16),
+            const Text(
+              'Set New Password',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0f172a), letterSpacing: -0.5),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Choose a new, secure password for your account.',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14, height: 1.3),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 32),
       if (_error.isNotEmpty)
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: const Color(0x19ef4444), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x33ef4444))),
-          child: Row(children: [const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18), const SizedBox(width: 8), Expanded(child: Text(_error, style: const TextStyle(color: Color(0xFFef4444), fontSize: 13, fontWeight: FontWeight.w600)))]),
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: const Color(0x19ef4444), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x33ef4444))),
+          child: Row(children: [const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18), const SizedBox(width: 10), Expanded(child: Text(_error, style: const TextStyle(color: Color(0xFFef4444), fontSize: 13, fontWeight: FontWeight.w600)))]),
         ),
-      const Text('New Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0f172a))),
+      const Text('New Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
       const SizedBox(height: 8),
-      TextField(controller: _pwCtrl, obscureText: !_showPw, decoration: InputDecoration(hintText: 'Enter new password', prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kOrange, width: 2)), suffixIcon: IconButton(icon: Icon(_showPw ? Icons.visibility_off : Icons.visibility, color: Colors.grey, size: 20), onPressed: () => setState(() => _showPw = !_showPw)))),
+      TextField(
+        controller: _pwCtrl,
+        obscureText: !_showPw,
+        decoration: InputDecoration(
+          hintText: 'Enter new password',
+          prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade400, size: 20),
+          suffixIcon: IconButton(icon: Icon(_showPw ? Icons.visibility_off : Icons.visibility, color: Colors.grey.shade400, size: 20), onPressed: () => setState(() => _showPw = !_showPw)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        )
+      ),
       const SizedBox(height: 16),
-      const Text('Confirm Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0f172a))),
+      const Text('Confirm Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
       const SizedBox(height: 8),
-      TextField(controller: _cpwCtrl, obscureText: !_showCpw, decoration: InputDecoration(hintText: 'Confirm new password', prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kOrange, width: 2)), suffixIcon: IconButton(icon: Icon(_showCpw ? Icons.visibility_off : Icons.visibility, color: Colors.grey, size: 20), onPressed: () => setState(() => _showCpw = !_showCpw)))),
-      const SizedBox(height: 24),
-      SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: _loading ? null : _reset, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Update Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)))),
+      TextField(
+        controller: _cpwCtrl,
+        obscureText: !_showCpw,
+        decoration: InputDecoration(
+          hintText: 'Confirm new password',
+          prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade400, size: 20),
+          suffixIcon: IconButton(icon: Icon(_showCpw ? Icons.visibility_off : Icons.visibility, color: Colors.grey.shade400, size: 20), onPressed: () => setState(() => _showCpw = !_showCpw)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        )
+      ),
+      const SizedBox(height: 28),
+      SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: _loading ? null : _reset, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Update Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
     ]);
   }
 }

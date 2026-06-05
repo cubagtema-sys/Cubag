@@ -83,7 +83,7 @@ if not IS_DEBUG:
 # Extensions — restrict CORS to explicitly allowed origins
 _CORS_ORIGINS = [
     o.strip()
-    for o in os.getenv('CORS_ALLOWED_ORIGINS', 'https://cub-production.up.railway.app').split(',')
+    for o in os.getenv('CORS_ALLOWED_ORIGINS', 'https://cubag-production.up.railway.app').split(',')
     if o.strip()
 ]
 CORS(app, origins=_CORS_ORIGINS, supports_credentials=True)

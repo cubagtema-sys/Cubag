@@ -57,14 +57,14 @@ class _State extends State<AdminPaymentSettingsPage> {
           onPressed: _addBank,
           icon: const Icon(Icons.add, size: 16),
           label: const Text('Add Bank'),
-          style: ElevatedButton.styleFrom(backgroundColor: _kBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          style: ElevatedButton.styleFrom(backgroundColor: _kBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
         ),
       ]),
       const SizedBox(height: 16),
 
       if (_success) Container(
         margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(10), border: Border.all(color: _kGreen.withAlpha(50))),
+        decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12), border: Border.all(color: _kGreen.withAlpha(50))),
         child: Row(children: [const Icon(Icons.check_circle_outline, color: _kGreen, size: 18), const SizedBox(width: 8), const Text('Settings updated!', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w700))]),
       ),
 
@@ -109,7 +109,7 @@ class _State extends State<AdminPaymentSettingsPage> {
         const SizedBox(height: 8),
         SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
           onPressed: _loading ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26))),
+          style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
           child: Text(_loading ? 'Saving...' : 'Save Settings', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         )),
       ],
@@ -122,7 +122,11 @@ class _State extends State<AdminPaymentSettingsPage> {
     TextFormField(
       initialValue: value,
       keyboardType: keyboardType,
-      decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.all(12)),
+      decoration: InputDecoration(
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
       onChanged: onChange,
     ),
   ]);

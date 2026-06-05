@@ -234,7 +234,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: Row(
@@ -292,12 +292,12 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                 return Expanded(
                   child: InkWell(
                     onTap: () => _onTabChanged(t),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         color: active ? Theme.of(context).primaryColor : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       alignment: Alignment.center,
                       child: Text(
@@ -459,7 +459,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -473,7 +473,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Theme.of(context).dividerColor),
                   ),
                   child: Column(
@@ -489,7 +489,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                                 height: 40,
                                 decoration: BoxDecoration(
                                   color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(Icons.sailing, color: Theme.of(context).primaryColor),
                               ),
@@ -513,7 +513,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: const Color(0xFF10b981).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               activeVessel['status']?.toString().toUpperCase() ?? 'UNDERWAY',
@@ -580,7 +580,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                         Theme.of(context).primaryColor.withValues(alpha: 0.01),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.15)),
                   ),
                   child: Column(
@@ -624,7 +624,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: Column(
@@ -647,7 +647,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: Column(
@@ -677,7 +677,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                 Container(
                   padding: const EdgeInsets.all(60),
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)),
+                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12)),
                   child: Column(
                     children: [
                       Icon(Icons.sailing, size: 48, color: Colors.grey.shade300),
@@ -695,10 +695,10 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12)),
                     child: Column(children: [
                       Row(children: [
-                        Container(width: 40, height: 40, decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.directions_boat, color: primary)),
+                        Container(width: 40, height: 40, decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.directions_boat, color: primary)),
                         const SizedBox(width: 12),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(v['name']?.toString() ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -726,7 +726,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(8)),
+                        decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12)),
                         child: Row(children: [
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             const Text('DESTINATION', style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
@@ -811,7 +811,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: inProgress ? const Color(0x193b82f6) : const Color(0x1910b981),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 s['status'] ?? '', 
@@ -825,7 +825,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Theme.of(context).scaffoldBackgroundColor,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Theme.of(context).dividerColor),
                           ),
                           child: Column(

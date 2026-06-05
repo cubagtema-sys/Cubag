@@ -106,9 +106,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
           const SizedBox(height: 24),
           Row(children: [
-            Expanded(child: ElevatedButton(onPressed: _loading ? null : _changePassword, style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 48)), child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Update Password', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+            Expanded(child: ElevatedButton(onPressed: _loading ? null : _changePassword, style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Update Password', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
             const SizedBox(width: 12),
-            Expanded(child: OutlinedButton(onPressed: () => setState(() => _changingPw = false), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)), child: const Text('Cancel'))),
+            Expanded(child: OutlinedButton(onPressed: () => setState(() => _changingPw = false), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Cancel'))),
           ]),
         ]),
       ),
@@ -121,7 +121,9 @@ class _SettingsPageState extends State<SettingsPage> {
       obscureText: !show,
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         suffixIcon: IconButton(icon: Icon(show ? Icons.visibility : Icons.visibility_off, color: Colors.grey), onPressed: toggle),
       ),
     );

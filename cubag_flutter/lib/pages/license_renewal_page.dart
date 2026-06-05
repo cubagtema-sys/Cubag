@@ -77,13 +77,13 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [primary, primary.withAlpha(200)]),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: Colors.white.withAlpha(30), borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.timeline, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 12),
@@ -95,7 +95,7 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: status == 'active' ? const Color(0xFF10b981).withAlpha(40) : status == 'suspended' ? const Color(0xFFef4444).withAlpha(40) : Colors.white.withAlpha(30),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               status.toUpperCase(),
@@ -152,7 +152,7 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
       margin: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
       padding: const EdgeInsets.all(40),
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         Container(width: 80, height: 80, decoration: const BoxDecoration(color: Color(0x19ef4444), shape: BoxShape.circle), child: const Icon(Icons.lock, color: Color(0xFFef4444), size: 40)),
         const SizedBox(height: 20),
@@ -161,9 +161,26 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
         const Text('Your official receipts and membership licenses will appear here once your annual dues are settled and approved by the secretariat.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.6)),
         const SizedBox(height: 24),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          ElevatedButton(onPressed: () => context.go('/payments'), style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, minimumSize: const Size(130, 48)), child: const Text('Make Payment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+          ElevatedButton(
+            onPressed: () => context.go('/payments'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              minimumSize: const Size(130, 52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('Make Payment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
           const SizedBox(width: 12),
-          OutlinedButton(onPressed: () => context.go('/dashboard'), style: OutlinedButton.styleFrom(minimumSize: const Size(130, 48)), child: const Text('Back to Dashboard')),
+          OutlinedButton(
+            onPressed: () => context.go('/dashboard'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(130, 52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('Back to Dashboard'),
+          ),
         ]),
       ]),
     );
@@ -173,7 +190,7 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
     return Container(
       padding: const EdgeInsets.all(48),
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         const Icon(Icons.history, size: 48, color: Colors.grey),
         const SizedBox(height: 12),
@@ -181,7 +198,16 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
         const SizedBox(height: 8),
         const Text("You don't have any receipts yet.", style: TextStyle(color: Colors.grey)),
         const SizedBox(height: 20),
-        ElevatedButton(onPressed: () => context.go('/payments'), style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(160, 48)), child: const Text('Make Payment', style: TextStyle(color: Colors.white))),
+        ElevatedButton(
+          onPressed: () => context.go('/payments'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primary,
+            minimumSize: const Size(160, 52),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 0,
+          ),
+          child: const Text('Make Payment', style: TextStyle(color: Colors.white)),
+        ),
       ]),
     );
   }
@@ -195,13 +221,13 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).dividerColor)),
+      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width: 40, height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [primary, primary.withAlpha(178)]), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.badge, color: Colors.white, size: 22)),
+          Container(width: 40, height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [primary, primary.withAlpha(178)]), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.badge, color: Colors.white, size: 22)),
           const SizedBox(width: 12),
           const Expanded(child: Text('Membership Record', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: statusColor.withAlpha(25), border: Border.all(color: statusColor.withAlpha(76)), borderRadius: BorderRadius.circular(8)), child: Text(statusLabel.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor))),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: statusColor.withAlpha(25), border: Border.all(color: statusColor.withAlpha(76)), borderRadius: BorderRadius.circular(12)), child: Text(statusLabel.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor))),
         ]),
         const SizedBox(height: 16),
         ...([
@@ -211,9 +237,9 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
         ].where((r) => r['val'] != null)).map((r) => Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, border: Border.all(color: Theme.of(context).dividerColor), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, border: Border.all(color: Theme.of(context).dividerColor), borderRadius: BorderRadius.circular(12)),
           child: Row(children: [
-            Container(width: 34, height: 34, decoration: BoxDecoration(color: primary.withAlpha(25), borderRadius: BorderRadius.circular(8)), child: Icon(r['icon'] as IconData, color: primary, size: 18)),
+            Container(width: 34, height: 34, decoration: BoxDecoration(color: primary.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Icon(r['icon'] as IconData, color: primary, size: 18)),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(r['label'].toString().toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
@@ -224,15 +250,38 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
         const SizedBox(height: 8),
         if (approved)
           Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: () => _showCertificate(rec, yr), icon: const Icon(Icons.visibility, size: 16), label: const Text('View', style: TextStyle(fontSize: 13)))),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _showCertificate(rec, yr),
+                icon: const Icon(Icons.visibility, size: 16),
+                label: const Text('View', style: TextStyle(fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
             const SizedBox(width: 8),
-            Expanded(child: ElevatedButton.icon(onPressed: () => _showCertificate(rec, yr), icon: const Icon(Icons.download, size: 16, color: Colors.white), label: const Text('Download', style: TextStyle(color: Colors.white, fontSize: 13)), style: ElevatedButton.styleFrom(backgroundColor: primary))),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _showCertificate(rec, yr),
+                icon: const Icon(Icons.download, size: 16, color: Colors.white),
+                label: const Text('Download', style: TextStyle(color: Colors.white, fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  minimumSize: const Size(0, 52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
           ])
         else
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0x19f59e0b), borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: const Color(0x19f59e0b), borderRadius: BorderRadius.circular(12)),
             child: const Text('Awaiting admin approval...', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFf59e0b), fontSize: 13, fontWeight: FontWeight.w600)),
           ),
       ]),
@@ -244,13 +293,13 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
     final user = _memberInfo ?? {};
     showDialog(context: context, builder: (_) => Dialog(
       insetPadding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(child: Column(children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Row(children: [
-              Container(width: 44, height: 44, decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.verified, color: Colors.white)),
+              Container(width: 44, height: 44, decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.verified, color: Colors.white)),
               const SizedBox(width: 12),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('CUBAG', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: primary)),
@@ -283,7 +332,7 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
             ]),
           ),
           const SizedBox(height: 20),
-          Container(padding: const EdgeInsets.symmetric(vertical: 8), decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(12)), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             const Icon(Icons.verified, color: Colors.white, size: 16),
             const SizedBox(width: 8),
             Text('CUBAG OFFICIAL CERTIFICATE $yr', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),

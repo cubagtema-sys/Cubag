@@ -188,18 +188,19 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
-                        height: 48,
+                        height: 52,
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _changePassword,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
                           ),
                           child: _isLoading
                               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                               : const Text(
                                   'Update Password',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                         ),
                       ),
@@ -225,10 +226,10 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
         const SizedBox(height: 4),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10),
+            color: Colors.grey.shade500.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: Text(
@@ -254,8 +255,9 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
           obscureText: !show,
           decoration: InputDecoration(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFf08232), width: 2)),
             suffixIcon: IconButton(
               icon: Icon(show ? Icons.visibility : Icons.visibility_off, color: Colors.grey, size: 20),
               onPressed: toggle,

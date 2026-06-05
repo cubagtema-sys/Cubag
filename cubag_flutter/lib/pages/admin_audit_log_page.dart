@@ -168,10 +168,14 @@ class _AdminAuditLogPageState extends State<AdminAuditLogPage> {
           ].map((r) => _DetailRow(label: r[0], value: r[1])),
           const SizedBox(height: 16),
           SizedBox(
-            width: double.infinity, height: 48,
+            width: double.infinity, height: 52,
             child: ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
               child: const Text('Close', style: TextStyle(color: Colors.white)),
             ),
           ),

@@ -120,16 +120,26 @@ class _LiveDataPageState extends State<LiveDataPage> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [Icon(Icons.currency_exchange, color: primary, size: 20), const SizedBox(width: 8), const Text('Live Forex Rates', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))]),
               const SizedBox(height: 14),
-              Row(children: _forex.entries.map((e) => Expanded(child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(10), border: Border.all(color: Theme.of(context).dividerColor)),
-                child: Column(children: [
-                  Text('${e.key}/GHS', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(_forexLoading ? '...' : e.value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'monospace')),
-                ]),
-              ))).toList()),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 2.2,
+                children: _forex.entries.map((e) => Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(10), border: Border.all(color: Theme.of(context).dividerColor)),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('${e.key}/GHS', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      FittedBox(fit: BoxFit.scaleDown, child: Text(_forexLoading ? '...' : e.value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'monospace'))),
+                    ],
+                  ),
+                )).toList(),
+              ),
             ]),
           ),
         ),

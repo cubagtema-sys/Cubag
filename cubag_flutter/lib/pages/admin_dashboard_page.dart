@@ -297,7 +297,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                   height: 150,
                   width: double.maxFinite,
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.grey.shade50, border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: Colors.grey.shade50, border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
                   child: SingleChildScrollView(child: SelectableText(csvContent, style: const TextStyle(fontSize: 10, fontFamily: 'monospace'))),
                 ),
               ],
@@ -318,7 +318,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Row(
           children: [
             Icon(Icons.download, color: Theme.of(context).primaryColor),
@@ -343,7 +343,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+              minimumSize: const Size(0, 52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Financial Ledger'),
           ),
@@ -355,7 +357,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF3b82f6),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+              minimumSize: const Size(0, 52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Members Roster'),
           ),
@@ -497,50 +501,67 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
   }
 
   Widget _buildHeaderBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final isSmall = MediaQuery.of(context).size.width < 360;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Overview Insights',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0f172a),
-          ),
-        ),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            ElevatedButton.icon(
-              onPressed: _showExportDialog,
-              icon: const Icon(Icons.download, size: 14),
-              label: const Text('Export Data', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Theme.of(context).primaryColor,
-                elevation: 0,
-                side: BorderSide(color: Theme.of(context).primaryColor),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            const Text(
+              'Overview Insights',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0f172a),
               ),
             ),
-            const SizedBox(width: 8),
-            CustomDropdown<String>(
-              value: _dateFilter,
-              width: 140,
-              dense: true,
-              items: const [
-                DropdownItem(value: 'All Time', label: 'All Time'),
-                DropdownItem(value: 'Last 7 Days', label: 'Last 7 Days'),
-                DropdownItem(value: 'Last 30 Days', label: 'Last 30 Days'),
-                DropdownItem(value: 'Year to Date', label: 'Year to Date'),
-              ],
-              onChanged: (newValue) {
-                setState(() {
-                  _dateFilter = newValue!;
-                });
-              },
-            ),
+            if (!isSmall) _buildActionButtons(),
           ],
+        ),
+        if (isSmall) ...[
+          const SizedBox(height: 12),
+          _buildActionButtons(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    final isSmall = MediaQuery.of(context).size.width < 360;
+    return Row(
+      mainAxisAlignment: isSmall ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+      children: [
+        ElevatedButton.icon(
+          onPressed: _showExportDialog,
+          icon: const Icon(Icons.download, size: 14),
+          label: const Text('Export Data', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Theme.of(context).primaryColor,
+            elevation: 0,
+            minimumSize: const Size(0, 52),
+            side: BorderSide(color: Theme.of(context).primaryColor),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          ),
+        ),
+        const SizedBox(width: 8),
+        CustomDropdown<String>(
+          value: _dateFilter,
+          width: isSmall ? 130 : 140,
+          dense: true,
+          items: const [
+            DropdownItem(value: 'All Time', label: 'All Time'),
+            DropdownItem(value: 'Last 7 Days', label: '7 Days'),
+            DropdownItem(value: 'Last 30 Days', label: '30 Days'),
+            DropdownItem(value: 'Year to Date', label: 'YTD'),
+          ],
+          onChanged: (newValue) {
+            setState(() {
+              _dateFilter = newValue!;
+            });
+          },
         ),
       ],
     );
@@ -548,6 +569,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   Widget _buildKPIGrid(bool isDesktop) {
     final primary = Theme.of(context).primaryColor;
+    final size = MediaQuery.of(context).size;
+    final isSmall = size.width < 360;
     final auth = Provider.of<AuthService>(context, listen: false);
     
     final revenue = _filteredRevenue;
@@ -557,9 +580,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: isDesktop ? 4 : 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: isDesktop ? 1.4 : 1.2,
+      mainAxisSpacing: isSmall ? 8 : 12,
+      crossAxisSpacing: isSmall ? 8 : 12,
+      childAspectRatio: isDesktop ? 1.4 : (isSmall ? 1.1 : 1.3),
       children: [
         if (auth.hasPermission('members'))
           _kpiCard(Icons.group, primary, 'Total Users', '$_filteredTotalMembersCount'),
@@ -575,8 +598,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   Widget _kpiCard(IconData icon, Color color, String label, String value) {
     return Card(
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: color.withValues(alpha: 0.15))),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: color.withValues(alpha: 0.15))),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -663,7 +686,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFe2e8f0)),
                   ),
                   child: Column(
@@ -702,7 +725,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFe2e8f0)),
                   ),
                   child: Column(
@@ -724,7 +747,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFe2e8f0)),
             ),
             child: Column(
@@ -786,7 +809,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           ),
           const SizedBox(height: 6),
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             child: LinearProgressIndicator(
               value: pct,
               minHeight: 8,
@@ -827,7 +850,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFe2e8f0)),
               ),
               child: Column(
@@ -849,7 +872,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFe2e8f0)),
               ),
               child: Column(
@@ -874,7 +897,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                           ),
                           const SizedBox(height: 4),
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             child: LinearProgressIndicator(
                               value: e.value / maxCount,
                               minHeight: 8,
@@ -924,7 +947,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFe2e8f0)),
       ),
       child: Column(
@@ -968,8 +991,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Card(
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.withAlpha(20))),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.withAlpha(20))),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -1012,7 +1035,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     height: 32,
                     decoration: BoxDecoration(
                       color: color.withAlpha(20),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(icon, color: color, size: 18),
                   ),
@@ -1035,8 +1058,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
   Widget _buildRecentRegistrationsCard(Color primary) {
     return Card(
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.withAlpha(20))),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.withAlpha(20))),
       child: Column(children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1112,7 +1135,7 @@ class _CustomBarChartState extends State<_CustomBarChart> {
                     return Expanded(
                       child: InkWell(
                         onTap: () => setState(() => _selectedIndex = isSelected ? null : index),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -1144,7 +1167,7 @@ class _CustomBarChartState extends State<_CustomBarChart> {
                                               ? [widget.color, widget.color]
                                               : [widget.color.withValues(alpha: 0.4), widget.color.withValues(alpha: 0.8)],
                                         ),
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                                         border: isSelected ? Border.all(color: Colors.white, width: 2) : null,
                                         boxShadow: isSelected
                                             ? [BoxShadow(color: widget.color.withValues(alpha: 0.4), blurRadius: 6, offset: const Offset(0, -2))]
@@ -1159,10 +1182,9 @@ class _CustomBarChartState extends State<_CustomBarChart> {
                             Text(
                               label,
                               style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                                color: isSelected ? widget.color : const Color(0xFF64748b),
-                              ),
+                                  fontSize: 9,
+                                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                                  color: isSelected ? widget.color : const Color(0xFF64748b)),
                             ),
                           ],
                         ),
@@ -1177,7 +1199,7 @@ class _CustomBarChartState extends State<_CustomBarChart> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: widget.color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     'Selected: ${widget.labels[_selectedIndex!]} - ₵${widget.values[_selectedIndex!].toStringAsFixed(2)}',
@@ -1285,12 +1307,12 @@ class _CustomRingChartState extends State<_CustomRingChart> {
                       _selectedKey = e.key;
                     });
                   },
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(12),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                     decoration: BoxDecoration(
                       color: isSelected ? color.withValues(alpha: 0.08) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSelected ? color.withValues(alpha: 0.3) : Colors.transparent,
                       ),

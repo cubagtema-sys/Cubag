@@ -90,19 +90,32 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
           ),
           const SizedBox(height: 20),
           Row(children: [
-            Expanded(child: OutlinedButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            )),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: ElevatedButton(
-              onPressed: _actionLoading ? null : () {
-                Navigator.of(ctx).pop();
-                _markPaid(txId);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: primary),
-              child: const Text('Confirm', style: TextStyle(color: Colors.white)),
-            )),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _actionLoading ? null : () {
+                  Navigator.of(ctx).pop();
+                  _markPaid(txId);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  elevation: 0,
+                  minimumSize: const Size(0, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
           ]),
         ]),
       ),
@@ -138,7 +151,7 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
           Row(children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: primary.withAlpha(20), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: primary.withAlpha(20), borderRadius: BorderRadius.circular(12)),
               child: Icon(Icons.receipt_long, color: primary, size: 22),
             ),
             const SizedBox(width: 12),
@@ -180,11 +193,12 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
 
           // Close button
           SizedBox(
-            width: double.infinity, height: 48,
+            width: double.infinity, height: 52,
             child: ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primary,
+                elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
@@ -245,18 +259,16 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
         Row(children: [
           Expanded(
             flex: 3,
-            child: SizedBox(
-              height: 44,
-              child: TextField(
-                onChanged: (v) => setState(() { _search = v; _page = 1; }),
-                style: const TextStyle(fontSize: 13),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
-                  hintText: 'Search by name or description...',
-                  hintStyle: const TextStyle(fontSize: 13),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+            child: TextField(
+              onChanged: (v) => setState(() { _search = v; _page = 1; }),
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                hintText: 'Search by name or description...',
+                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
               ),
             ),
           ),
@@ -340,18 +352,31 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
                 const SizedBox(height: 10),
                 Row(children: [
                   if (tx['status'] == 'pending')
-                    Expanded(child: ElevatedButton.icon(
-                      onPressed: _actionLoading ? null : () => _showConfirmDialog(tx['tx_id'], amount, tx['member_name']?.toString() ?? ''),
-                      style: ElevatedButton.styleFrom(backgroundColor: primary),
-                      icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
-                      label: const Text('Approve', style: TextStyle(color: Colors.white)),
-                    )),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _actionLoading ? null : () => _showConfirmDialog(tx['tx_id'], amount, tx['member_name']?.toString() ?? ''),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          elevation: 0,
+                          minimumSize: const Size(0, 40),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
+                        label: const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
                   if (tx['status'] == 'pending') const SizedBox(width: 8),
-                  Expanded(child: OutlinedButton.icon(
-                    onPressed: () => _showDetailSheet(Map<String, dynamic>.from(tx)),
-                    icon: const Icon(Icons.open_in_new, size: 15),
-                    label: const Text('View Details'),
-                  )),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showDetailSheet(Map<String, dynamic>.from(tx)),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.open_in_new, size: 15),
+                      label: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
                 ]),
               ]),
             );
