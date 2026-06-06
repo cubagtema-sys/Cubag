@@ -37,7 +37,17 @@ def get_tasks():
                 ORDER BY t.due_date ASC
             """, (member_id, member_id))
             data = cursor.fetchall()
-        return jsonify(data), 200
+
+            # Stringify dates
+            for item in data:
+                if hasattr(item.get('due_date'), 'isoformat'):
+                    item['due_date'] = item['due_date'].isoformat()
+                if hasattr(item.get('created_at'), 'isoformat'):
+                    item['created_at'] = item['created_at'].isoformat()
+                if hasattr(item.get('submitted_at'), 'isoformat'):
+                    item['submitted_at'] = item['submitted_at'].isoformat()
+
+        return jsonify({'items': data, 'total': len(data)}), 200
     finally:
         conn.close()
 

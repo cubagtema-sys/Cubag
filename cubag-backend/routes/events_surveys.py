@@ -28,7 +28,15 @@ def get_events():
                 # Show events from today onwards, but use -1 day interval to handle timezone offsets
                 cursor.execute("SELECT * FROM events WHERE date >= (CURRENT_DATE - INTERVAL '1 day') ORDER BY date ASC")
             data = cursor.fetchall()
-        return jsonify(data), 200
+
+            # Ensure dates are stringified
+            for ev in data:
+                if hasattr(ev.get('date'), 'isoformat'):
+                    ev['date'] = ev['date'].isoformat()
+                if hasattr(ev.get('created_at'), 'isoformat'):
+                    ev['created_at'] = ev['created_at'].isoformat()
+
+        return jsonify({'items': data, 'total': len(data)}), 200
     finally:
         conn.close()
 
@@ -151,7 +159,7 @@ def get_surveys():
             """, (member_id,))
             data = cursor.fetchall()
 
-            # Parse options JSON string into object
+            # Parse options JSON string into object and ensure date serialization
             for s in data:
                 if isinstance(s.get('options'), str):
                     try:
@@ -159,7 +167,12 @@ def get_surveys():
                     except:
                         s['options'] = []
 
-        return jsonify(data), 200
+                if hasattr(s.get('created_at'), 'isoformat'):
+                    s['created_at'] = s['created_at'].isoformat()
+                if hasattr(s.get('deadline'), 'isoformat'):
+                    s['deadline'] = s['deadline'].isoformat()
+
+        return jsonify({'items': data, 'total': len(data)}), 200
     finally:
         conn.close()
 

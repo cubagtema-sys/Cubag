@@ -23,7 +23,13 @@ def get_announcements():
                 ORDER BY a.created_at DESC
             """, (user_id, user_id))
             data = cursor.fetchall()
-        return jsonify(data), 200
+
+            # Stringify dates
+            for item in data:
+                if hasattr(item.get('created_at'), 'isoformat'):
+                    item['created_at'] = item['created_at'].isoformat()
+
+        return jsonify({'items': data, 'total': len(data)}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:

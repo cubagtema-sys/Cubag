@@ -25,8 +25,21 @@ def _fetch_schedules(schedule_type):
             else:
                 cursor.execute("SELECT * FROM schedules ORDER BY created_at DESC")
             data = cursor.fetchall()
-        return jsonify(data), 200
+
+            # Ensure dates and numbers are JSON serializable
+            for item in data:
+                for key, value in list(item.items()):
+                    if hasattr(value, 'isoformat'):
+                        item[key] = value.isoformat()
+                    elif hasattr(value, 'strftime'):
+                        item[key] = str(value)
+
+        # Return in 'items' wrapper to match Flutter data service expectations
+        return jsonify({'items': data, 'total': len(data)}), 200
     except Exception as e:
+        import traceback
+        print(f"[Schedules Error] {e}")
+        print(traceback.format_exc())
         return jsonify({'message': str(e)}), 500
     finally:
         conn.close()
