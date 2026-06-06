@@ -12,14 +12,19 @@ def get_user_tickets():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # Join with members to ensure we only get valid tickets and potentially add more info
             cursor.execute("""
                 SELECT id, subject, message, status, created_at, updated_at
                 FROM support_tickets
-                WHERE member_id = %s
+                WHERE member_id = %s AND deleted_at IS NULL
                 ORDER BY updated_at DESC
             """, (member_id,))
             tickets = cursor.fetchall()
             
+            # Helper to safely format dates
+            def format_date(dt, fmt):
+                return dt.strftime(fmt) if dt else 'N/A'
+
             # Get replies for each ticket
             for t in tickets:
                 cursor.execute("""
@@ -32,15 +37,18 @@ def get_user_tickets():
                 t['replies'] = [{
                     'author': r['author'],
                     'message': r['message'],
-                    'date': r['created_at'].strftime('%Y-%m-%d %H:%M')
+                    'date': format_date(r['created_at'], '%Y-%m-%d %H:%M')
                 } for r in replies]
                 
-                t['date'] = t['created_at'].strftime('%Y-%m-%d')
-                t['lastUpdate'] = t['updated_at'].strftime('%Y-%m-%d %H:%M')
+                t['date'] = format_date(t['created_at'], '%Y-%m-%d')
+                t['lastUpdate'] = format_date(t['updated_at'], '%Y-%m-%d %H:%M')
                 
             return jsonify(tickets), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        import traceback
+        print(f"[Tickets Error] {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'message': 'Failed to load tickets', 'details': str(e)}), 500
     finally:
         conn.close()
 
@@ -96,6 +104,10 @@ def get_all_tickets_admin():
             """)
             tickets = cursor.fetchall()
             
+            # Helper to safely format dates
+            def format_date(dt, fmt):
+                return dt.strftime(fmt) if dt else 'N/A'
+
             for t in tickets:
                 cursor.execute("""
                     SELECT author, message, created_at
@@ -107,16 +119,18 @@ def get_all_tickets_admin():
                 t['replies'] = [{
                     'author': r['author'],
                     'message': r['message'],
-                    'date': r['created_at'].strftime('%Y-%m-%d %H:%M')
+                    'date': format_date(r['created_at'], '%Y-%m-%d %H:%M')
                 } for r in replies]
                 
-                t['date'] = t['created_at'].strftime('%Y-%m-%d')
-                t['lastUpdate'] = t['updated_at'].strftime('%Y-%m-%d %H:%M')
-                # member_name is already in the row from the JOIN — no need to concat into subject
+                t['date'] = format_date(t['created_at'], '%Y-%m-%d')
+                t['lastUpdate'] = format_date(t['updated_at'], '%Y-%m-%d %H:%M')
                 
             return jsonify(tickets), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        import traceback
+        print(f"[Admin Tickets Error] {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'message': 'Failed to load tickets', 'details': str(e)}), 500
     finally:
         conn.close()
 
