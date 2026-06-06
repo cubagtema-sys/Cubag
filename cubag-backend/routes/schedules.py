@@ -20,6 +20,7 @@ def _fetch_schedules(schedule_type):
     try:
         with conn.cursor() as cursor:
             if schedule_type:
+                # Use LOWER to ensure case-insensitive matching between saved data and request
                 cursor.execute("SELECT * FROM schedules WHERE LOWER(type) = LOWER(%s) ORDER BY created_at DESC", (schedule_type,))
             else:
                 cursor.execute("SELECT * FROM schedules ORDER BY created_at DESC")

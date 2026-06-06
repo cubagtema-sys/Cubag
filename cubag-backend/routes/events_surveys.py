@@ -25,7 +25,8 @@ def get_events():
             if include_past:
                 cursor.execute("SELECT * FROM events ORDER BY date DESC")
             else:
-                cursor.execute("SELECT * FROM events WHERE date >= CURRENT_DATE ORDER BY date ASC")
+                # Show events from today onwards, but use -1 day interval to handle timezone offsets
+                cursor.execute("SELECT * FROM events WHERE date >= (CURRENT_DATE - INTERVAL '1 day') ORDER BY date ASC")
             data = cursor.fetchall()
         return jsonify(data), 200
     finally:
