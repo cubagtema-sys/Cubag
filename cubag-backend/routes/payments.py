@@ -12,8 +12,7 @@ from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
 from socket_instance import socketio
-from routes.admin import log_admin_action
-from utils import admin_required, sub_admin_required
+from utils import admin_required, sub_admin_required, log_backend_error, log_admin_action
 
 payments_bp = Blueprint('payments', __name__)
 logger = logging.getLogger(__name__)
@@ -557,8 +556,14 @@ def get_all_payments_admin():
             }
         }), 200
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
         logger.exception("[Admin Payments Error] %s", e)
-        return jsonify({'message': str(e)}), 500
+        try:
+            log_backend_error('Admin Payments Error', f"Error: {str(e)}\nTraceback:\n{tb}")
+        except Exception as log_err:
+            logger.error(f"Failed to log error to DB: {log_err}")
+        return jsonify({'message': str(e), 'traceback': tb}), 500
     finally:
         conn.close()
 

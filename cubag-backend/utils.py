@@ -38,6 +38,22 @@ def log_admin_action(admin_id, action, target_type=None, target_id=None, target_
     finally:
         conn.close()
 
+def log_backend_error(action, details):
+    """Utility to record a backend error in the audit log without needing admin_id."""
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO audit_log (action, target_type, details)
+                VALUES (%s, 'error', %s)
+            """, (action, details))
+        conn.commit()
+    except Exception as e:
+        logger.exception("[Audit Log Error logging backend error] %s", e)
+    finally:
+        conn.close()
+
+
 def send_push_notification(fcm_token, title, body, data=None):
     """
     Sends a push notification to a specific device using FCM.
@@ -398,7 +414,14 @@ def admin_required(fn):
                 # Sub-admins pass through here — individual route decorators can
                 # add further permission checks via sub_admin_required().
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            import traceback
+            tb = traceback.format_exc()
+            logger.exception("[Decorator admin_required Error] %s", e)
+            try:
+                log_backend_error('Decorator admin_required Error', f"Error: {str(e)}\nTraceback:\n{tb}")
+            except Exception as log_err:
+                logger.error(f"Failed to log decorator error to DB: {log_err}")
+            return jsonify({'message': str(e), 'traceback': tb}), 500
         finally:
             conn.close()
         return fn(*args, **kwargs)
@@ -450,7 +473,14 @@ def sub_admin_required(permission: str):
                     else:
                         return jsonify({'message': 'Admin privilege required'}), 403
             except Exception as e:
-                return jsonify({'message': str(e)}), 500
+                import traceback
+                tb = traceback.format_exc()
+                logger.exception("[Decorator sub_admin_required Error] %s", e)
+                try:
+                    log_backend_error('Decorator sub_admin_required Error', f"Permission: {permission}\nError: {str(e)}\nTraceback:\n{tb}")
+                except Exception as log_err:
+                    logger.error(f"Failed to log decorator error to DB: {log_err}")
+                return jsonify({'message': str(e), 'traceback': tb}), 500
             finally:
                 conn.close()
             return fn(*args, **kwargs)
