@@ -67,31 +67,6 @@ def upload_image():
         return jsonify({'message': str(e)}), 500
 
 
-@uploads_bp.route('/debug-supabase', methods=['POST'])
-@jwt_required()
-def debug_supabase():
-    """
-    Returns lengths and masked versions of the loaded Supabase credentials
-    to diagnose JWS/JWT authorization issues on production.
-    """
-    url_val = SUPABASE_URL or ''
-    key_val = SUPABASE_KEY or ''
-    bucket_val = SUPABASE_BUCKET or ''
-    
-    masked_url = url_val[:12] + "..." + url_val[-5:] if len(url_val) > 17 else url_val
-    masked_key = key_val[:10] + "..." + key_val[-10:] if len(key_val) > 20 else key_val
-    
-    return jsonify({
-        'url_length': len(url_val),
-        'url_masked': masked_url,
-        'key_length': len(key_val),
-        'key_masked': masked_key,
-        'bucket_name': bucket_val,
-        'url_has_quotes': '"' in url_val or "'" in url_val,
-        'key_has_quotes': '"' in key_val or "'" in key_val,
-    }), 200
-
-
 @uploads_bp.route('/images/<filename>', methods=['GET'])
 def serve_image(filename):
     """Legacy endpoint for local images - redirects to Supabase or returns 404"""
