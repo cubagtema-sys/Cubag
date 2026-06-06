@@ -305,10 +305,11 @@ def get_vessels():
         from ais_stream import ais_manager
         with ais_manager.lock:
             vessels = list(ais_manager.active_vessels.values())
-        return jsonify(vessels), 200
+        # B-31 fix: wrap in 'items' for consistent Flutter data service parsing
+        return jsonify({'items': vessels, 'total': len(vessels)}), 200
     except Exception as e:
         logger.error(f"Error in /api/vessels: {e}")
-        return jsonify([]), 200
+        return jsonify({'items': [], 'total': 0}), 200
 
 
 @app.route('/api/vessels/registry', methods=['GET'])

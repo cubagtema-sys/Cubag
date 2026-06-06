@@ -143,22 +143,26 @@ def create_payment():
                     headers=_whitsunpay_headers(),
                     timeout=30
                 )
-                # Parse response body immediately so it's always available
+
+                # Try to parse JSON, but catch cases where it's not JSON
                 wp_data = {}
                 try:
                     wp_data = wp_res.json()
                 except Exception:
-                    pass
+                    wp_data = {'raw_response': wp_res.text[:500]}
 
                 if wp_res.status_code >= 400:
                     logger.error(f"[WhitsunPay] Error response ({wp_res.status_code}): {wp_data}")
                     with conn.cursor() as cursor:
                         cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s", (payment_id,))
                         conn.commit()
+
+                    # Return detailed error to help diagnose
                     return jsonify({
                         'payment_id': payment_id,
                         'message': wp_data.get('message', 'WhitsunPay payment initiation failed'),
                         'error': True,
+                        'status_code': wp_res.status_code,
                         'details': wp_data
                     }), 400
 
