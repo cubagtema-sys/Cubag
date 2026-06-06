@@ -9,11 +9,18 @@ schedules_bp = Blueprint('schedules', __name__)
 @schedules_bp.route('/', methods=['GET'])
 def get_schedules():
     schedule_type = request.args.get('type')
+    return _fetch_schedules(schedule_type)
+
+@schedules_bp.route('/<string:schedule_type>', methods=['GET'])
+def get_schedules_by_path(schedule_type):
+    return _fetch_schedules(schedule_type)
+
+def _fetch_schedules(schedule_type):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
             if schedule_type:
-                cursor.execute("SELECT * FROM schedules WHERE type = %s ORDER BY created_at DESC", (schedule_type,))
+                cursor.execute("SELECT * FROM schedules WHERE LOWER(type) = LOWER(%s) ORDER BY created_at DESC", (schedule_type,))
             else:
                 cursor.execute("SELECT * FROM schedules ORDER BY created_at DESC")
             data = cursor.fetchall()
