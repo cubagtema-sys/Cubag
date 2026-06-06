@@ -152,11 +152,11 @@ def send_otp():
 
 @auth_bp.route('/verify-email', methods=['POST'])
 def verify_email():
-    data = request.get_json()
-    email = data.get('email')
-    token = data.get('token')
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    token = (data.get('token') or data.get('otp') or '').strip()
     if not email or not token:
-        return jsonify({'message': 'Email and Token are required'}), 400
+        return jsonify({'message': 'Email and Token/OTP are required'}), 400
 
     conn = get_db()
     try:
@@ -164,14 +164,14 @@ def verify_email():
             # Check code is valid AND was created within the last 15 minutes
             cursor.execute("""
                 SELECT * FROM otp_codes
-                WHERE email = %s AND code = %s
+                WHERE LOWER(email) = LOWER(%s) AND code = %s
                   AND created_at > NOW() - INTERVAL '15 minutes'
             """, (email, token))
             if not cursor.fetchone():
                 return jsonify({'message': 'Invalid or expired verification code'}), 400
 
             # Delete the OTP code so it can't be reused
-            cursor.execute("DELETE FROM otp_codes WHERE email = %s", (email,))
+            cursor.execute("DELETE FROM otp_codes WHERE LOWER(email) = LOWER(%s)", (email,))
             conn.commit()
             return jsonify({'message': 'Email verified successfully.'}), 200
     finally:
