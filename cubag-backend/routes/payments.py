@@ -3,10 +3,8 @@ import uuid
 import requests
 import hashlib
 import hmac
-import smtplib
+import resend
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from flask import Blueprint, jsonify, request
 from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -420,17 +418,12 @@ def whitsunpay_webhook():
 
 
 def _send_receipt_email(to_email, member_name, amount, description, payment_id):
-    smtp_host   = os.getenv('SMTP_HOST', '')
-    smtp_port   = int(os.getenv('SMTP_PORT', 465))
-    smtp_user   = os.getenv('SMTP_USER', '')
-    smtp_pass   = os.getenv('SMTP_PASS', '')
-    if not smtp_host or not smtp_user:
-        return  # SMTP not configured — skip silently
+    resend.api_key = os.getenv('RESEND_API_KEY')
+    if not resend.api_key:
+        logger.error('[Resend] RESEND_API_KEY not configured — receipt email not sent.')
+        return
 
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = f'CUBAG Payment Receipt — GH₵ {float(amount):.2f}'
-    msg['From']    = smtp_user
-    msg['To']      = to_email
+    sender_email = os.getenv('SMTP_USER', 'support@winningedgeinvestment.com')
 
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;border:1px solid #eee;border-radius:12px">
@@ -446,14 +439,18 @@ def _send_receipt_email(to_email, member_name, amount, description, payment_id):
       <p style="margin-top:24px;color:#888;font-size:0.85em">Thank you for your payment. This is an automated receipt from CUBAG.</p>
     </div>
     """
-    msg.attach(MIMEText(html, 'html'))
 
     try:
-        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_user, to_email, msg.as_string())
+        params = {
+            "from": f"CUBAG Support <{sender_email}>",
+            "to": [to_email],
+            "subject": f'CUBAG Payment Receipt — GH₵ {float(amount):.2f}',
+            "html": html,
+        }
+        resend.Emails.send(params)
+        logger.info(f'[Resend] Receipt sent to {to_email} for payment {payment_id}')
     except Exception as e:
-        logger.warning(f'[Email] Failed to send receipt to {to_email}: {e}')
+        logger.warning(f'[Resend] Failed to send receipt to {to_email}: {e}')
 
 
 # ─── GET /payments/ — Member payment history ──────────────────────────────────

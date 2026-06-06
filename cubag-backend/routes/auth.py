@@ -2,9 +2,7 @@ import os
 import uuid
 import random
 import logging
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 
 from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
@@ -16,69 +14,60 @@ import requests as http_req
 auth_bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
 
-# ─── Shared SMTP sender ───────────────────────────────────────────────────────
-def _send_email(to_email: str, subject: str, body_text: str, body_html: str = None):
-    """Send an email via Hostinger SMTP. Raises on failure."""
-    smtp_host = os.getenv('SMTP_HOST', 'smtp.hostinger.com')
-    smtp_port = int(os.getenv('SMTP_PORT', 587))
-    smtp_user = os.getenv('SMTP_USER', '')
-    smtp_pass = os.getenv('SMTP_PASS', '')
+# Initialize Resend
+resend.api_key = os.getenv('RESEND_API_KEY')
 
-    if not smtp_user or not smtp_pass:
-        logger.error('[SMTP] SMTP_USER or SMTP_PASS not configured — email not sent.')
+# ─── Shared Resend API sender ────────────────────────────────────────────────
+def _send_email(to_email: str, subject: str, body_text: str, body_html: str = None):
+    """Send an email via Resend HTTP API. Returns True on success."""
+    if not resend.api_key:
+        logger.error('[Resend] RESEND_API_KEY not configured — email not sent.')
         return False
 
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = subject
-    msg['From']    = f'CUBAG Support <{smtp_user}>'
-    msg['To']      = to_email
-
-    msg.attach(MIMEText(body_text, 'plain'))
-    if body_html:
-        msg.attach(MIMEText(body_html, 'html'))
+    sender_email = os.getenv('SMTP_USER', 'support@winningedgeinvestment.com')
 
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_user, [to_email], msg.as_string())
-        logger.info(f'[SMTP] Email sent to {to_email} — {subject}')
+        params = {
+            "from": f"CUBAG Support <{sender_email}>",
+            "to": [to_email],
+            "subject": subject,
+            "text": body_text,
+        }
+        if body_html:
+            params["html"] = body_html
+
+        resend.Emails.send(params)
+        logger.info(f'[Resend] Email sent to {to_email} — {subject}')
         return True
     except Exception as e:
-        logger.error(f'[SMTP] Failed to send email to {to_email}: {e}')
+        logger.error(f'[Resend] Failed to send email to {to_email}: {e}')
         return False
 
 
 @auth_bp.route('/debug-smtp', methods=['GET'])
 def debug_smtp():
-    smtp_host = os.getenv('SMTP_HOST', 'smtp.hostinger.com')
-    smtp_port = int(os.getenv('SMTP_PORT', 587))
-    smtp_user = os.getenv('SMTP_USER', '')
-    smtp_pass = os.getenv('SMTP_PASS', '')
-    
+    """Debug route updated to test Resend API connectivity."""
+    sender_email = os.getenv('SMTP_USER', 'support@winningedgeinvestment.com')
     debug_info = {
-        "host": smtp_host,
-        "port": smtp_port,
-        "user": smtp_user,
-        "pass_len": len(smtp_pass) if smtp_pass else 0,
+        "resend_api_key_configured": bool(resend.api_key),
+        "sender_email": sender_email,
         "env_keys": list(os.environ.keys())
     }
     
-    import traceback
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
-            server.set_debuglevel(1)
-            server.ehlo()
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            msg = MIMEText("Debug SMTP", 'plain')
-            msg['Subject'] = "Debug"
-            msg['From'] = smtp_user
-            msg['To'] = "support@winningedgeinvestment.com"
-            server.sendmail(smtp_user, ["support@winningedgeinvestment.com"], msg.as_string())
+        if not resend.api_key:
+            raise ValueError("RESEND_API_KEY is missing from environment variables.")
+            
+        params = {
+            "from": f"CUBAG Support <{sender_email}>",
+            "to": ["support@winningedgeinvestment.com"],
+            "subject": "Resend Debug Test Email",
+            "text": "This is a test email sent from Render via Resend HTTP API.",
+        }
+        resend.Emails.send(params)
         debug_info["status"] = "Success"
     except Exception as e:
+        import traceback
         debug_info["status"] = "Failed"
         debug_info["error"] = str(e)
         debug_info["traceback"] = traceback.format_exc()
