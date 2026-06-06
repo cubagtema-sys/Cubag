@@ -112,13 +112,9 @@ def send_otp():
             """, (email, token))
             conn.commit()
 
-        # Send email outside the cursor context
-        import threading
-        threading.Thread(
-            target=send_verification_email,
-            args=(email, token),
-            daemon=True
-        ).start()
+        # Send email synchronously (threads are unreliable under eventlet/gevent)
+        if not send_verification_email(email, token):
+            return jsonify({'message': 'Failed to send verification email. Please check your SMTP configuration or email address.'}), 500
 
         return jsonify({'message': 'OTP sent to email.'}), 200
 
@@ -183,8 +179,10 @@ def resend_otp():
                       created_at = CURRENT_TIMESTAMP
             """, (email, token))
             conn.commit()
-        import threading
-        threading.Thread(target=send_verification_email, args=(email, token), daemon=True).start()
+        # Send email synchronously (threads are unreliable under eventlet/gevent)
+        if not send_verification_email(email, token):
+            return jsonify({'message': 'Failed to send verification email. Please try again.'}), 500
+
         return jsonify({'message': 'New OTP sent to email.'}), 200
     except Exception as e:
         conn.rollback()
