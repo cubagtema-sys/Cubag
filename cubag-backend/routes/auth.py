@@ -49,6 +49,42 @@ def _send_email(to_email: str, subject: str, body_text: str, body_html: str = No
         logger.error(f'[SMTP] Failed to send email to {to_email}: {e}')
         return False
 
+
+@auth_bp.route('/debug-smtp', methods=['GET'])
+def debug_smtp():
+    smtp_host = os.getenv('SMTP_HOST', 'smtp.hostinger.com')
+    smtp_port = int(os.getenv('SMTP_PORT', 587))
+    smtp_user = os.getenv('SMTP_USER', '')
+    smtp_pass = os.getenv('SMTP_PASS', '')
+    
+    debug_info = {
+        "host": smtp_host,
+        "port": smtp_port,
+        "user": smtp_user,
+        "pass_len": len(smtp_pass) if smtp_pass else 0,
+        "env_keys": list(os.environ.keys())
+    }
+    
+    import traceback
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+            server.set_debuglevel(1)
+            server.ehlo()
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            msg = MIMEText("Debug SMTP", 'plain')
+            msg['Subject'] = "Debug"
+            msg['From'] = smtp_user
+            msg['To'] = "support@winningedgeinvestment.com"
+            server.sendmail(smtp_user, ["support@winningedgeinvestment.com"], msg.as_string())
+        debug_info["status"] = "Success"
+    except Exception as e:
+        debug_info["status"] = "Failed"
+        debug_info["error"] = str(e)
+        debug_info["traceback"] = traceback.format_exc()
+        
+    return jsonify(debug_info)
+
 # ─── Supabase config ──────────────────────────────────────────────────────────
 SUPABASE_URL  = os.getenv('SUPABASE_URL', '')
 SUPABASE_KEY  = os.getenv('SUPABASE_SERVICE_KEY', '')
