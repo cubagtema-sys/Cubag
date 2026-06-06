@@ -129,7 +129,7 @@ def create_payment():
             }
             try:
                 wp_res = requests.post(
-                    f'{_WP_API}/charge',
+                    f'{_WP_API}/payments',
                     json=payload,
                     headers=_whitsunpay_headers(),
                     timeout=30
@@ -235,6 +235,25 @@ def verify_payment_code():
     if not tx_ref:
         return jsonify({'message': 'Transaction reference is required', 'error': True}), 400
 
+    # ── Local Database Check First ──
+    # If the webhook already received the terminal state callback and updated the DB,
+    # resolve immediately to avoid gateway polling failures.
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT status FROM payments WHERE id = %s", (payment_id,))
+            p = cursor.fetchone()
+            if p:
+                status = str(p['status']).lower()
+                if status == 'paid':
+                    return jsonify({'message': 'Payment confirmed! 🎉', 'status': 'success'}), 200
+                elif status in ('failed', 'declined', 'cancelled', 'reversed'):
+                    return jsonify({'message': 'Payment failed or declined', 'status': 'failed'}), 200
+    except Exception as e:
+        logger.error(f"[verify_payment_code DB check] {e}")
+    finally:
+        conn.close()
+
     try:
         wp_res = requests.get(
             f'{_WP_API}/{tx_ref}/status',
@@ -279,7 +298,7 @@ def verify_payment_manually(reference):
     try:
         with conn.cursor() as cursor:
             cursor.execute(
-                "SELECT id, member_id FROM payments WHERE payment_ref = %s",
+                "SELECT id, member_id, status FROM payments WHERE payment_ref = %s",
                 (reference,)
             )
             row = cursor.fetchone()
@@ -288,6 +307,10 @@ def verify_payment_manually(reference):
             if str(row['member_id']) != str(member_id):
                 return jsonify({'message': 'Unauthorised', 'status': 'error'}), 403
             payment_id = row['id']
+            
+            # If already marked as paid locally via webhook, resolve immediately
+            if str(row['status']).lower() == 'paid':
+                return jsonify({'message': 'Payment verified and updated!', 'status': 'success'}), 200
     finally:
         conn.close()
 
