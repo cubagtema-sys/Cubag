@@ -479,9 +479,9 @@ def upload_photo():
     content_type = file.content_type or 'image/jpeg'
 
     # Read Supabase config at request time (not module load time)
-    supabase_url = os.getenv('SUPABASE_URL', '')
-    supabase_key = os.getenv('SUPABASE_SERVICE_KEY', '')
-    photo_bucket = os.getenv('SUPABASE_BUCKET', 'uploads')
+    supabase_url = os.getenv('SUPABASE_URL', '').strip().strip('\'"')
+    supabase_key = os.getenv('SUPABASE_SERVICE_KEY', '').strip().strip('\'"')
+    photo_bucket = os.getenv('SUPABASE_BUCKET', 'uploads').strip().strip('\'"')
 
     if not supabase_url or not supabase_key:
         logger.error("[upload-photo] SUPABASE_URL or SUPABASE_SERVICE_KEY not set")
