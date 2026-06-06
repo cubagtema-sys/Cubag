@@ -42,15 +42,23 @@ def _whitsunpay_headers():
 def create_payment():
     member_id = get_jwt_identity()
     data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Request body is required'}), 400
+
+    logger.info(f"[Payments] New request from member {member_id}: {data}")
+
     amount      = data.get('amount')
     description = data.get('description')
-    payment_ref = data.get('payment_ref', '') # Internal ref from client
-    method      = data.get('method', 'momo')   # 'momo' | 'bank'
-    network     = data.get('network', 'MTN')   # MTN | Vodafone | AirtelTigo
+    payment_ref = data.get('payment_ref', '')
+    method      = data.get('method', 'momo')
+    network     = data.get('network', 'MTN')
     phone       = data.get('phone', '')
 
     if not amount or not description:
         return jsonify({'message': 'Amount and description are required'}), 400
+
+    if method == 'momo' and not phone:
+        return jsonify({'message': 'Phone number is required for Mobile Money payments'}), 400
 
     # Validate amount is a positive number
     try:
@@ -110,18 +118,19 @@ def create_payment():
             network_map = {'MTN': 'mtn', 'Vodafone': 'vodafone', 'AirtelTigo': 'airteltigo'}
 
             # WhitsunPay requires international format without +: 233XXXXXXXXX
-            clean_phone = phone.strip().replace(' ', '').replace('-', '')
-            if clean_phone.startswith('+'):
-                clean_phone = clean_phone[1:]
-            elif clean_phone.startswith('0'):
+            clean_phone = ''.join(filter(str.isdigit, phone))
+            if clean_phone.startswith('0') and len(clean_phone) == 10:
                 clean_phone = '233' + clean_phone[1:]
+            elif len(clean_phone) == 9:
+                clean_phone = '233' + clean_phone
 
             tx_ref = f"CUBAG-{payment_id}-{uuid.uuid4().hex[:8]}"
 
             payload = {
                 'transactionReference': tx_ref,
                 'description': description,
-                'amount': float(amount),
+                'amount': round(float(amount), 2),
+                'currency': 'GHS',
                 'debitParty': {
                     'msisdn': clean_phone,
                     'provider': network_map.get(network, 'mtn')
@@ -142,6 +151,7 @@ def create_payment():
                     pass
 
                 if wp_res.status_code >= 400:
+                    logger.error(f"[WhitsunPay] Error response ({wp_res.status_code}): {wp_data}")
                     with conn.cursor() as cursor:
                         cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s", (payment_id,))
                         conn.commit()
