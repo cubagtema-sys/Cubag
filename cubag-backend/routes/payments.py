@@ -272,12 +272,20 @@ def verify_payment_code():
         conn.close()
 
     try:
+        target_url = f'{_WP_API}/{tx_ref}/status'
+        logger.info(f"[WhitsunPay] Checking status at {target_url}")
         wp_res = requests.get(
-            f'{_WP_API}/{tx_ref}/status',
+            target_url,
             headers=_whitsunpay_headers(),
             timeout=15
         )
-        wp_data = wp_res.json()
+        # Handle Cloudflare or non-JSON errors
+        try:
+            wp_data = wp_res.json()
+        except Exception:
+            logger.error(f"[WhitsunPay] Non-JSON response in verify: {wp_res.text[:300]}")
+            return jsonify({'message': 'WhitsunPay returned an invalid response. Cloudflare may be blocking the request.', 'error': True}), 502
+
         wp_status = str(wp_data.get('status', '')).lower()
 
         if wp_status in ('successful', 'success', 'completed'):
@@ -332,12 +340,19 @@ def verify_payment_manually(reference):
         conn.close()
 
     try:
+        target_url = f'{_WP_API}/{reference}/status'
+        logger.info(f"[WhitsunPay] Manual check at {target_url}")
         wp_res = requests.get(
-            f'{_WP_API}/{reference}/status',
+            target_url,
             headers=_whitsunpay_headers(),
             timeout=15
         )
-        wp_data = wp_res.json()
+        try:
+            wp_data = wp_res.json()
+        except Exception:
+            logger.error(f"[WhitsunPay] Non-JSON response in manual verify: {wp_res.text[:300]}")
+            return jsonify({'message': 'WhitsunPay returned an invalid response.', 'status': 'error'}), 200
+
         wp_status = str(wp_data.get('status', 'pending')).lower()
 
         if wp_status in ('successful', 'success', 'completed'):
