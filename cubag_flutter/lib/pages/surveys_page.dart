@@ -139,7 +139,6 @@ class _SurveysPageState extends State<SurveysPage> {
             const SizedBox(width: 12),
             const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Surveys & Elections', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0f172a))),
-              Text('Participate in association polls and elections.', style: TextStyle(color: Color(0xFF64748b), fontSize: 12)),
             ])),
           ]),
           const SizedBox(height: 20),

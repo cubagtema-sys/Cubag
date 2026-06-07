@@ -40,30 +40,101 @@ class _EventsPageState extends State<EventsPage> {
             try { date = DateTime.parse(e['date'].toString()); } catch (_) {}
             final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             final isSmall = MediaQuery.of(context).size.width < 360;
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              child: IntrinsicHeight(child: Row(children: [
-                Container(
-                  width: isSmall ? 60 : 70,
-                  decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [primary, primary.withValues(alpha: 0.7)]), borderRadius: const BorderRadius.horizontal(left: Radius.circular(14))),
-                  alignment: Alignment.center,
-                  child: date == null ? const Icon(Icons.calendar_month, color: Colors.white) : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text(months[date.month - 1].toUpperCase(), style: TextStyle(color: Colors.white, fontSize: isSmall ? 9 : 10, fontWeight: FontWeight.bold)),
-                    Text('${date.day}', style: TextStyle(color: Colors.white, fontSize: isSmall ? 22 : 26, fontWeight: FontWeight.bold, height: 1)),
-                  ]),
+            
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(12),
+                leading: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: date == null 
+                    ? Icon(Icons.calendar_month, color: primary) 
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(months[date.month - 1].toUpperCase(), style: TextStyle(color: primary, fontSize: 9, fontWeight: FontWeight.bold)),
+                          Text('${date.day}', style: TextStyle(color: primary, fontSize: 18, fontWeight: FontWeight.bold, height: 1.1)),
+                        ],
+                      ),
                 ),
-                Expanded(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(e['title']?.toString() ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmall ? 13 : 15)),
-                  const SizedBox(height: 4),
-                  Text(e['description']?.toString() ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 8),
-                  Wrap(spacing: 8, runSpacing: 4, children: [
-                    if (e['time'] != null) Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.schedule, size: 12, color: Colors.grey), const SizedBox(width: 4), Text(e['time'].toString(), style: const TextStyle(fontSize: 10, color: Colors.grey))]),
-                    if (e['location'] != null) Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.location_on, size: 12, color: Colors.grey), const SizedBox(width: 4), Flexible(child: Text(e['location'].toString(), style: const TextStyle(fontSize: 10, color: Colors.grey), overflow: TextOverflow.ellipsis))]),
-                  ]),
-                ]))),
-              ])),
+                title: Text(
+                  e['title']?.toString() ?? '', 
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Text(
+                      e['description']?.toString() ?? '', 
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        if (e['time'] != null) ...[
+                          const Icon(Icons.schedule, size: 10, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(e['time'].toString(), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          const SizedBox(width: 12),
+                        ],
+                        if (e['location'] != null) ...[
+                          const Icon(Icons.location_on, size: 10, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Flexible(child: Text(e['location'].toString(), style: const TextStyle(fontSize: 10, color: Colors.grey), overflow: TextOverflow.ellipsis)),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+                trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
+                onTap: () {
+                  // Optional: Show full details in a bottom sheet or dialog
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                    builder: (ctx) => Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(e['title']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            Icon(Icons.calendar_today, size: 14, color: primary),
+                            const SizedBox(width: 8),
+                            Text(e['date']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            if (e['time'] != null) ...[const SizedBox(width: 16), Icon(Icons.access_time, size: 14, color: primary), const SizedBox(width: 8), Text(e['time'].toString())],
+                          ]),
+                          const SizedBox(height: 16),
+                          Text(e['description']?.toString() ?? '', style: const TextStyle(fontSize: 14, height: 1.5)),
+                          if (e['location'] != null) ...[
+                            const SizedBox(height: 16),
+                            const Text('Location', style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text(e['location'].toString()),
+                          ],
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             );
           }),
       ]),
