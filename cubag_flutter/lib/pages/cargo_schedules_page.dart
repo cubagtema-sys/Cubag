@@ -186,9 +186,9 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
 
     final filteredVessels = vesselList.where((v) {
       final q = _searchQuery.toLowerCase();
-      return (v['name'] ?? '').toString().toLowerCase().contains(q) ||
-             (v['mmsi'] ?? '').toString().contains(q) ||
-             (v['destination'] ?? '').toString().toLowerCase().contains(q);
+      return (v['name'] ?? v['vessel'] ?? '').toString().toLowerCase().contains(q) ||
+             (v['mmsi'] ?? v['container'] ?? '').toString().contains(q) ||
+             (v['destination'] ?? v['port'] ?? '').toString().toLowerCase().contains(q);
     }).toList();
 
     final suggestions = _registryVessels.where((v) {
@@ -710,11 +710,11 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                     decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12)),
                     child: Column(children: [
                       Row(children: [
-                        Container(width: 40, height: 40, decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.directions_boat, color: primary)),
+                        Container(width: 40, height: 40, decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Icon(v['mmsi'] != null ? Icons.directions_boat : Icons.local_shipping, color: primary)),
                         const SizedBox(width: 12),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(v['name']?.toString() ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                          Text('MMSI: ${v['mmsi']} · ${v['type'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                          Text(v['name']?.toString() ?? v['vessel']?.toString() ?? 'Unnamed Vessel', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(v['mmsi'] != null ? 'MMSI: ${v['mmsi']} · ${v['type'] ?? ''}' : 'Container: ${v['container'] ?? 'N/A'}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                         ])),
                         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                           Text(
@@ -742,11 +742,11 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
                         child: Row(children: [
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             const Text('DESTINATION', style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
-                            Text(v['destination']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text(v['destination']?.toString() ?? v['port']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                           ])),
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             const Text('ETA', style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
-                            Text(v['eta']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text(v['eta']?.toString() ?? v['date']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                           ])),
                         ]),
                       ),
