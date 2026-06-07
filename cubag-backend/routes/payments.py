@@ -27,15 +27,46 @@ _WP_API = f'{WHITSUNPAY_BASE_URL}/api/v1'
 
 
 def _whitsunpay_headers():
-    """Build headers for WhitsunPay API requests."""
+    """Build headers for WhitsunPay API requests (Enhanced to bypass Cloudflare)."""
     return {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
         'x-client-id': WHITSUNPAY_CLIENT_ID,
         'x-api-key': WHITSUNPAY_API_KEY,
         'x-callback-url': WHITSUNPAY_CALLBACK_URL,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Referer': 'https://developer.whitsun.dev/',
+        'Origin': 'https://developer.whitsun.dev',
+        'Sec-Ch-Ua': '"Not(A:Brand";v="24", "Chromium";v="122"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
     }
+
+@payments_bp.route('/test-gateway', methods=['GET'])
+def test_gateway_connectivity():
+    """Public debug route to test if the backend can reach WhitsunPay."""
+    target_url = f'{_WP_API}/health' # Try their health check first
+    try:
+        headers = _whitsunpay_headers()
+        # Remove callback for a GET request
+        if 'x-callback-url' in headers: del headers['x-callback-url']
+
+        r = requests.get(target_url, headers=headers, timeout=10)
+
+        # If health 404s, try the status of a fake reference
+        if r.status_code == 404:
+            target_url = f'{_WP_API}/PING-TEST/status'
+            r = requests.get(target_url, headers=headers, timeout=10)
+
+        return jsonify({
+            'target_url': target_url,
+            'status_code': r.status_code,
+            'response_preview': r.text[:500],
+            'is_blocked_by_cloudflare': 'Just a moment' in r.text or 'cloudflare' in r.text.lower()
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # ─── POST /payments — Initiate charge (MoMo or Bank) ──────────────────────────
