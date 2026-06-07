@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
@@ -413,9 +414,12 @@ class _PaymentsPageState extends State<PaymentsPage>
           TextField(
             onChanged: (v) { _momoPhone = v; setState(() {}); },
             keyboardType: TextInputType.phone,
+            maxLength: 10,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: 'MoMo Phone Number',
-              hintText: '0245-678-901',
+              hintText: '024XXXXXXX',
+              counterText: "",
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -450,7 +454,7 @@ class _PaymentsPageState extends State<PaymentsPage>
           Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Back'))),
           const SizedBox(width: 12),
           Expanded(flex: 2, child: ElevatedButton(
-            onPressed: (_method == 'momo' && (_momoNetwork.isEmpty || _momoPhone.trim().length < 9)) ||
+            onPressed: (_method == 'momo' && (_momoNetwork.isEmpty || _momoPhone.trim().length != 10)) ||
                        (_method == 'bank' && _bankTxId.trim().isEmpty)
                 ? null
                 : () => setState(() => _step = 3),
