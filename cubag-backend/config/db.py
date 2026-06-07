@@ -404,6 +404,17 @@ def init_db():
                 )
             """)
 
+            # Messaging table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id SERIAL PRIMARY KEY,
+                    sender_id INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                    receiver_id INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                    message TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # ── Performance Indexes ──────────────────────────────────────────
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_members_status ON members(status)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_members_role ON members(role)")
@@ -411,6 +422,8 @@ def init_db():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_member_id ON payments(member_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_announcements_deleted_at ON announcements(deleted_at) WHERE deleted_at IS NULL")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)")
 
         conn.commit()
         logger.info("[OK] Database tables initialised successfully.")
