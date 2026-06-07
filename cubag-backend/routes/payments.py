@@ -49,11 +49,10 @@ def test_gateway_connectivity():
     tests = [
         "https://developer.whitsun.dev/api/v1/health",
         "https://api.whitsun.dev/api/v1/health",
-        "https://api.whitsun.dev/health",
-        "https://whitsun.dev/api/v1/health",
         "https://api.whitsun.io/api/v1/health",
         "https://api.whitsunsystems.com/api/v1/health",
-        "https://swagpaygh.com/api/v1/health"
+        "https://api.swagpaygh.com/api/v1/health",
+        "https://swagpay.whitsun.dev/api/v1/health"
     ]
     results = []
 
