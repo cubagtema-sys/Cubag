@@ -46,27 +46,36 @@ def _whitsunpay_headers():
 @payments_bp.route('/test-gateway', methods=['GET'])
 def test_gateway_connectivity():
     """Public debug route to test if the backend can reach WhitsunPay."""
-    target_url = f'{_WP_API}/health' # Try their health check first
-    try:
-        headers = _whitsunpay_headers()
-        # Remove callback for a GET request
-        if 'x-callback-url' in headers: del headers['x-callback-url']
+    tests = [
+        "https://developer.whitsun.dev/api/v1/health",
+        "https://api.whitsun.dev/api/v1/health",
+        "https://api.whitsun.dev/health",
+        "https://whitsun.dev/api/v1/health",
+        "https://api.whitsun.io/api/v1/health",
+        "https://api.whitsunsystems.com/api/v1/health",
+        "https://swagpaygh.com/api/v1/health"
+    ]
+    results = []
 
-        r = requests.get(target_url, headers=headers, timeout=10)
+    headers = _whitsunpay_headers()
+    if 'x-callback-url' in headers: del headers['x-callback-url']
 
-        # If health 404s, try the status of a fake reference
-        if r.status_code == 404:
-            target_url = f'{_WP_API}/PING-TEST/status'
-            r = requests.get(target_url, headers=headers, timeout=10)
+    for url in tests:
+        try:
+            r = requests.get(url, headers=headers, timeout=5)
+            results.append({
+                'url': url,
+                'status': r.status_code,
+                'blocked': 'Just a moment' in r.text or r.status_code == 403,
+                'preview': r.text[:100].strip()
+            })
+        except Exception as e:
+            results.append({'url': url, 'error': str(e)})
 
-        return jsonify({
-            'target_url': target_url,
-            'status_code': r.status_code,
-            'response_preview': r.text[:500],
-            'is_blocked_by_cloudflare': 'Just a moment' in r.text or 'cloudflare' in r.text.lower()
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return jsonify({
+        'results': results,
+        'recommendation': 'WhitsunPay API host is likely blocked by Cloudflare on Render. Contact WhitsunPay support to whitelist Render outgoing IPs.'
+    }), 200
 
 
 # ─── POST /payments — Initiate charge (MoMo or Bank) ──────────────────────────
