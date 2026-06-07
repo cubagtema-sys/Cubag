@@ -10,6 +10,16 @@ import 'services/push_notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Prevent tree-shaking of MapEntryIterable.where (and other collections) by the Dart Web compiler (dart2js).
+  // This is a known compiler issue where internal go_router references to pathParameters.entries.where
+  // get optimized away if the compiler doesn't detect other references to MapEntryIterable's where method.
+  if (kIsWeb) {
+    final Map<String, String> dummy = {'a': 'b'};
+    dummy.entries.where((e) => e.key == 'a').toList();
+    dummy.keys.where((k) => k == 'a').toList();
+    dummy.values.where((v) => v == 'b').toList();
+  }
+
   // ── Firebase & Push Notifications (mobile only) ──────────────────────────
   if (!kIsWeb) {
     try {
