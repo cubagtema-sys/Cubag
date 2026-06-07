@@ -14,17 +14,27 @@ void main() async {
   // This is a known compiler issue where internal go_router references to pathParameters.entries.where
   // get optimized away if the compiler doesn't detect other references to MapEntryIterable's where method.
   if (kIsWeb) {
-    final maps = <Map<String, String>>[
+    final maps = <Map<String, dynamic>>[
       <String, String>{},
       const <String, String>{},
       const <String, String>{'a': 'b'},
-      const <String, String>{'a': 'b', 'c': 'd'},
       Map<String, String>.unmodifiable({'a': 'b'}),
+      <String, dynamic>{'a': 'b'},
     ];
     for (final map in maps) {
       map.entries.where((e) => e.key == 'a').toList();
       map.keys.where((k) => k == 'a').toList();
       map.values.where((v) => v == 'b').toList();
+    }
+    // Explicitly protect List.where and List.take which are used in Dashboard
+    final lists = <List<dynamic>>[
+      [],
+      ['a'],
+      [1, 2, 3],
+    ];
+    for (final list in lists) {
+      list.where((e) => e == 'a').toList();
+      list.take(1).toList();
     }
   }
 
