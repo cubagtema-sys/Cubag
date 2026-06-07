@@ -52,7 +52,7 @@ def get_conversations():
                         'unread': 0
                     })
             
-            return jsonify(conversations), 200
+            return jsonify({'items': conversations, 'total': len(conversations)}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
@@ -83,7 +83,7 @@ def get_messages(other_id):
                     'time': m['created_at'].strftime('%b %d, %I:%M %p')
                 })
             
-            return jsonify(formatted), 200
+            return jsonify({'items': formatted, 'total': len(formatted)}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:

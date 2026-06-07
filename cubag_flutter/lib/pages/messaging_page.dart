@@ -37,7 +37,7 @@ class _MessagingPageState extends State<MessagingPage> {
       final res = await ApiService().get('/messages/conversations');
       if (!mounted) return;
       if (res.statusCode == 200) {
-        final all = List.from(res.data ?? []);
+        final all = ApiService.ensureList(res.data);
         setState(() {
           _conversations = all;
           _applySearch(_search);
@@ -64,7 +64,7 @@ class _MessagingPageState extends State<MessagingPage> {
     try {
       final res = await ApiService().get('/messages/${target['id']}');
       if (!mounted) return;
-      if (res.statusCode == 200) setState(() => _messages = List.from(res.data ?? []));
+      if (res.statusCode == 200) setState(() => _messages = ApiService.ensureList(res.data));
     } catch (_) {}
     if (mounted) setState(() => _loadingChat = false);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
