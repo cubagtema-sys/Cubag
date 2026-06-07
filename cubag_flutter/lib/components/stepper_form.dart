@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -324,8 +323,8 @@ class _FileUploadFieldState extends State<FileUploadField> {
               borderRadius: BorderRadius.circular(8),
               child: SizedBox(
                 width: 56, height: 56,
-                child: _isImage && _file!.path != null && !kIsWeb
-                  ? Image.file(File(_file!.path!), fit: BoxFit.cover)
+                child: _isImage && _file!.bytes != null
+                  ? Image.memory(_file!.bytes!, fit: BoxFit.cover)
                   : Container(
                       color: accent.withAlpha(15),
                       child: Center(child: Text(

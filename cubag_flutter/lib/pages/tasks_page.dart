@@ -1,4 +1,4 @@
-import 'dart:io';
+// dart:io removed — not needed on web; file handling uses PlatformFile.bytes instead
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
