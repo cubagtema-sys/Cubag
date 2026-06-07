@@ -33,6 +33,7 @@ def _whitsunpay_headers():
         'x-client-id': WHITSUNPAY_CLIENT_ID,
         'x-api-key': WHITSUNPAY_API_KEY,
         'x-callback-url': WHITSUNPAY_CALLBACK_URL,  # Required per docs
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
     }
 
 
@@ -137,8 +138,10 @@ def create_payment():
                 }
             }
             try:
+                target_url = f'{_WP_API}/payments'
+                logger.info(f"[WhitsunPay] Sending request to {target_url} with payload: {payload}")
                 wp_res = requests.post(
-                    f'{_WP_API}/payments',
+                    target_url,
                     json=payload,
                     headers=_whitsunpay_headers(),
                     timeout=30
