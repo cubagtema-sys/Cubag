@@ -36,8 +36,8 @@ class _DashboardPageState extends State<DashboardPage> {
       final taskRes = await api.get('/tasks');
       final annRes  = await api.get('/announcements');
       if (!mounted) return;
-      if (taskRes.statusCode == 200) setState(() => _tasks = taskRes.data ?? []);
-      if (annRes.statusCode  == 200) setState(() => _announcements = (annRes.data as List).take(3).toList());
+      if (taskRes.statusCode == 200) setState(() => _tasks = ApiService.ensureList(taskRes.data));
+      if (annRes.statusCode  == 200) setState(() => _announcements = ApiService.ensureList(annRes.data).take(3).toList());
     } catch (_) {}
 
     try {

@@ -53,7 +53,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
       final res = await ApiService().get('/vessels/registry');
       if (res.statusCode == 200) {
         final list = List<Map<String, dynamic>>.from(
-          (res.data ?? []).map((e) => Map<String, dynamic>.from(e)),
+          ApiService.ensureList(res.data).map((e) => Map<String, dynamic>.from(e)),
         );
         if (mounted) setState(() => _registryVessels = list);
       }
@@ -98,7 +98,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
     try {
       final res = await ApiService().get('/vessels');
       if (res.statusCode == 200) {
-        final list = List.from(res.data ?? []);
+        final list = ApiService.ensureList(res.data);
         setState(() {
           for (var item in list) {
             final mmsi = item['mmsi']?.toString();
@@ -120,7 +120,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
         final apiService = ApiService();
         final res = await apiService.get('/schedules?type=$_activeTab');
         if (res.statusCode == 200) {
-          setState(() => _schedules = res.data ?? []);
+          setState(() => _schedules = ApiService.ensureList(res.data));
         } else {
           setState(() => _schedules = []);
         }

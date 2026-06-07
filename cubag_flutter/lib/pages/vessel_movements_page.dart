@@ -73,7 +73,7 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
       // Fetch live AIS vessels
       final res = await ApiService().get('/vessels');
       if (res.statusCode == 200) {
-        final list = List.from(res.data ?? []);
+        final list = ApiService.ensureList(res.data);
         setState(() {
           for (var item in list) {
             final mmsi = item['mmsi']?.toString();
@@ -87,7 +87,7 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
       final regRes = await ApiService().get('/vessels/registry');
       if (regRes.statusCode == 200) {
         final regList = List<Map<String, dynamic>>.from(
-          (regRes.data ?? []).map((e) => Map<String, dynamic>.from(e)),
+          ApiService.ensureList(regRes.data).map((e) => Map<String, dynamic>.from(e)),
         );
         if (mounted) setState(() => _registryVessels = regList);
       }

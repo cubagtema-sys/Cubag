@@ -43,7 +43,7 @@ class CacheService {
     try {
       final res = await _api.get(endpoint);
       if (res.statusCode == 200 && res.data != null) {
-        final data = res.data is List ? res.data as List<dynamic> : [res.data];
+        final data = ApiService.ensureList(res.data);
         // Save to cache
         await prefs.setString(key, jsonEncode(data));
         await prefs.setInt(tsKey, DateTime.now().millisecondsSinceEpoch);

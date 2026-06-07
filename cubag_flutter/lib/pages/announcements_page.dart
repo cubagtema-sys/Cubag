@@ -27,7 +27,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     setState(() => _loading = true);
     try {
       final data = await _cache.fetchCached('/announcements');
-      if (data.isNotEmpty && mounted) setState(() => _alerts = data);
+      if (mounted) setState(() => _alerts = ApiService.ensureList(data));
     } catch (_) {}
     setState(() => _loading = false);
   }

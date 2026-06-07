@@ -144,4 +144,14 @@ class ApiService {
   Future<dynamic> deleteData(String path) async {
     try { return (await _dio.delete(_path(path))).data; } catch (_) { return null; }
   }
+
+  /// Helper to extract List from response (handles both raw lists and wrapped {"items": [...]}).
+  static List<dynamic> ensureList(dynamic data) {
+    if (data == null) return [];
+    if (data is List) return data;
+    if (data is Map && data.containsKey('items') && data['items'] is List) {
+      return data['items'] as List<dynamic>;
+    }
+    return [];
+  }
 }

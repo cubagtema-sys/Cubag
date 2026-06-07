@@ -51,7 +51,7 @@ class _TasksPageState extends State<TasksPage> {
       final response = await apiService.get('/tasks');
       if (!mounted) return;
       if (response.statusCode == 200) {
-        setState(() { _tasks = response.data; });
+        setState(() { _tasks = ApiService.ensureList(response.data); });
       } else {
         setState(() => _error = 'Failed to fetch tasks');
       }

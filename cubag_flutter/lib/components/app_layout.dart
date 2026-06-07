@@ -54,12 +54,10 @@ class _AppLayoutState extends State<AppLayout> {
     try {
       final res = await ApiService().get('/announcements');
       if (res.statusCode == 200) {
-        final data = res.data as List?;
-        if (data != null) {
-          final count = data.where((a) => a['is_read'] != true).length;
-          if (mounted) {
-            setState(() => _unreadCount = count);
-          }
+        final data = ApiService.ensureList(res.data);
+        final count = data.where((a) => a['is_read'] != true).length;
+        if (mounted) {
+          setState(() => _unreadCount = count);
         }
       }
     } catch (_) {}
