@@ -30,10 +30,13 @@ def _whitsunpay_headers():
     """Build headers for WhitsunPay API requests (per official docs)."""
     return {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'x-client-id': WHITSUNPAY_CLIENT_ID,
         'x-api-key': WHITSUNPAY_API_KEY,
-        'x-callback-url': WHITSUNPAY_CALLBACK_URL,  # Required per docs
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+        'x-callback-url': WHITSUNPAY_CALLBACK_URL,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Referer': 'https://developer.whitsun.dev/',
+        'Origin': 'https://developer.whitsun.dev'
     }
 
 
