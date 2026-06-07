@@ -87,7 +87,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
     setState(() => _loading = true);
     try {
       final res = await ApiService().get('/members/admin/all');
-      if (res.statusCode == 200) setState(() => _members = List.from(res.data ?? []));
+      if (res.statusCode == 200) setState(() => _members = ApiService.ensureList(res.data));
     } catch (_) {}
     setState(() => _loading = false);
   }

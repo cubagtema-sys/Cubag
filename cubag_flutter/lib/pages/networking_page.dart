@@ -35,7 +35,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
     try {
       final res = await ApiService().get('/members');
       if (!mounted) return;
-      if (res.statusCode == 200) setState(() => _members = res.data ?? []);
+      if (res.statusCode == 200) setState(() => _members = ApiService.ensureList(res.data));
     } catch (_) {}
     if (mounted) setState(() => _loading = false);  // BUG-F15 fix
   }

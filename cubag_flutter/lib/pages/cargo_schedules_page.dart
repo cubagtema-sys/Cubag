@@ -116,6 +116,11 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
     try {
       if (_activeTab == 'live tracking') {
         await _fetchLiveVessels();
+        // Also fetch static movement schedules from admin
+        final res = await ApiService().get('/schedules?type=movement');
+        if (res.statusCode == 200) {
+          setState(() => _schedules = ApiService.ensureList(res.data));
+        }
       } else {
         final apiService = ApiService();
         final res = await apiService.get('/schedules?type=$_activeTab');

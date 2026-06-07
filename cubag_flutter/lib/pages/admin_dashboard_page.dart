@@ -242,8 +242,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
     // ── 3. Handle Members Supplement ──
     if (mRes.statusCode == 200) {
-      final List<dynamic> members = ApiService.ensureList(mRes.data);
-      _rawMembers = members;
+      _rawMembers = ApiService.ensureList(mRes.data);
+      final members = _rawMembers;
       final Map<String, double> sc = {'active': 0, 'pending': 0, 'suspended': 0, 'inactive': 0};
       final Map<String, double> tc = {'Corporate Agency': 0, 'Individual Broker': 0, 'Freight Forwarder': 0, 'Shipping Line': 0};
       for (var m in members) {

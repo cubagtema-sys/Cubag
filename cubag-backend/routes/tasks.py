@@ -244,7 +244,8 @@ def create_task_admin():
     try:
         with conn.cursor() as cursor:
             if member_id == 'all':
-                cursor.execute("SELECT id FROM members WHERE status = 'active'")
+                # Include both active and pending members so new registrants get compliance tasks immediately
+                cursor.execute("SELECT id FROM members WHERE status IN ('active', 'pending')")
                 members = cursor.fetchall()
                 for m in members:
                     cursor.execute("""

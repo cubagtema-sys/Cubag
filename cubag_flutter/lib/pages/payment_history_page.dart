@@ -34,7 +34,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     setState(() => _loading = true);
     try {
       final res = await ApiService().get('/payments');
-      if (res.statusCode == 200) setState(() => _payments = res.data ?? []);
+      if (res.statusCode == 200) setState(() => _payments = ApiService.ensureList(res.data));
     } catch (_) {}
     setState(() => _loading = false);
   }

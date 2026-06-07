@@ -25,8 +25,9 @@ def get_events():
             if include_past:
                 cursor.execute("SELECT * FROM events ORDER BY date DESC")
             else:
-                # Show events from today onwards, but use -1 day interval to handle timezone offsets
-                cursor.execute("SELECT * FROM events WHERE date >= (CURRENT_DATE - INTERVAL '1 day') ORDER BY date ASC")
+                # Show events from the last 7 days onwards to ensure visibility across timezones
+                # and allow members to see very recent past events.
+                cursor.execute("SELECT * FROM events WHERE date >= (CURRENT_DATE - INTERVAL '7 days') ORDER BY date ASC")
             data = cursor.fetchall()
 
             # Ensure dates are stringified

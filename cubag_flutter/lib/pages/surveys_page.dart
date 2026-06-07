@@ -36,7 +36,7 @@ class _SurveysPageState extends State<SurveysPage> {
     setState(() => _loading = true);
     try {
       final res = await ApiService().get('/surveys');
-      if (res.statusCode == 200) setState(() => _surveys = res.data ?? []);
+      if (res.statusCode == 200) setState(() => _surveys = ApiService.ensureList(res.data));
     } catch (_) {}
     setState(() => _loading = false);
   }

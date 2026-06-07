@@ -19,7 +19,7 @@ class _EventsPageState extends State<EventsPage> {
     setState(() => _loading = true);
     try {
       final res = await ApiService().get('/events');
-      if (res.statusCode == 200) setState(() => _events = List.from(res.data ?? []));
+      if (res.statusCode == 200) setState(() => _events = ApiService.ensureList(res.data));
     } catch (_) {}
     setState(() => _loading = false);
   }

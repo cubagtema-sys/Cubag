@@ -48,7 +48,7 @@ class _EngagementPageState extends State<EngagementPage> {
   Future<void> _fetchTickets() async {
     try {
       final res = await ApiService().get('/tickets');
-      if (res.statusCode == 200) setState(() => _tickets = List.from(res.data ?? []));
+      if (res.statusCode == 200) setState(() => _tickets = ApiService.ensureList(res.data));
     } catch (_) {}
   }
 

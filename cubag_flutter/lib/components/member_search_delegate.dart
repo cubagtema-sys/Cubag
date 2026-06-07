@@ -129,7 +129,7 @@ class _DebouncedMemberSearchState extends State<_DebouncedMemberSearch> {
       // Search public directory
       final dirRes = await ApiService().get('/members/public-directory');
       if (dirRes.statusCode == 200) {
-        final items = List<Map<String, dynamic>>.from(dirRes.data ?? []);
+        final items = ApiService.ensureList(dirRes.data);
         for (final m in items) {
           final name = (m['name'] ?? '').toString().toLowerCase();
           final type = (m['type'] ?? '').toString().toLowerCase();
@@ -151,7 +151,7 @@ class _DebouncedMemberSearchState extends State<_DebouncedMemberSearch> {
       // Search announcements
       final annRes = await ApiService().get('/announcements/');
       if (annRes.statusCode == 200) {
-        final items = List<Map<String, dynamic>>.from(annRes.data ?? []);
+        final items = ApiService.ensureList(annRes.data);
         for (final a in items) {
           final title = (a['title'] ?? '').toString().toLowerCase();
           final body = (a['body'] ?? '').toString().toLowerCase();
@@ -172,7 +172,7 @@ class _DebouncedMemberSearchState extends State<_DebouncedMemberSearch> {
       // Search schedules
       final schRes = await ApiService().get('/schedules/');
       if (schRes.statusCode == 200) {
-        final items = List<Map<String, dynamic>>.from(schRes.data ?? []);
+        final items = ApiService.ensureList(schRes.data);
         for (final s in items) {
           final vessel = (s['vessel'] ?? '').toString().toLowerCase();
           final cargo = (s['cargo'] ?? '').toString().toLowerCase();
