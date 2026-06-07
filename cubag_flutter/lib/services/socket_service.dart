@@ -40,16 +40,18 @@ class SocketService {
 
     debugPrint('[Socket] Connecting to $url');
 
-    _socket = socket_io.io(url, <String, dynamic>{
-      'transports': ['websocket', 'polling'], // fallback to polling if WS blocked
-      'autoConnect': false,
-      'reconnection': true,
-      'reconnectionAttempts': 5,
-      'reconnectionDelay': 2000,
-      'extraHeaders': {
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    });
+    final socketOptions = socket_io.OptionBuilder()
+        .setTransports(['websocket', 'polling'])
+        .disableAutoConnect()
+        .enableReconnection()
+        .setReconnectionAttempts(5)
+        .setReconnectionDelay(2000);
+
+    if (!kIsWeb && token != null) {
+      socketOptions.setExtraHeaders({'Authorization': 'Bearer $token'});
+    }
+
+    _socket = socket_io.io(url, socketOptions.build());
 
     _socket!.connect();
 
@@ -75,7 +77,7 @@ class SocketService {
     if (_socket == null) return;
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('cubag_token');
-    if (token != null) {
+    if (token != null && !kIsWeb) {
       _socket!.io.options?['extraHeaders'] = {'Authorization': 'Bearer $token'};
     }
   }
