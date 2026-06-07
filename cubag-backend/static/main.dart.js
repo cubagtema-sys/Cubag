@@ -67084,7 +67084,7 @@ case 24:case 23:n.a8()
 q=null
 s=1
 break
-case 9:q="Login failed"
+case 9:q="Invalid credentials"
 s=1
 break
 p=2
@@ -67092,7 +67092,7 @@ s=6
 break
 case 4:p=3
 c=o.pop()
-q="Connection error or Invalid credentials"
+q="Invalid credentials"
 s=1
 break
 s=6

@@ -109,9 +109,9 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return null;
       }
-      return 'Login failed';
+      return 'Invalid credentials';
     } catch (e) {
-      return 'Connection error or Invalid credentials';
+      return 'Invalid credentials';
     }
   }
 
