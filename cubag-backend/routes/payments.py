@@ -16,13 +16,13 @@ payments_bp = Blueprint('payments', __name__)
 logger = logging.getLogger(__name__)
 
 # ─── WhitsunPay Configuration ─────────────────────────────────────────────────
-WHITSUNPAY_BASE_URL = os.getenv('WHITSUNPAY_BASE_URL', 'https://developer.whitsun.dev').rstrip('/')
+WHITSUNPAY_BASE_URL = os.getenv('WHITSUNPAY_BASE_URL', 'https://api.whitsun.io').rstrip('/')
 WHITSUNPAY_CLIENT_ID = os.getenv('WHITSUNPAY_CLIENT_ID', '')
 WHITSUNPAY_API_KEY = os.getenv('WHITSUNPAY_API_KEY', '')
 WHITSUNPAY_WEBHOOK_SECRET = os.getenv('WHITSUNPAY_WEBHOOK_SECRET', '')
 WHITSUNPAY_CALLBACK_URL = os.getenv('WHITSUNPAY_CALLBACK_URL', '')
 
-# Full versioned API base — e.g. https://developer.whitsun.dev/api/v1
+# Full versioned API base — e.g. https://api.whitsun.io/api/v1
 _WP_API = f'{WHITSUNPAY_BASE_URL}/api/v1'
 
 
