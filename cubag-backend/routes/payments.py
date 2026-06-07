@@ -16,13 +16,13 @@ payments_bp = Blueprint('payments', __name__)
 logger = logging.getLogger(__name__)
 
 # ─── WhitsunPay Configuration ─────────────────────────────────────────────────
-WHITSUNPAY_BASE_URL = os.getenv('WHITSUNPAY_BASE_URL', 'https://developer.whitsun.dev').rstrip('/')
+WHITSUNPAY_BASE_URL = os.getenv('WHITSUNPAY_BASE_URL', 'https://api.whitsun.dev').rstrip('/')
 WHITSUNPAY_CLIENT_ID = os.getenv('WHITSUNPAY_CLIENT_ID', '')
 WHITSUNPAY_API_KEY = os.getenv('WHITSUNPAY_API_KEY', '')
 WHITSUNPAY_WEBHOOK_SECRET = os.getenv('WHITSUNPAY_WEBHOOK_SECRET', '')
 WHITSUNPAY_CALLBACK_URL = os.getenv('WHITSUNPAY_CALLBACK_URL', '')
 
-# Full versioned API base — e.g. https://developer.whitsun.dev/api/v1
+# Full versioned API base — e.g. https://api.whitsun.dev/api/v1
 _WP_API = f'{WHITSUNPAY_BASE_URL}/api/v1'
 
 
@@ -34,9 +34,6 @@ def _whitsunpay_headers():
         'x-client-id': WHITSUNPAY_CLIENT_ID,
         'x-api-key': WHITSUNPAY_API_KEY,
         'x-callback-url': WHITSUNPAY_CALLBACK_URL,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-        'Referer': 'https://developer.whitsun.dev/',
-        'Origin': 'https://developer.whitsun.dev'
     }
 
 
