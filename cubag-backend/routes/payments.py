@@ -16,23 +16,25 @@ payments_bp = Blueprint('payments', __name__)
 logger = logging.getLogger(__name__)
 
 # ─── WhitsunPay Configuration ─────────────────────────────────────────────────
-WHITSUNPAY_BASE_URL = os.getenv('WHITSUNPAY_BASE_URL', 'https://api.whitsun.dev').rstrip('/')
+WHITSUNPAY_BASE_URL = os.getenv('WHITSUNPAY_BASE_URL', 'https://developer.whitsun.dev').rstrip('/')
 WHITSUNPAY_CLIENT_ID = os.getenv('WHITSUNPAY_CLIENT_ID', '')
 WHITSUNPAY_API_KEY = os.getenv('WHITSUNPAY_API_KEY', '')
 WHITSUNPAY_WEBHOOK_SECRET = os.getenv('WHITSUNPAY_WEBHOOK_SECRET', '')
 WHITSUNPAY_CALLBACK_URL = os.getenv('WHITSUNPAY_CALLBACK_URL', '')
 
-# Full versioned API base — e.g. https://api.whitsun.dev/api/v1
+# Full versioned API base — e.g. https://developer.whitsun.dev/api/v1
 _WP_API = f'{WHITSUNPAY_BASE_URL}/api/v1'
 
 
 def _whitsunpay_headers():
-    """Build headers for WhitsunPay API requests (strictly per documentation)."""
+    """Build headers for WhitsunPay API requests."""
     return {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'x-client-id': WHITSUNPAY_CLIENT_ID,
         'x-api-key': WHITSUNPAY_API_KEY,
         'x-callback-url': WHITSUNPAY_CALLBACK_URL,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
     }
 
 
@@ -160,7 +162,7 @@ def create_payment():
                     logger.warning(f"[WhitsunPay Debug] Failed to parse JSON response: {wp_res.text[:500]}")
 
                 if wp_res.status_code >= 400:
-                    logger.error(f"[WhitsunPay] Error response ({wp_res.status_code}): {wp_data}")
+                    logger.error(f"[WhitsunPay Debug] Error response ({wp_res.status_code}): {wp_data}")
                     with conn.cursor() as cursor:
                         cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s", (payment_id,))
                         conn.commit()
