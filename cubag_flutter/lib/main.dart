@@ -14,10 +14,18 @@ void main() async {
   // This is a known compiler issue where internal go_router references to pathParameters.entries.where
   // get optimized away if the compiler doesn't detect other references to MapEntryIterable's where method.
   if (kIsWeb) {
-    final Map<String, String> dummy = {'a': 'b'};
-    dummy.entries.where((e) => e.key == 'a').toList();
-    dummy.keys.where((k) => k == 'a').toList();
-    dummy.values.where((v) => v == 'b').toList();
+    final maps = <Map<String, String>>[
+      <String, String>{},
+      const <String, String>{},
+      const <String, String>{'a': 'b'},
+      const <String, String>{'a': 'b', 'c': 'd'},
+      Map<String, String>.unmodifiable({'a': 'b'}),
+    ];
+    for (final map in maps) {
+      map.entries.where((e) => e.key == 'a').toList();
+      map.keys.where((k) => k == 'a').toList();
+      map.values.where((v) => v == 'b').toList();
+    }
   }
 
   // ── Firebase & Push Notifications (mobile only) ──────────────────────────
