@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../components/admin_search_delegate.dart';
 import '../components/member_search_delegate.dart';
 import 'app_logo.dart';
@@ -26,12 +27,12 @@ class AppLayout extends StatefulWidget {
 }
 
 class _AppLayoutState extends State<AppLayout> {
-  int _unreadCount = 0;
-
   @override
   void initState() {
     super.initState();
-    _fetchUnreadCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<NotificationService>(context, listen: false).fetchUnreadCount();
+    });
     _loadUserPhoto();
   }
 
@@ -50,22 +51,11 @@ class _AppLayoutState extends State<AppLayout> {
     } catch (_) {}
   }
 
-  Future<void> _fetchUnreadCount() async {
-    try {
-      final res = await ApiService().get('/announcements');
-      if (res.statusCode == 200) {
-        final data = ApiService.ensureList(res.data);
-        final count = data.where((a) => a['is_read'] != true).length;
-        if (mounted) {
-          setState(() => _unreadCount = count);
-        }
-      }
-    } catch (_) {}
-  }
-
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final notificationService = Provider.of<NotificationService>(context);
+    final unreadCount = notificationService.unreadCount;
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 800;
     final isSmall = size.width < 360;
@@ -98,7 +88,7 @@ class _AppLayoutState extends State<AppLayout> {
                     : MemberSearchDelegate(),
               ),
             ),
-          _buildNotificationIcon(context, authService.userRole, isSmall),
+          _buildNotificationIcon(context, authService.userRole, isSmall, unreadCount),
           Padding(
             padding: EdgeInsets.only(right: isSmall ? 4 : 8),
             child: _buildProfileMenu(context, authService, isSmall),
@@ -134,7 +124,7 @@ class _AppLayoutState extends State<AppLayout> {
     );
   }
 
-  Widget _buildNotificationIcon(BuildContext context, String? role, bool isSmall) {
+  Widget _buildNotificationIcon(BuildContext context, String? role, bool isSmall, int unreadCount) {
     final isAdmin = role == 'admin';
     final targetRoute = isAdmin ? '/admin/announcements' : '/notifications';
     
@@ -145,7 +135,7 @@ class _AppLayoutState extends State<AppLayout> {
           icon: Icon(Icons.notifications_outlined, color: const Color(0xFF64748b), size: isSmall ? 20 : 24),
           onPressed: () => context.go(targetRoute),
         ),
-        if (_unreadCount > 0)
+        if (unreadCount > 0)
           Positioned(
             right: isSmall ? 6 : 8,
             top: isSmall ? 6 : 8,
@@ -160,7 +150,7 @@ class _AppLayoutState extends State<AppLayout> {
                 minHeight: 14,
               ),
               child: Text(
-                '$_unreadCount',
+                '$unreadCount',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 8,
@@ -227,7 +217,7 @@ class _AppLayoutState extends State<AppLayout> {
                     : MemberSearchDelegate(),
               ),
             ),
-          _buildNotificationIcon(context, authService.userRole, false),
+          _buildNotificationIcon(context, authService.userRole, false, unreadCount),
           const SizedBox(width: 8),
           _buildProfileMenu(context, authService, false),
         ],
@@ -505,16 +495,16 @@ class _AppLayoutState extends State<AppLayout> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-      decoration: BoxDecoration(
+      child: Material(
         color: active ? primary.withAlpha(20) : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
-      ),
-      child: ListTile(
-        dense: true,
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
         leading: Icon(icon, color: active ? primary : const Color(0xFF64748b), size: 20),
         title: Text(title, style: TextStyle(fontSize: 13, fontWeight: active ? FontWeight.w700 : FontWeight.w500, color: active ? primary : const Color(0xFF374151))),
-        trailing: (title == 'Announcements' && _unreadCount > 0)
+        trailing: (title == 'Announcements' && Provider.of<NotificationService>(context).unreadCount > 0)
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -522,7 +512,7 @@ class _AppLayoutState extends State<AppLayout> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '$_unreadCount',
+                  '${Provider.of<NotificationService>(context).unreadCount}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -540,8 +530,9 @@ class _AppLayoutState extends State<AppLayout> {
           }
         },
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _NavItemData {

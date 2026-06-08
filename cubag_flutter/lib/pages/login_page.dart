@@ -20,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passCtrl       = TextEditingController();
   bool _loading         = false;
   bool _showPw          = false;
+  bool _rememberMe      = false;
   String? _error;
   String _loginMode     = 'email'; // 'email' or 'phone'
 
@@ -30,14 +31,21 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+    _loadSavedIdentifier();
     _checkBiometric();
   }
 
-  Future<void> _checkBiometric() async {
-    if (kIsWeb) return;
-    final available = await _bioService.isBiometricAvailable();
-    final enabled = await _bioService.isBiometricEnabled();
-    if (mounted) setState(() { _bioAvailable = available; _bioEnabled = enabled; });
+  Future<void> _loadSavedIdentifier() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedId = prefs.getString('remembered_identifier');
+    final savedMode = prefs.getString('remembered_mode');
+    if (savedId != null && mounted) {
+      setState(() {
+        _identifierCtrl.text = savedId;
+        _rememberMe = true;
+        if (savedMode != null) _loginMode = savedMode;
+      });
+    }
   }
 
   Future<void> _handleBiometricLogin() async {
@@ -52,7 +60,9 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() { _loading = true; _error = null; });
     final authService = Provider.of<AuthService>(context, listen: false);
-    final error = await authService.login(creds['email']!.toLowerCase(), creds['password']!);
+    // Use the identifier as-is (might be phone or email)
+    final identifier = creds['email']!; 
+    final error = await authService.login(identifier, creds['password']!);
 
     if (mounted) {
       setState(() { _loading = false; _error = error; });
@@ -79,34 +89,51 @@ class _LoginPageState extends State<LoginPage> {
     if (mounted) {
       setState(() { _loading = false; _error = error; });
       if (error == null) {
-        // BUG-13 fix: ask for user consent before saving biometric credentials
+        final prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setString('remembered_identifier', raw);
+          await prefs.setString('remembered_mode', _loginMode);
+        } else {
+          await prefs.remove('remembered_identifier');
+          await prefs.remove('remembered_mode');
+        }
+
+        // Handle biometric consent/setup
         if (_bioAvailable && !kIsWeb) {
           final alreadyEnabled = await _bioService.isBiometricEnabled();
           if (!alreadyEnabled && mounted) {
-            final consent = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Enable Biometric Login?'),
-                content: const Text(
-                  'Would you like to use fingerprint or face recognition to sign in faster next time?'
+            bool? consent = _rememberMe; // If remember me is ticked, we can assume more willingness or just ask
+            
+            if (!_rememberMe) {
+              consent = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Enable Biometric Login?'),
+                  content: const Text(
+                    'Would you like to use fingerprint or face recognition to sign in faster next time?'
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Not Now'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: ElevatedButton.styleFrom(backgroundColor: _kOrange),
+                      child: const Text('Enable', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Not Now'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    style: ElevatedButton.styleFrom(backgroundColor: _kOrange),
-                    child: const Text('Enable', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            );
+              );
+            }
+            
             if (consent == true) {
-              await _bioService.saveCredentials(_identifierCtrl.text.trim(), _passCtrl.text);
+              await _bioService.saveCredentials(raw, _passCtrl.text);
               await _bioService.setBiometricEnabled(true);
             }
+          } else if (alreadyEnabled) {
+            // Update saved credentials in case password changed
+            await _bioService.saveCredentials(raw, _passCtrl.text);
           }
         }
         if (mounted) {
@@ -315,12 +342,37 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
 
-      Center(child: TextButton(
-        onPressed: () => context.go('/forgot-password'),
-        style: TextButton.styleFrom(foregroundColor: _kOrange),
-        child: const Text('Forgot Password?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-      )),
-      const SizedBox(height: 12),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 24,
+                width: 24,
+                child: Checkbox(
+                  value: _rememberMe,
+                  activeColor: _kOrange,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                child: const Text('Remember Me', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
+              ),
+            ],
+          ),
+          TextButton(
+            onPressed: () => context.go('/forgot-password'),
+            style: TextButton.styleFrom(foregroundColor: _kOrange, padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            child: const Text('Forgot Password?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+      const SizedBox(height: 24),
 
       SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
         onPressed: _loading ? null : _handleLogin,

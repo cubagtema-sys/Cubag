@@ -135,7 +135,15 @@ class PushNotificationService {
       case 'payment':      appRouter.go('/payments');          break;
       case 'schedule':     appRouter.go('/vanning-schedules'); break;
       case 'ticket':       appRouter.go('/engagement');        break;
-      case 'message':      appRouter.go('/messaging');         break;
+      case 'message':
+        final senderId = data['id']?.toString();
+        final name = data['name']?.toString();
+        if (senderId != null) {
+          appRouter.go('/messaging?id=$senderId${name != null ? '&name=${Uri.encodeComponent(name)}' : ''}');
+        } else {
+          appRouter.go('/messaging');
+        }
+        break;
       case 'license':      appRouter.go('/license-renewal');   break;
       default:             appRouter.go('/notifications');
     }

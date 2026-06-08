@@ -61,18 +61,19 @@ def send_push_notification(fcm_token, title, body, data=None):
     if not fcm_token:
         return False
         
+    if not _init_firebase():
+        return False
+
     try:
-        # Check if Firebase is initialized
-        if not firebase_admin._apps:
-            logger.warning("Firebase not initialized. Cannot send push notification.")
-            return False
+        # Prepare the message data (must be strings)
+        string_data = {k: str(v) for k, v in (data or {}).items()}
 
         message = messaging.Message(
             notification=messaging.Notification(
                 title=title,
                 body=body,
             ),
-            data=data if data else {},
+            data=string_data,
             token=fcm_token,
         )
 

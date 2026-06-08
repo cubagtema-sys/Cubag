@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -33,16 +34,24 @@ class _NotificationsPageState extends State<NotificationsPage> {
     try {
       final res = await ApiService().get('/announcements');
       if (!mounted) return;
-      if (res.statusCode == 200 && res.data is List) {  // BUG-F35 fix: type check before cast
-        final data = res.data as List;
-        setState(() => _notifications = data.map((a) => {
+      if (res.statusCode == 200) {
+        final data = ApiService.ensureList(res.data);
+        final list = data.map((a) => {
           'id': a['id'],
           'type': a['category']?.toString().toLowerCase() ?? 'announcement',
           'title': a['title'] ?? '',
           'message': a['body'] ?? a['content'] ?? '',
           'time': a['created_at'] != null ? DateTime.tryParse(a['created_at'].toString())?.toLocal().toString().split(' ').first ?? '' : '',
           'read': a['is_read'] == true,
-        }).toList());
+        }).toList();
+        
+        setState(() => _notifications = list);
+        
+        // Sync global unread count
+        final unreadCount = list.where((n) => n['read'] != true).length;
+        if (Provider.of<NotificationService>(context, listen: false).unreadCount != unreadCount) {
+          Provider.of<NotificationService>(context, listen: false).fetchUnreadCount();
+        }
       }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
@@ -53,6 +62,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       await ApiService().post('/announcements/mark-read', data: {});
       if (!mounted) return;
       setState(() => _notifications = _notifications.map((n) => {...n, 'read': true}).toList());
+      Provider.of<NotificationService>(context, listen: false).clearCount();
     } catch (_) {}
   }
 
@@ -63,6 +73,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         await ApiService().post('/announcements/mark-read', data: {'announcement_id': id});
         if (!mounted) return;
         setState(() => _notifications = _notifications.map((n) => n['id'] == id ? {...n, 'read': true} : n).toList());
+        Provider.of<NotificationService>(context, listen: false).decrementCount();
       } catch (_) {}
     }
   }

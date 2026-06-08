@@ -272,13 +272,20 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
                   final memberId = _memberInfo?['id'];
                   final licenseNum = rec['license_number']?.toString();
                   if (memberId == null) return;
-                  final url = Uri.parse('${ApiService.baseUrl}/members/$memberId/certificate-pdf');
-                  if (await canLaunchUrl(url)) {
+                  
+                  // Ensure we don't have double slashes
+                  String base = ApiService.baseUrl;
+                  if (base.endsWith('/')) base = base.substring(0, base.length - 1);
+                  
+                  final url = Uri.parse('$base/members/$memberId/certificate-pdf');
+                  
+                  try {
                     await launchUrl(url, mode: LaunchMode.externalApplication);
-                  } else if (licenseNum != null) {
-                    // Fallback: open QR verification link
-                    final fallback = Uri.parse('${ApiService.baseUrl}/verify-member/$memberId');
-                    if (await canLaunchUrl(fallback)) await launchUrl(fallback, mode: LaunchMode.externalApplication);
+                  } catch (e) {
+                    if (licenseNum != null) {
+                      final fallback = Uri.parse('$base/verify-member/$memberId');
+                      await launchUrl(fallback, mode: LaunchMode.externalApplication);
+                    }
                   }
                 },
                 icon: const Icon(Icons.download, size: 16, color: Colors.white),
@@ -306,7 +313,7 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
   void _showCertificate(Map<String, dynamic> rec, int yr) {
     final primary = Theme.of(context).primaryColor;
     final user = _memberInfo ?? {};
-    showDialog(context: context, builder: (_) => Dialog(
+    showDialog(context: context, builder: (ctx) => Dialog(
       insetPadding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
@@ -321,7 +328,7 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
                 const Text('Certificate of Membership', style: TextStyle(fontSize: 12, color: Colors.grey)),
               ]),
             ]),
-            IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+            IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
           ]),
           Container(margin: const EdgeInsets.symmetric(vertical: 16), height: 3, decoration: BoxDecoration(gradient: LinearGradient(colors: [primary, primary.withAlpha(127)]))),
 
@@ -340,7 +347,12 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
             child: Column(children: [
-              _certRow('License Number', rec['license_number']?.toString() ?? 'VALIDATING...', primary),
+              _certRow('License Number', 
+                (rec['expiry_date'] != null && DateTime.tryParse(rec['expiry_date'].toString())!.isBefore(DateTime.now()))
+                  ? 'EXPIRED'
+                  : rec['license_number']?.toString() ?? 'VALIDATING...', 
+                primary
+              ),
               _certRow('Member Type', user['member_type']?.toString() ?? rec['member_type']?.toString() ?? '—', primary),
               _certRow('Port of Operation', user['port_of_operation']?.toString() ?? rec['port_of_operation']?.toString() ?? '—', primary),
               _certRow('Valid Period', 'January $yr – December $yr', primary),

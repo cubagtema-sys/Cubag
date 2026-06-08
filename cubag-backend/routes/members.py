@@ -1,9 +1,23 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 import logging
+import io
+import datetime
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
 from routes.admin import log_admin_action
 from utils import admin_required, sub_admin_required
+
+# PDF Generation imports
+try:
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
 
 members_bp = Blueprint('members', __name__)
 logger = logging.getLogger(__name__)
@@ -454,5 +468,94 @@ def set_manual_review_score(member_id):
         }), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+@members_bp.route('/<int:member_id>/certificate-pdf', methods=['GET'])
+def download_certificate_pdf(member_id):
+    """Generates and serves a PDF membership certificate."""
+    if not REPORTLAB_AVAILABLE:
+        return jsonify({'message': 'PDF generation service is not available on this server.'}), 503
+
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT name, company, license_number, member_type, port_of_operation, status, license_expiry_date
+                FROM members WHERE id = %s
+            """, (member_id,))
+            member = cursor.fetchone()
+
+        if not member:
+            return "Member not found", 404
+
+        if str(member['status']).lower() != 'active':
+            return "Certificate only available for active members", 403
+
+        # Create PDF in memory
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+        elements = []
+        styles = getSampleStyleSheet()
+
+        # Define styles
+        title_style = ParagraphStyle(
+            'TitleStyle',
+            parent=styles['Heading1'],
+            fontSize=28,
+            textColor=colors.HexColor("#f08232"),
+            alignment=1,
+            spaceAfter=20
+        )
+
+        subtitle_style = ParagraphStyle(
+            'SubtitleStyle',
+            parent=styles['Normal'],
+            fontSize=16,
+            alignment=1,
+            spaceAfter=30
+        )
+
+        info_style = ParagraphStyle(
+            'InfoStyle',
+            parent=styles['Normal'],
+            fontSize=14,
+            alignment=1,
+            spaceAfter=10
+        )
+
+        # Build content
+        elements.append(Spacer(1, 0.5 * inch))
+        elements.append(Paragraph("CUBAG", title_style))
+        elements.append(Paragraph("Certificate of Membership", subtitle_style))
+        elements.append(Spacer(1, 0.2 * inch))
+
+        elements.append(Paragraph(f"This is to certify that", info_style))
+        elements.append(Spacer(1, 0.1 * inch))
+        elements.append(Paragraph(f"<b>{member['company'] or member['name']}</b>", ParagraphStyle('Name', parent=info_style, fontSize=22)))
+        elements.append(Spacer(1, 0.1 * inch))
+        elements.append(Paragraph(f"represented by <i>{member['name']}</i>", info_style))
+        elements.append(Spacer(1, 0.3 * inch))
+        elements.append(Paragraph(f"is a registered <b>{member['member_type']}</b> of CUBAG", info_style))
+        elements.append(Paragraph(f"Operating at: {member['port_of_operation'] or 'All Ports'}", info_style))
+        elements.append(Spacer(1, 0.2 * inch))
+
+        expiry = member['license_expiry_date']
+        expiry_str = expiry.strftime("%d %b %Y") if expiry else "N/A"
+        elements.append(Paragraph(f"License Number: <b>{member['license_number']}</b>", info_style))
+        elements.append(Paragraph(f"Valid Until: {expiry_str}", info_style))
+
+        elements.append(Spacer(1, 0.5 * inch))
+        elements.append(Paragraph("Issued by CUBAG Secretariat", ParagraphStyle('Footer', parent=info_style, fontSize=10, textColor=colors.grey)))
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        filename = f"CUBAG_Certificate_{member_id}.pdf"
+        return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
+    except Exception as e:
+        logger.exception("PDF Generation failed: %s", e)
+        return str(e), 500
     finally:
         conn.close()

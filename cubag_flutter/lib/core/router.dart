@@ -124,7 +124,14 @@ final GoRouter appRouter = GoRouter(
         GoRoute(path: '/events',            builder: (c, s) => const EventsPage()),
         GoRoute(path: '/license-renewal',   builder: (c, s) => const LicenseRenewalPage()),
         GoRoute(path: '/live-data',         builder: (c, s) => const LiveDataPage()),
-        GoRoute(path: '/messaging',         builder: (c, s) => const MessagingPage()),
+        GoRoute(
+          path: '/messaging',
+          builder: (c, s) => MessagingPage(
+            initialUserId: s.uri.queryParameters['id'],
+            initialUserName: s.uri.queryParameters['name'],
+            initialUserCompany: s.uri.queryParameters['company'],
+          ),
+        ),
         GoRoute(path: '/networking',        builder: (c, s) => const NetworkingPage()),
         GoRoute(path: '/notifications',     builder: (c, s) => const NotificationsPage()),
         GoRoute(path: '/payment-history',   builder: (c, s) => const PaymentHistoryPage()),

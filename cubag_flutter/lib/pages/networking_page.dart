@@ -210,7 +210,13 @@ class _NetworkingPageState extends State<NetworkingPage> {
       const SizedBox(height: 16),
       Row(children: [
         Expanded(flex: 2, child: ElevatedButton.icon(
-          onPressed: () { setState(() => _selected = null); context.go('/messaging'); },
+          onPressed: () {
+            final id = m['id'];
+            final name = Uri.encodeComponent(m['name']?.toString() ?? '');
+            final company = Uri.encodeComponent(m['company']?.toString() ?? '');
+            setState(() => _selected = null);
+            context.go('/messaging?id=$id&name=$name&company=$company');
+          },
           style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 46)),
           icon: const Icon(Icons.chat, color: Colors.white, size: 18),
           label: const Text('Message', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

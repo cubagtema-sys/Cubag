@@ -328,7 +328,16 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 6),
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(_user['license_number']?.toString() ?? (_user['status'] == 'active' ? 'N/A' : 'PAYMENT REQUIRED'), style: TextStyle(fontWeight: FontWeight.bold, color: _user['status'] == 'active' ? null : Colors.red, fontSize: 16)),
+                      Text(
+                        (daysLeft != null && daysLeft < 0) 
+                          ? 'EXPIRED / INACTIVE' 
+                          : _user['license_number']?.toString() ?? (_user['status'] == 'active' ? 'N/A' : 'PAYMENT REQUIRED'), 
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          color: (daysLeft != null && daysLeft < 0) || _user['status'] != 'active' ? Colors.red : null, 
+                          fontSize: 16
+                        )
+                      ),
                       if (daysLeft != null) Text(daysLeft < 0 ? 'Expired ${_formatDate(expiry)}' : daysLeft <= 30 ? 'Expires in $daysLeft days — ${_formatDate(expiry)}' : 'Valid until ${_formatDate(expiry)}', style: TextStyle(fontSize: 12, color: daysLeft < 0 ? Colors.red : daysLeft <= 30 ? Colors.orange : Colors.grey)),
                     ])),
                     // Show Renew only if license is expired or expiring within 60 days
@@ -446,7 +455,17 @@ class _ProfilePageState extends State<ProfilePage> {
                     ]),
                     const SizedBox(height: 20),
                     Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.grey.shade50, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)), child: Column(children: [
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('MEMBER ID', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), Text(_uniqueMemberId, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black))]),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        const Text('MEMBER ID', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), 
+                        Text(_uniqueMemberId, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black))
+                      ]),
+                      if (daysLeft == null || daysLeft >= 0) ...[
+                        const SizedBox(height: 12),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          const Text('LICENSE NO.', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          Text(_user['license_number']?.toString() ?? 'PENDING', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                        ]),
+                      ],
                       const SizedBox(height: 12),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                         const Text('LICENSE EXPIRES', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),

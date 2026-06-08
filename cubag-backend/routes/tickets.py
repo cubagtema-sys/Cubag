@@ -165,24 +165,57 @@ def update_ticket_status(ticket_id):
 def add_ticket_reply(ticket_id):
     admin_id = get_jwt_identity()
     data = request.get_json()
+    reply_msg = data.get('message')
+
+    if not reply_msg:
+        return jsonify({'message': 'Reply message is required'}), 400
+
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            # Fetch the real admin's name to use as the reply author
+            # 1. Fetch ticket and member info
+            cursor.execute("""
+                SELECT t.subject, t.member_id, m.fcm_token
+                FROM support_tickets t
+                JOIN members m ON t.member_id = m.id
+                WHERE t.id = %s
+            """, (ticket_id,))
+            ticket_row = cursor.fetchone()
+            if not ticket_row:
+                return jsonify({'message': 'Ticket not found'}), 404
+
+            # 2. Fetch the real admin's name
             cursor.execute("SELECT name FROM members WHERE id = %s", (admin_id,))
             admin_row = cursor.fetchone()
             admin_name = admin_row['name'] if admin_row else 'CUBAG Admin'
+
+            # 3. Save reply and update ticket timestamp
             cursor.execute("""
                 INSERT INTO ticket_replies (ticket_id, author, message)
                 VALUES (%s, %s, %s)
-            """, (ticket_id, admin_name, data.get('message')))
+            """, (ticket_id, admin_name, reply_msg))
             cursor.execute("""
                 UPDATE support_tickets
                 SET updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
             """, (ticket_id,))
             conn.commit()
-        subject = ticket['subject'] if ticket else ticket_id
+
+            # 4. Send Push Notification to Member
+            fcm_token = ticket_row.get('fcm_token')
+            if fcm_token:
+                from utils import send_push_notification
+                send_push_notification(
+                    fcm_token=fcm_token,
+                    title=f"New Support Reply: {ticket_id}",
+                    body=reply_msg[:100] + ("..." if len(reply_msg) > 100 else ""),
+                    data={
+                        'type': 'ticket',
+                        'id': str(ticket_id)
+                    }
+                )
+
+        subject = ticket_row['subject']
         log_admin_action(admin_id, 'Replied to ticket', 'ticket', None, subject, f'Ticket: {ticket_id}')
         return jsonify({'message': 'Reply added'}), 201
     except Exception as e:

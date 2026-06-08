@@ -3,7 +3,17 @@ import '../components/app_layout.dart';
 import '../services/api_service.dart';
 
 class MessagingPage extends StatefulWidget {
-  const MessagingPage({super.key});
+  final String? initialUserId;
+  final String? initialUserName;
+  final String? initialUserCompany;
+
+  const MessagingPage({
+    super.key,
+    this.initialUserId,
+    this.initialUserName,
+    this.initialUserCompany,
+  });
+
   @override
   State<MessagingPage> createState() => _MessagingPageState();
 }
@@ -21,7 +31,41 @@ class _MessagingPageState extends State<MessagingPage> {
   final _searchCtrl = TextEditingController();  // F-25 fix
 
   @override
-  void initState() { super.initState(); _fetchConversations(); }
+  void initState() {
+    super.initState();
+    _fetchConversations().then((_) {
+      _checkInitialChat();
+    });
+  }
+
+  @override
+  void didUpdateWidget(MessagingPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialUserId != oldWidget.initialUserId) {
+      _checkInitialChat();
+    }
+  }
+
+  void _checkInitialChat() {
+    if (widget.initialUserId != null && mounted) {
+      // Find existing conversation or create a temporary one for the UI
+      final existing = _conversations.cast<Map<String, dynamic>?>().firstWhere(
+        (c) => c?['id']?.toString() == widget.initialUserId.toString(),
+        orElse: () => null,
+      );
+
+      if (existing != null) {
+        _openChat(Map<String, dynamic>.from(existing));
+      } else if (widget.initialUserName != null) {
+        // If no existing conversation, we can still start one if we have the name
+        _openChat({
+          'id': widget.initialUserId,
+          'name': widget.initialUserName,
+          'company': widget.initialUserCompany ?? 'CUBAG Member',
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {

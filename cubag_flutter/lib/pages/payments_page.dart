@@ -30,7 +30,7 @@ class _PaymentsPageState extends State<PaymentsPage>
   bool _loadingData = true;
   // Polling state
   int _pollAttempt = 0;
-  int _pollMax = 36; // 36 × 5s = 3 minutes
+  int _pollMax = 60; // 60 × 5s = 5 minutes
   bool _manualChecking = false;
   int? _currentPaymentId;
   String _currentTxRef = '';
@@ -162,14 +162,12 @@ class _PaymentsPageState extends State<PaymentsPage>
     // Timed out
     if (!isComplete && _currentPaymentId == paymentId && mounted) {
       setState(() {
-        _errorMsg = 'No response received in 3 minutes.\nIf you approved the prompt, tap "Check Status" to verify manually.';
-        _showError = true;
-        _step = 1;
+        // Stop auto-polling, but keep user on step 4 so they can click the check button manually
       });
     }
   }
 
-  /// Manual one-shot check — triggered by "I\'ve Approved" button
+  /// Manual one-shot check — triggered by "I've Approved" button
   Future<void> _manualStatusCheck() async {
     if (_currentTxRef.isEmpty || _manualChecking) return;
     setState(() => _manualChecking = true);
@@ -187,12 +185,46 @@ class _PaymentsPageState extends State<PaymentsPage>
       } else if (status == 'failed' || status == 'declined' || status == 'cancelled') {
         setState(() { _errorMsg = res.data['message'] ?? 'Payment declined.'; _showError = true; _step = 1; });
       } else {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Still pending: ${res.data['message'] ?? 'Please wait for the MoMo prompt.'}')),
+          SnackBar(
+            content: Text(
+              'Still pending: ${res.data['message'] ?? 'Please wait for the MoMo prompt.'}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(
+              bottom: MediaQuery.of(context).size.height - 120,
+              left: 24,
+              right: 24,
+            ),
+            dismissDirection: DismissDirection.up,
+            backgroundColor: Colors.orange.shade800,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Check failed — please try again.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Check failed — please try again.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(
+              bottom: MediaQuery.of(context).size.height - 120,
+              left: 24,
+              right: 24,
+            ),
+            dismissDirection: DismissDirection.up,
+            backgroundColor: Colors.red.shade800,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
     if (mounted) setState(() => _manualChecking = false);
   }
@@ -528,7 +560,45 @@ class _PaymentsPageState extends State<PaymentsPage>
         textAlign: TextAlign.center,
         style: const TextStyle(color: Colors.grey, height: 1.5),
       ),
+      const SizedBox(height: 10),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: const Column(children: [
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.info, color: Colors.orange, size: 14),
+            SizedBox(width: 6),
+            Text('MTN MoMo Approval Notice', style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold)),
+          ]),
+          SizedBox(height: 4),
+          Text(
+            'If the prompt does not popup, please dial *170# -> Option 6 (My Wallet) -> Option 3 (My Approvals) on your phone to approve.',
+            style: TextStyle(color: Colors.black87, fontSize: 11, height: 1.4),
+            textAlign: TextAlign.center,
+          ),
+        ]),
+      ),
       const SizedBox(height: 24),
+      if (_pollAttempt >= _pollMax) ...[
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red.shade200),
+          ),
+          child: const Text(
+            'Auto-checking timed out. If you have approved the payment on your phone, click "I\'ve Approved — Check Now" below to complete.',
+            style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
 
       // Progress bar
       ClipRRect(

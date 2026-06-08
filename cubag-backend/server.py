@@ -377,4 +377,4 @@ logger.info("[Init] CUBAG Backend fully loaded and ready to accept requests.")
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
     logger.info(f"Running on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)

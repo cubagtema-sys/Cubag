@@ -64,8 +64,20 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                     ),
                   ])),
                   Row(children: [
-                    Expanded(child: ElevatedButton.icon(onPressed: () => launchUrl(Uri.parse('mailto:${_member!['email']}')), icon: const Icon(Icons.email, size: 16), label: const Text('Email'), style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white, minimumSize: const Size(0, 40)))),
-                    const SizedBox(width: 10),
+                    Expanded(child: ElevatedButton.icon(
+                      onPressed: () {
+                        final id = _member!['id'];
+                        final name = Uri.encodeComponent(_member!['name']?.toString() ?? '');
+                        final company = Uri.encodeComponent(_member!['company']?.toString() ?? '');
+                        context.go('/messaging?id=$id&name=$name&company=$company');
+                      },
+                      icon: const Icon(Icons.chat, size: 16),
+                      label: const Text('Message'),
+                      style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white, minimumSize: const Size(0, 40)),
+                    )),
+                    const SizedBox(width: 8),
+                    Expanded(child: OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse('mailto:${_member!['email']}')), icon: const Icon(Icons.email, size: 16), label: const Text('Email'), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)))),
+                    const SizedBox(width: 8),
                     Expanded(child: OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse('tel:${_member!['phone']}')), icon: const Icon(Icons.call, size: 16), label: const Text('Call'), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)))),
                   ]),
                 ])),

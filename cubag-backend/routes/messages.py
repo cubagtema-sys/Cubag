@@ -94,20 +94,50 @@ def get_messages(other_id):
 def send_message(other_id):
     user_id = get_jwt_identity()
     data = request.get_json()
+    message_text = data.get('text')
+
+    if not message_text:
+        return jsonify({'message': 'Message text is required'}), 400
+
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # 1. Save to DB
             cursor.execute("""
                 INSERT INTO messages (sender_id, receiver_id, message)
                 VALUES (%s, %s, %s) RETURNING id, created_at
-            """, (user_id, other_id, data.get('text')))
+            """, (user_id, other_id, message_text))
             new_msg = cursor.fetchone()
+
+            # 2. Get sender name and receiver FCM token
+            cursor.execute("SELECT name FROM members WHERE id = %s", (user_id,))
+            sender = cursor.fetchone()
+            sender_name = sender['name'] if sender else "A member"
+
+            cursor.execute("SELECT fcm_token FROM members WHERE id = %s", (other_id,))
+            receiver = cursor.fetchone()
+            receiver_token = receiver['fcm_token'] if receiver else None
+
             conn.commit()
-            
+
+            # 3. Send Push Notification
+            if receiver_token:
+                from utils import send_push_notification
+                send_push_notification(
+                    fcm_token=receiver_token,
+                    title=f"Message from {sender_name}",
+                    body=message_text[:100] + ("..." if len(message_text) > 100 else ""),
+                    data={
+                        'type': 'message',
+                        'id': str(user_id),
+                        'name': str(sender_name)
+                    }
+                )
+
             return jsonify({
                 'id': new_msg['id'],
                 'from': 'me',
-                'text': data.get('text'),
+                'text': message_text,
                 'time': new_msg['created_at'].strftime('%b %d, %I:%M %p')
             }), 201
     except Exception as e:

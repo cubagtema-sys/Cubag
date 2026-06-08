@@ -32,7 +32,13 @@ Future<bool> isBiometricAvailable() async {
 
 Future<bool> authenticate({required String reason}) async {
   try {
-    return await _auth.authenticate(localizedReason: reason);
+    return await _auth.authenticate(
+      localizedReason: reason,
+      options: const AuthenticationOptions(
+        stickyAuth: true,
+        biometricOnly: true,
+      ),
+    );
   } on PlatformException catch (e) {
     debugPrint('Biometric authentication failed: $e');
     return false;

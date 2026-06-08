@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'core/theme.dart';
 import 'core/router.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'services/push_notification_service.dart';
 
 void main() async {
@@ -60,6 +61,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authService),
+        ChangeNotifierProvider(create: (_) => NotificationService()),
       ],
       child: const CubagApp(),
     ),

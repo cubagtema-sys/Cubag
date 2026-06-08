@@ -13,3 +13,4 @@ gevent
 gevent-websocket
 websocket-client
 resend
+reportlab

@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 # ─── WhitsunPay Configuration ─────────────────────────────────────────────────
 WHITSUNPAY_BASE_URL = os.getenv('WHITSUNPAY_BASE_URL', 'https://api.whitsun.io').rstrip('/')
-WHITSUNPAY_CLIENT_ID = os.getenv('WHITSUNPAY_CLIENT_ID', '')
-WHITSUNPAY_API_KEY = os.getenv('WHITSUNPAY_API_KEY', '')
+WHITSUNPAY_CLIENT_ID = os.getenv('WHITSUNPAY_CLIENT_ID', '') or os.getenv('x-client-id', '')
+WHITSUNPAY_API_KEY = os.getenv('WHITSUNPAY_API_KEY', '') or os.getenv('x-api-key', '')
 WHITSUNPAY_WEBHOOK_SECRET = os.getenv('WHITSUNPAY_WEBHOOK_SECRET', '')
-WHITSUNPAY_CALLBACK_URL = os.getenv('WHITSUNPAY_CALLBACK_URL', '')
+WHITSUNPAY_CALLBACK_URL = os.getenv('WHITSUNPAY_CALLBACK_URL', '') or os.getenv('x-callback-url', '')
 
 # Full versioned API base — e.g. https://api.whitsun.io/api/v1
 _WP_API = f'{WHITSUNPAY_BASE_URL}/api/v1'
@@ -146,7 +146,7 @@ def create_payment():
                 payment_id = cursor.fetchone()['id']
 
             # If it's a license renewal, ensure member status is 'pending' while waiting for pay
-            if 'Renewal' in description:
+            if 'Renewal' in description or 'License' in description:
                 cursor.execute(
                     "UPDATE members SET status = 'pending' WHERE id = %s",
                     (member_id,)
@@ -200,6 +200,8 @@ def create_payment():
                     wp_data = {'raw_response': wp_res.text[:1000]} # Increase visibility of raw response
                     logger.warning(f"[WhitsunPay Debug] Failed to parse JSON response: {wp_res.text[:500]}")
 
+                logger.info(f"[WhitsunPay Debug] Response Body: {wp_data}")
+
                 if wp_res.status_code >= 400:
                     logger.error(f"[WhitsunPay Debug] Error response ({wp_res.status_code}): {wp_data}")
                     with conn.cursor() as cursor:
@@ -221,7 +223,7 @@ def create_payment():
                         "UPDATE payments SET payment_ref = %s WHERE id = %s",
                         (tx_ref, payment_id)
                     )
-                    if 'Renewal' in description:
+                    if 'Renewal' in description or 'License' in description:
                         cursor.execute(
                             "UPDATE members SET payment_ref = %s WHERE id = %s",
                             (tx_ref, member_id)
@@ -332,6 +334,7 @@ def verify_payment_code():
             logger.error(f"[WhitsunPay] Non-JSON response in verify: {wp_res.text[:300]}")
             return jsonify({'message': 'WhitsunPay returned an invalid response. Cloudflare may be blocking the request.', 'error': True}), 502
 
+        logger.info(f"[WhitsunPay Verify Status] Status Code: {wp_res.status_code}, Body: {wp_data}")
         wp_status = str(wp_data.get('status', '')).lower()
 
         if wp_status in ('successful', 'success', 'completed'):
@@ -436,21 +439,53 @@ def _mark_payment_as_paid(payment_id):
     try:
         with conn.cursor() as cursor:
             # Check if already paid to avoid double processing
-            cursor.execute("SELECT status FROM payments WHERE id = %s", (payment_id,))
+            cursor.execute("SELECT status, member_id, description, amount FROM payments WHERE id = %s", (payment_id,))
             p = cursor.fetchone()
-            if p and str(p['status']).lower() == 'paid': return
+            if not p or str(p['status']).lower() == 'paid': return
+
+            member_id = p['member_id']
+            description = p['description']
 
             cursor.execute(
                 "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
                 (payment_id,)
             )
-            # If it was a license renewal, activate the member
-            cursor.execute("""
-                UPDATE members m
-                SET status = 'active'
-                FROM payments p
-                WHERE p.id = %s AND p.member_id = m.id AND p.description ILIKE '%%Renewal%%'
-            """, (payment_id,))
+
+            # ── Handle License Issuance & Expiry ──
+            license_issued = False
+            expiry_date_str = None
+            if 'Renewal' in description or 'License' in description:
+                import datetime
+                now = datetime.datetime.now()
+                expiry_date = now + datetime.timedelta(days=365)
+                expiry_date_str = expiry_date.strftime("%d %b %Y")
+
+                # Fetch current license info
+                cursor.execute("SELECT license_number FROM members WHERE id = %s", (member_id,))
+                member_row = cursor.fetchone()
+
+                license_number = member_row['license_number'] if member_row else None
+                if not license_number or str(license_number).lower() in ('pending', 'none', 'n/a', ''):
+                    year = now.year
+                    license_number = f"CUBAG-LIC-{year}-{member_id:04d}"
+
+                cursor.execute("""
+                    UPDATE members
+                    SET status = 'active',
+                        license_number = %s,
+                        license_expiry_date = %s
+                    WHERE id = %s
+                """, (license_number, expiry_date.date(), member_id))
+
+                # Log to history
+                cursor.execute("""
+                    INSERT INTO license_history (member_id, license_number, start_date, expiry_date, duration_label)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (member_id, license_number, now.date(), expiry_date.date(), '1 Year'))
+                license_issued = True
+            else:
+                # Regular payment, just ensure they are active if they were pending
+                cursor.execute("UPDATE members SET status = 'active' WHERE id = %s AND status = 'pending'", (member_id,))
 
             conn.commit()
 
@@ -462,7 +497,10 @@ def _mark_payment_as_paid(payment_id):
             """, (payment_id,))
             row = cursor.fetchone()
             if row:
-                _send_receipt_email(row['email'], row['name'], row['amount'], row['description'], payment_id)
+                custom_msg = ""
+                if license_issued:
+                    custom_msg = f"<p>Your membership license has been issued/renewed and is valid until <strong>{expiry_date_str}</strong>.</p>"
+                _send_receipt_email(row['email'], row['name'], row['amount'], row['description'], payment_id, custom_msg)
     finally:
         conn.close()
 
@@ -518,7 +556,7 @@ def whitsunpay_webhook():
     return jsonify({'message': 'ok'}), 200
 
 
-def _send_receipt_email(to_email, member_name, amount, description, payment_id):
+def _send_receipt_email(to_email, member_name, amount, description, payment_id, custom_msg=""):
     resend.api_key = os.getenv('RESEND_API_KEY')
     if not resend.api_key:
         logger.error('[Resend] RESEND_API_KEY not configured — receipt email not sent.')
@@ -531,6 +569,7 @@ def _send_receipt_email(to_email, member_name, amount, description, payment_id):
       <h2 style="color:#f08232">CUBAG</h2>
       <p>Hi <strong>{member_name}</strong>,</p>
       <p>Your payment has been confirmed. Here is your receipt:</p>
+      {custom_msg}
       <table style="width:100%;border-collapse:collapse">
         <tr><td style="padding:10px 0;border-bottom:1px solid #eee;color:#888">Description</td><td style="text-align:right;font-weight:700">{description}</td></tr>
         <tr><td style="padding:10px 0;border-bottom:1px solid #eee;color:#888">Amount</td><td style="text-align:right;font-weight:900;color:#f08232;font-size:1.2em">GH₵ {float(amount):.2f}</td></tr>
@@ -671,65 +710,39 @@ def get_all_payments_admin():
 @sub_admin_required('payments')
 def admin_mark_paid(payment_id):
     admin_id = get_jwt_identity()
-    conn = get_db()
     try:
+        conn = get_db()
         with conn.cursor() as cursor:
-            # Get the member_id from the payment
-            cursor.execute("SELECT member_id, amount FROM payments WHERE id = %s", (payment_id,))
+            # Get data for audit log
+            cursor.execute("""
+                SELECT p.member_id, p.amount, m.name
+                FROM payments p LEFT JOIN members m ON p.member_id = m.id
+                WHERE p.id = %s
+            """, (payment_id,))
             row = cursor.fetchone()
-            if row:
-                # Mark payment as paid
-                cursor.execute(
-                    "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
-                    (payment_id,)
-                )
-                # Approve the member's license/activate account
-                cursor.execute(
-                    "UPDATE members SET status = 'active' WHERE id = %s",
-                    (row['member_id'],)
-                )
-                conn.commit()
-                # Real-time WebSocket emission
-                socketio.emit('payment_approved', {'member_id': row['member_id'], 'payment_id': payment_id})
-                # Audit log
-                cursor.execute("SELECT name FROM members WHERE id = %s", (row['member_id'],))
-                member = cursor.fetchone()
-                log_admin_action(admin_id, 'Marked payment as paid', 'payment', payment_id, member['name'] if member else None, f'Amount: {row["amount"]}')
+        conn.close()
+
+        # Use unified helper
+        _mark_payment_as_paid(payment_id)
+
+        if row:
+            # Real-time WebSocket emission
+            socketio.emit('payment_approved', {'member_id': row['member_id'], 'payment_id': payment_id})
+            # Audit log
+            log_admin_action(admin_id, 'Marked payment as paid', 'payment', payment_id, row.get('name'), f'Amount: {row.get("amount")}')
+
         return jsonify({'message': 'Payment marked as paid'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
-    finally:
-        conn.close()
 
 
 # ─── POST /payments/admin/approve-license/<id> ───────────────────────────────
 @payments_bp.route('/admin/approve-license/<int:payment_id>', methods=['POST'])
 @sub_admin_required('payments')
 def admin_approve_license(payment_id):
-    conn = get_db()
     try:
-        with conn.cursor() as cursor:
-            # Get the member_id from the payment
-            cursor.execute("SELECT member_id FROM payments WHERE id = %s", (payment_id,))
-            row = cursor.fetchone()
-            if not row:
-                return jsonify({'message': 'Payment not found'}), 404
-
-            member_id = row['member_id']
-
-            # Mark payment as paid
-            cursor.execute(
-                "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = %s",
-                (payment_id,)
-            )
-            # Approve the member's license
-            cursor.execute(
-                "UPDATE members SET status = 'active' WHERE id = %s",
-                (member_id,)
-            )
-            conn.commit()
+        # Use unified helper
+        _mark_payment_as_paid(payment_id)
         return jsonify({'message': 'License approved and payment confirmed'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
-    finally:
-        conn.close()
