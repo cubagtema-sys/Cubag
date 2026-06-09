@@ -523,7 +523,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         border: Border.all(color: Colors.grey.shade200),
                       ),
                       child: Image.network(
-                        'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent('${ApiService.baseUrl}/verify-member/${_user['id']}')}',
+                        'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent('https://winningedgeinvestment.com/#/verify-member/${_user['id']}')}',
                         width: 120,
                         height: 120,
                         errorBuilder: (context, error, stackTrace) => Container(

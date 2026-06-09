@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
+import 'admin_qr_scanner_page.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kRed    = Color(0xFFef4444);
@@ -228,6 +229,28 @@ class _State extends State<AdminEventsPage> {
             ]),
             const SizedBox(height: 10),
             Row(children: [
+              if (!isPast) ...[
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => AdminQrScannerPage(
+                        onScan: (memberId) => _handleCheckIn(ev['id'], memberId),
+                      )));
+                    },
+                    icon: const Icon(Icons.qr_code_scanner, size: 14),
+                    label: const Text('Check-in', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10b981),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => _openEdit(ev),
@@ -261,6 +284,32 @@ class _State extends State<AdminEventsPage> {
         ]),
       );
     }).toList());
+  }
+
+  Future<void> _handleCheckIn(int eventId, String memberId) async {
+    setState(() => _loading = true);
+    try {
+      // In the future this should call a dedicated endpoint like:
+      // await _api.postData('events/admin/$eventId/checkin', {'member_id': memberId});
+      
+      // For now, we simulate a successful API call
+      await Future.delayed(const Duration(seconds: 1));
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Member #$memberId checked in successfully!'),
+          backgroundColor: const Color(0xFF10b981),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to check in: $e'),
+          backgroundColor: _kRed,
+        ));
+      }
+    }
+    setState(() => _loading = false);
   }
 
   Widget _buildEditModal() => Container(

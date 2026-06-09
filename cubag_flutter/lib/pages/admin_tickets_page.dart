@@ -222,18 +222,38 @@ class _State extends State<AdminTicketsPage> {
     Text(val, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
   ]);
 
-  Widget _bubble(String msg, String header, {required bool isAdmin}) => Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: isAdmin ? _kOrange.withAlpha(12) : Colors.grey.shade50,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: isAdmin ? _kOrange.withAlpha(40) : Colors.grey.shade200),
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(header, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: isAdmin ? _kOrange : Colors.grey)),
-      const SizedBox(height: 6),
-      Text(msg, style: const TextStyle(fontSize: 14, height: 1.5)),
-    ]),
-  );
+  Widget _bubble(String msg, String header, {required bool isAdmin}) {
+    final isMe = isAdmin;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 600),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isMe ? const Color(0xFFd9fdd3) : const Color(0xFFf1f5f9),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(isMe ? 16 : 4),
+                  bottomRight: Radius.circular(isMe ? 4 : 16),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(header, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: isMe ? const Color(0xFF166534) : Colors.grey.shade600)),
+                  const SizedBox(height: 4),
+                  Text(msg, style: TextStyle(fontSize: 14, color: isMe ? const Color(0xFF064e3b) : const Color(0xFF0f172a), height: 1.4)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

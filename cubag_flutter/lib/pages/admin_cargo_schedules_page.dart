@@ -34,8 +34,9 @@ class _State extends State<AdminCargoSchedulesPage> {
   Future<void> _fetch() async {
     setState(() => _fetching = true);
     try {
-      final data = await _api.fetchData('schedules');
-      if (mounted && data is List) setState(() => _schedules = data);
+      final raw = await _api.fetchData('schedules');
+      final data = ApiService.ensureList(raw);
+      if (mounted) setState(() => _schedules = data);
     } catch (_) {}
     if (mounted) setState(() => _fetching = false);
   }
