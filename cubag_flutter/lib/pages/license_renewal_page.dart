@@ -315,56 +315,125 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
     final user = _memberInfo ?? {};
     showDialog(context: context, builder: (ctx) => Dialog(
       insetPadding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)), // Official sharp edges
       child: Container(
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(child: Column(children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Row(children: [
-              Container(width: 44, height: 44, decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.verified, color: Colors.white)),
-              const SizedBox(width: 12),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('CUBAG', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: primary)),
-                const Text('Certificate of Membership', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              ]),
-            ]),
-            IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-          ]),
-          Container(margin: const EdgeInsets.symmetric(vertical: 16), height: 3, decoration: BoxDecoration(gradient: LinearGradient(colors: [primary, primary.withAlpha(127)]))),
-
-          const Text('Certificate of', style: TextStyle(fontSize: 12, color: Colors.grey, letterSpacing: 2)),
-          const SizedBox(height: 4),
-          Text('Active Membership', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primary)),
-          const SizedBox(height: 16),
-          const Text('This is to certify that', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
-          const SizedBox(height: 8),
-          Text(user['company']?.toString() ?? rec['company']?.toString() ?? 'Company Name', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-          Text('represented by ${user['name']?.toString() ?? rec['name']?.toString() ?? 'Member Name'}', style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: 13)),
-          const SizedBox(height: 16),
-
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
-            child: Column(children: [
-              _certRow('License Number', 
-                (rec['expiry_date'] != null && DateTime.tryParse(rec['expiry_date'].toString())!.isBefore(DateTime.now()))
-                  ? 'EXPIRED'
-                  : rec['license_number']?.toString() ?? 'VALIDATING...', 
-                primary
-              ),
-              _certRow('Member Type', user['member_type']?.toString() ?? rec['member_type']?.toString() ?? '—', primary),
-              _certRow('Port of Operation', user['port_of_operation']?.toString() ?? rec['port_of_operation']?.toString() ?? '—', primary),
-              _certRow('Valid Period', 'January $yr – December $yr', primary),
-            ]),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFFfcfcfc),
+          border: Border.all(color: primary, width: 8),
+        ),
+        child: Container(
+          margin: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFcbd5e1), width: 1),
           ),
-          const SizedBox(height: 20),
-          Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(12)), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.verified, color: Colors.white, size: 16),
-            const SizedBox(width: 8),
-            Text('CUBAG OFFICIAL CERTIFICATE $yr', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
-          ])),
-        ])),
+          child: Stack(
+            children: [
+              // Watermark
+              Positioned.fill(
+                child: Center(
+                  child: Transform.rotate(
+                    angle: -0.5,
+                    child: Text(
+                      'CUBAG',
+                      style: TextStyle(
+                        fontSize: 100,
+                        fontWeight: FontWeight.w900,
+                        color: primary.withAlpha(10), // ~4% opacity
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Content
+              SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 40), // Spacer to balance close button
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text('CUBAG', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 36, color: primary, letterSpacing: 2)),
+                              const Text('CUSTOMS BROKERS ASSOCIATION OF GHANA', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Color(0xFF64748b), letterSpacing: 0.5)),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    const Text('CERTIFICATE OF MEMBERSHIP', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0f172a), letterSpacing: 1)),
+                    const SizedBox(height: 24),
+                    const Text('This is to officially certify that', style: TextStyle(fontSize: 14, color: Color(0xFF475569))),
+                    const SizedBox(height: 12),
+                    Text(user['company']?.toString() ?? rec['company']?.toString() ?? 'Company Name', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: Color(0xFF1e293b))),
+                    const SizedBox(height: 6),
+                    Text('represented by ${user['name']?.toString() ?? rec['name']?.toString() ?? 'Member Name'}', style: const TextStyle(color: Color(0xFF64748b), fontStyle: FontStyle.italic, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    Text('is a registered and active ${user['member_type']?.toString() ?? rec['member_type']?.toString() ?? 'Member'} of CUBAG', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF0f172a))),
+                    const SizedBox(height: 6),
+                    Text('Authorized Port of Operation: ${user['port_of_operation']?.toString() ?? rec['port_of_operation']?.toString() ?? 'All Ports'}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                    const SizedBox(height: 24),
+                    Text('License Number: ${rec['license_number']?.toString() ?? 'PENDING'}   •   Valid Until: 31 Dec $yr', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                    const SizedBox(height: 40),
+                    // Signatures and Seal
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Column(
+                          children: [
+                            Container(width: 70, height: 1, color: Colors.black87),
+                            const SizedBox(height: 6),
+                            const Text('President', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        // Official Gold Seal
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Icon(Icons.brightness_7, size: 70, color: Color(0xFFd4af37)),
+                            Container(
+                              width: 54, height: 54,
+                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1)),
+                            ),
+                            Container(
+                              width: 46, height: 46,
+                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1)),
+                            ),
+                            const Column(
+                              children: [
+                                Text('OFFICIAL', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                Text('SEAL', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Container(width: 70, height: 1, color: Colors.black87),
+                            const SizedBox(height: 6),
+                            const Text('Secretary General', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ));
   }

@@ -157,7 +157,7 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
     final isMmsi = RegExp(r'^\d{9}$').hasMatch(_search);
     Map<String, dynamic>? activeVessel;
     if (isMmsi) {
-      activeVessel = _vesselsMap[_search];
+      activeVessel = _vesselsMap[_search] != null ? Map<String, dynamic>.from(_vesselsMap[_search]!) : null;
       final common = _registryVessels.firstWhere(
         (item) => item['mmsi']?.toString() == _search,
         orElse: () => {},
@@ -175,9 +175,25 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
           'width':    common['width'],
           'status':   'Awaiting AIS Signal',
           'speed':    null,
-          'destination': null,
-          'eta':      null,
+          'destination': common['destination'],
+          'eta':      common['eta'],
+          'departure_port': common['departure_port'],
+          'atd':      common['atd'],
         };
+      } else if (activeVessel != null && common.isNotEmpty) {
+        // Merge missing static/voyage data from registry into the live AIS feed!
+        activeVessel['departure_port'] = activeVessel['departure_port'] ?? common['departure_port'];
+        activeVessel['atd'] = activeVessel['atd'] ?? common['atd'];
+        activeVessel['length'] = activeVessel['length'] ?? common['length'];
+        activeVessel['width'] = activeVessel['width'] ?? common['width'];
+        
+        // Destination/ETA from AIS might be empty string or '—', prefer registry if AIS is missing it.
+        if (activeVessel['destination'] == null || activeVessel['destination'] == '—' || activeVessel['destination'].toString().isEmpty) {
+          activeVessel['destination'] = common['destination'];
+        }
+        if (activeVessel['eta'] == null || activeVessel['eta'] == '—' || activeVessel['eta'].toString().isEmpty) {
+          activeVessel['eta'] = common['eta'];
+        }
       }
     }
 

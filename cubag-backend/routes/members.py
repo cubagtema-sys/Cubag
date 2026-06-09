@@ -496,65 +496,124 @@ def download_certificate_pdf(member_id):
         if str(member['status']).lower() != 'active':
             return "Certificate only available for active members", 403
 
-        # Create PDF in memory
+        # Create highly designed PDF in memory
+        from reportlab.pdfgen import canvas
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
-        elements = []
-        styles = getSampleStyleSheet()
-
-        # Define styles
-        title_style = ParagraphStyle(
-            'TitleStyle',
-            parent=styles['Heading1'],
-            fontSize=28,
-            textColor=colors.HexColor("#f08232"),
-            alignment=1,
-            spaceAfter=20
-        )
-
-        subtitle_style = ParagraphStyle(
-            'SubtitleStyle',
-            parent=styles['Normal'],
-            fontSize=16,
-            alignment=1,
-            spaceAfter=30
-        )
-
-        info_style = ParagraphStyle(
-            'InfoStyle',
-            parent=styles['Normal'],
-            fontSize=14,
-            alignment=1,
-            spaceAfter=10
-        )
-
-        # Build content
-        elements.append(Spacer(1, 0.5 * inch))
-        elements.append(Paragraph("CUBAG", title_style))
-        elements.append(Paragraph("Certificate of Membership", subtitle_style))
-        elements.append(Spacer(1, 0.2 * inch))
-
-        elements.append(Paragraph(f"This is to certify that", info_style))
-        elements.append(Spacer(1, 0.1 * inch))
-        elements.append(Paragraph(f"<b>{member['company'] or member['name']}</b>", ParagraphStyle('Name', parent=info_style, fontSize=22)))
-        elements.append(Spacer(1, 0.1 * inch))
-        elements.append(Paragraph(f"represented by <i>{member['name']}</i>", info_style))
-        elements.append(Spacer(1, 0.3 * inch))
-        elements.append(Paragraph(f"is a registered <b>{member['member_type']}</b> of CUBAG", info_style))
-        elements.append(Paragraph(f"Operating at: {member['port_of_operation'] or 'All Ports'}", info_style))
-        elements.append(Spacer(1, 0.2 * inch))
-
+        c = canvas.Canvas(buffer, pagesize=landscape(A4))
+        width, height = landscape(A4)
+        
+        # Background
+        c.setFillColor(colors.HexColor("#fcfcfc"))
+        c.rect(0, 0, width, height, fill=1, stroke=0)
+        
+        # Border
+        margin = 0.6 * inch
+        c.setStrokeColor(colors.HexColor("#f08232"))
+        c.setLineWidth(6)
+        c.rect(margin, margin, width - 2*margin, height - 2*margin)
+        
+        c.setStrokeColor(colors.HexColor("#e2e8f0"))
+        c.setLineWidth(1)
+        c.rect(margin + 8, margin + 8, width - 2*margin - 16, height - 2*margin - 16)
+        
+        # Watermark
+        c.saveState()
+        c.translate(width/2.0, height/2.0)
+        c.rotate(30)
+        c.setFont("Helvetica-Bold", 140)
+        c.setFillColor(colors.Color(0.94, 0.51, 0.20, alpha=0.04)) # Faint orange
+        c.drawCentredString(0, -40, "CUBAG")
+        c.restoreState()
+        
+        # Header
+        c.setFillColor(colors.HexColor("#f08232"))
+        c.setFont("Helvetica-Bold", 42)
+        c.drawCentredString(width/2.0, height - 1.6 * inch, "CUBAG")
+        
+        c.setFillColor(colors.HexColor("#64748b"))
+        c.setFont("Helvetica", 14)
+        c.drawCentredString(width/2.0, height - 2.0 * inch, "CUSTOMS BROKERS ASSOCIATION OF GHANA")
+        
+        c.setFillColor(colors.HexColor("#0f172a"))
+        c.setFont("Helvetica-Bold", 26)
+        c.drawCentredString(width/2.0, height - 2.7 * inch, "CERTIFICATE OF MEMBERSHIP")
+        
+        # Body
+        c.setFont("Helvetica", 14)
+        c.drawCentredString(width/2.0, height - 3.5 * inch, "This is to officially certify that")
+        
+        c.setFont("Helvetica-Bold", 28)
+        c.setFillColor(colors.HexColor("#1e293b"))
+        company_name = member['company'] or member['name']
+        c.drawCentredString(width/2.0, height - 4.2 * inch, company_name)
+        
+        c.setFont("Helvetica-Oblique", 14)
+        c.setFillColor(colors.HexColor("#475569"))
+        c.drawCentredString(width/2.0, height - 4.6 * inch, f"represented by {member['name']}")
+        
+        c.setFont("Helvetica", 14)
+        c.setFillColor(colors.HexColor("#0f172a"))
+        c.drawCentredString(width/2.0, height - 5.3 * inch, f"is a registered and active {member['member_type']} of CUBAG")
+        
+        port_txt = member['port_of_operation'] or 'All Ports'
+        c.drawCentredString(width/2.0, height - 5.7 * inch, f"Authorized Port of Operation: {port_txt}")
+        
+        # Details
+        c.setFont("Helvetica-Bold", 12)
         expiry = member['license_expiry_date']
         expiry_str = expiry.strftime("%d %b %Y") if expiry else "N/A"
-        elements.append(Paragraph(f"License Number: <b>{member['license_number']}</b>", info_style))
-        elements.append(Paragraph(f"Valid Until: {expiry_str}", info_style))
-
-        elements.append(Spacer(1, 0.5 * inch))
-        elements.append(Paragraph("Issued by CUBAG Secretariat", ParagraphStyle('Footer', parent=info_style, fontSize=10, textColor=colors.grey)))
-
-        doc.build(elements)
+        c.drawCentredString(width/2.0, height - 6.3 * inch, f"License Number: {member['license_number']}   •   Valid Until: {expiry_str}")
+        
+        # Signatures
+        sig_y = margin + 0.8 * inch
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(1)
+        
+        # Left signature
+        c.line(margin + 1.5*inch, sig_y, margin + 3.5*inch, sig_y)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawCentredString(margin + 2.5*inch, sig_y - 14, "President")
+        
+        # Right signature
+        c.line(width - margin - 3.5*inch, sig_y, width - margin - 1.5*inch, sig_y)
+        c.drawCentredString(width - margin - 2.5*inch, sig_y - 14, "Secretary General")
+        
+        # Seal (Gold)
+        seal_x = width/2.0
+        seal_y = sig_y + 0.2 * inch
+        
+        # Draw a jagged seal background
+        c.setFillColor(colors.HexColor("#d4af37"))
+        c.setStrokeColor(colors.HexColor("#b8860b"))
+        c.setLineWidth(1)
+        path = c.beginPath()
+        import math
+        points = 40
+        radius_outer = 45
+        radius_inner = 38
+        for i in range(points * 2):
+            angle = i * math.pi / points
+            r = radius_outer if i % 2 == 0 else radius_inner
+            x = seal_x + r * math.cos(angle)
+            y = seal_y + r * math.sin(angle)
+            if i == 0:
+                path.moveTo(x, y)
+            else:
+                path.lineTo(x, y)
+        path.close()
+        c.drawPath(path, fill=1, stroke=1)
+        
+        c.setFillColor(colors.white)
+        c.circle(seal_x, seal_y, 32, fill=0, stroke=1)
+        c.circle(seal_x, seal_y, 28, fill=0, stroke=1)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawCentredString(seal_x, seal_y + 4, "OFFICIAL")
+        c.drawCentredString(seal_x, seal_y - 8, "SEAL")
+        
+        c.showPage()
+        c.save()
+        
         buffer.seek(0)
-
         filename = f"CUBAG_Certificate_{member_id}.pdf"
         return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
 
