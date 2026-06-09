@@ -199,7 +199,7 @@ class _PaymentsPageState extends State<PaymentsPage>
               right: 24,
             ),
             dismissDirection: DismissDirection.up,
-            backgroundColor: Colors.orange.shade800,
+            backgroundColor: Theme.of(context).primaryColor,
             duration: const Duration(seconds: 4),
           ),
         );
@@ -415,7 +415,7 @@ class _PaymentsPageState extends State<PaymentsPage>
         const SizedBox(height: 24),
         SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
           onPressed: _reason.isEmpty || _amountCtrl.text.isEmpty ? null : () => setState(() => _step = 2),
-          style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
           child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text('Continue to Methods ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), Icon(Icons.arrow_forward, color: Colors.white)]),
         )),
       ]);
@@ -490,7 +490,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                        (_method == 'bank' && _bankTxId.trim().isEmpty)
                 ? null
                 : () => setState(() => _step = 3),
-            style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
             child: const Text('Review Summary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           )),
         ]),
@@ -527,7 +527,7 @@ class _PaymentsPageState extends State<PaymentsPage>
           const SizedBox(width: 12),
           Expanded(child: ElevatedButton(
             onPressed: _loading ? null : _submitPayment,
-            style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
             child: _loading ? const CircularProgressIndicator(color: Colors.white) : Text(_method == 'momo' ? 'Initiate Payment' : 'Confirm Payment', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           )),
         ]),
@@ -547,7 +547,7 @@ class _PaymentsPageState extends State<PaymentsPage>
           width: 72, height: 72,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [Colors.orange.shade400, Colors.orange.shade700]),
+            gradient: LinearGradient(colors: [primary.withValues(alpha: 0.6), primary]),
           ),
           child: const Icon(Icons.phone_android, color: Colors.white, size: 36),
         ),
@@ -564,15 +564,15 @@ class _PaymentsPageState extends State<PaymentsPage>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.orange.shade50,
+          color: primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.orange.shade200),
+          border: Border.all(color: primary.withValues(alpha: 0.2)),
         ),
-        child: const Column(children: [
+        child: Column(children: [
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.info, color: Colors.orange, size: 14),
+            Icon(Icons.info, color: primary, size: 14),
             SizedBox(width: 6),
-            Text('MTN MoMo Approval Notice', style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text('MTN MoMo Approval Notice', style: TextStyle(color: primary, fontSize: 11, fontWeight: FontWeight.bold)),
           ]),
           SizedBox(height: 4),
           Text(
@@ -606,8 +606,8 @@ class _PaymentsPageState extends State<PaymentsPage>
         child: LinearProgressIndicator(
           value: progressVal,
           minHeight: 6,
-          backgroundColor: Colors.orange.shade100,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.orange.shade600),
+          backgroundColor: primary.withValues(alpha: 0.1),
+          valueColor: AlwaysStoppedAnimation<Color>(primary),
         ),
       ),
       const SizedBox(height: 8),

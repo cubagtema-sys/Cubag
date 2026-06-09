@@ -414,7 +414,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     return AppLayout(
       title: 'Admin Dashboard',
       hideSearch: false,
-      scrollable: true,
+      scrollable: false,
       child: _loading
           ? Center(
               child: Padding(

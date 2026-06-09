@@ -100,6 +100,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return AppLayout(
       title: 'Dashboard',
+      scrollable: false,
       child: _loading && _tasks.isEmpty
           ? const DashboardSkeleton()
           : RefreshIndicator(

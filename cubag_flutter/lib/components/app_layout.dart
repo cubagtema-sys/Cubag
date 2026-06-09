@@ -62,7 +62,7 @@ class _AppLayoutState extends State<AppLayout> {
     final currentRoute = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
-      backgroundColor: isDesktop ? Theme.of(context).scaffoldBackgroundColor : primary,
+      backgroundColor: isDesktop ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFf8fafc),
       appBar: isDesktop ? null : AppBar(
         backgroundColor: primary,
         surfaceTintColor: Colors.transparent,
@@ -70,11 +70,19 @@ class _AppLayoutState extends State<AppLayout> {
         centerTitle: false,
         titleSpacing: isSmall ? 16 : 24,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          widget.title, 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: isSmall ? 18 : 20, letterSpacing: -0.5),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        title: Row(
+          children: [
+            const AppLogo(size: 28, borderRadius: 6, showShadow: false),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                widget.title, 
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: isSmall ? 18 : 20, letterSpacing: -0.5),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
         actions: [
           if (!widget.hideSearch)
@@ -106,16 +114,19 @@ class _AppLayoutState extends State<AppLayout> {
                 ),
               ],
             ) : Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFFf8fafc),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                child: widget.scrollable
-                    ? SingleChildScrollView(padding: const EdgeInsets.all(16), child: widget.child)
-                    : Padding(padding: const EdgeInsets.all(16), child: widget.child),
+              color: primary,
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFf8fafc),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  child: widget.scrollable
+                      ? SingleChildScrollView(padding: const EdgeInsets.all(16), child: widget.child)
+                      : Padding(padding: const EdgeInsets.all(16), child: widget.child),
+                ),
               ),
             ),
           ),
@@ -186,7 +197,7 @@ class _AppLayoutState extends State<AppLayout> {
       decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFf1f5f9)))),
       child: Row(
         children: [
-          Text(widget.title, style: const TextStyle(color: Color(0xFF0f172a), fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
+          Row(children: [const AppLogo(size: 32, borderRadius: 8, showShadow: false), const SizedBox(width: 12), Text(widget.title, style: const TextStyle(color: Color(0xFF0f172a), fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5))]),
           const Spacer(),
           if (!widget.hideSearch)
             IconButton(
@@ -197,7 +208,6 @@ class _AppLayoutState extends State<AppLayout> {
               ),
             ),
           _buildNotificationIcon(context, authService.userRole, false, unreadCount),
-          const SizedBox(width: 8),
           _buildProfileMenu(context, authService, false),
         ],
       ),
@@ -398,11 +408,11 @@ class _AppLayoutState extends State<AppLayout> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-          child: Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF94a3b8), letterSpacing: 1.2)),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+          child: Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94a3b8), letterSpacing: 1.0)),
         ),
         ...items.map((item) => _navTile(context, item.title, item.icon, item.route, currentRoute)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 2),
       ],
     );
   }
@@ -412,19 +422,22 @@ class _AppLayoutState extends State<AppLayout> {
     final primary = Theme.of(context).primaryColor;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
       child: Material(
         color: active ? primary.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: ListTile(
           onTap: () {
             context.go(route);
             if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
           },
           dense: true,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          leading: Icon(icon, color: active ? primary : const Color(0xFF64748b), size: 22),
-          title: Text(title, style: TextStyle(color: active ? primary : const Color(0xFF334155), fontWeight: active ? FontWeight.w700 : FontWeight.w600, fontSize: 14)),
+          minLeadingWidth: 20,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+          visualDensity: const VisualDensity(vertical: -4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          leading: Icon(icon, color: active ? primary : const Color(0xFF64748b), size: 18),
+          title: Text(title, style: TextStyle(color: active ? primary : const Color(0xFF334155), fontWeight: active ? FontWeight.w700 : FontWeight.w600, fontSize: 12)),
         ),
       ),
     );
