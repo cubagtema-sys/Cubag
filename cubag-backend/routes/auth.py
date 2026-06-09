@@ -711,7 +711,7 @@ def reset_password():
 
 @auth_bp.route('/fcm-token', methods=['PUT'])
 @jwt_required()
-def update_fcm_token():
+def set_fcm_token():
     member_id = get_jwt_identity()
     data = request.get_json() or {}
     token = data.get('fcm_token')
