@@ -672,76 +672,80 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
     final maxVal = values.isNotEmpty ? values.reduce((curr, next) => curr > next ? curr : next) : 1000.0;
     final filteredTx = _filteredTransactionsList;
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
+    final chartContainer = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFe2e8f0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Revenue Collection Trend (GH₵)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 12),
+          sortedMonths.isEmpty
+              ? const SizedBox(
+                  height: 190,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.bar_chart, size: 40, color: Colors.grey),
+                        SizedBox(height: 8),
+                        Text('No revenue data available', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                )
+              : _CustomBarChart(
+                  values: values,
+                  labels: sortedMonths,
+                  maxValue: maxVal,
+                  color: Theme.of(context).primaryColor,
+                ),
+        ],
+      ),
+    );
+
+    final distContainer = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFe2e8f0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Dues Distribution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 16),
+          _financialMetricBar('Paid Revenue', _filteredRevenue, const Color(0xFF10b981)),
+          _financialMetricBar('Pending Receivables', _filteredPendingRevenue, const Color(0xFFf59e0b)),
+          _financialMetricBar('Failed/Overdue Dues', _filteredFailedRevenue, const Color(0xFFef4444)),
+        ],
+      ),
+    );
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFe2e8f0)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Revenue Collection Trend (GH₵)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(height: 12),
-                      sortedMonths.isEmpty
-                          ? const SizedBox(
-                              height: 190,
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.bar_chart, size: 40, color: Colors.grey),
-                                    SizedBox(height: 8),
-                                    Text('No revenue data available', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                                  ],
-                                ),
-                              ),
-                            )
-                          : _CustomBarChart(
-                              values: values,
-                              labels: sortedMonths,
-                              maxValue: maxVal,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                    ],
-                  ),
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [chartContainer, const SizedBox(height: 12), distContainer],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: chartContainer),
+                    const SizedBox(width: 12),
+                    Expanded(flex: 2, child: distContainer),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFe2e8f0)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Dues Distribution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(height: 16),
-                      _financialMetricBar('Paid Revenue', _filteredRevenue, const Color(0xFF10b981)),
-                      _financialMetricBar('Pending Receivables', _filteredPendingRevenue, const Color(0xFFf59e0b)),
-                      _financialMetricBar('Failed/Overdue Dues', _filteredFailedRevenue, const Color(0xFFef4444)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -840,81 +844,87 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     final filteredStatus = _filteredStatusCountsMap;
     final filteredTypes = _filteredTypeCountsMap;
     final filteredTotal = _filteredTotalMembersCount;
+    final isMobile = MediaQuery.of(context).size.width < 900;
 
-    return SingleChildScrollView(
-      child: Row(
+    final ratioContainer = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFe2e8f0)),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFe2e8f0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Member Status Ratios', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 24),
-                  _CustomRingChart(
-                    data: filteredStatus,
-                    colors: statusColors,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFe2e8f0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Broker Classifications', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 16),
-                  ...filteredTypes.entries.map((e) {
-                    final color = typeColors[e.key] ?? const Color(0xFF64748b);
-                    final maxCount = filteredTotal > 0 ? filteredTotal.toDouble() : 10.0;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(e.key, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
-                              Text('${e.value.toInt()}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: LinearProgressIndicator(
-                              value: e.value / maxCount,
-                              minHeight: 8,
-                              backgroundColor: Colors.grey.shade100,
-                              valueColor: AlwaysStoppedAnimation<Color>(color),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  })
-                ],
-              ),
-            ),
+          const Text('Member Status Ratios', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 24),
+          _CustomRingChart(
+            data: filteredStatus,
+            colors: statusColors,
           ),
         ],
       ),
+    );
+
+    final classContainer = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFe2e8f0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Broker Classifications', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 16),
+          ...filteredTypes.entries.map((e) {
+            final color = typeColors[e.key] ?? const Color(0xFF64748b);
+            final maxCount = filteredTotal > 0 ? filteredTotal.toDouble() : 10.0;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(e.key, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                      Text('${e.value.toInt()}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: LinearProgressIndicator(
+                      value: e.value / maxCount,
+                      minHeight: 8,
+                      backgroundColor: Colors.grey.shade100,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          })
+        ],
+      ),
+    );
+
+    return SingleChildScrollView(
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [ratioContainer, const SizedBox(height: 12), classContainer],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: ratioContainer),
+                const SizedBox(width: 12),
+                Expanded(child: classContainer),
+              ],
+            ),
     );
   }
 
@@ -922,19 +932,24 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     return SingleChildScrollView(
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final isMobile = MediaQuery.of(context).size.width < 900;
+          final alertsCard = _activityMetricCard('Push Alerts Dispatched', '$_announcementsCount Alerts', Icons.campaign, Theme.of(context).primaryColor);
+          final ticketsCard = _activityMetricCard('Open Support Tickets', '$_openTickets Open', Icons.support_agent, const Color(0xFFef4444));
+          final logsCard = _activityMetricCard('Logistics Vanning Logs', '$_cargoSchedulesCount Logs', Icons.local_shipping, const Color(0xFF3b82f6));
+
+          if (isMobile) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [alertsCard, const SizedBox(height: 12), ticketsCard, const SizedBox(height: 12), logsCard],
+            );
+          }
           return Row(
             children: [
-              Expanded(
-                child: _activityMetricCard('Push Alerts Dispatched', '$_announcementsCount Alerts', Icons.campaign, Theme.of(context).primaryColor),
-              ),
+              Expanded(child: alertsCard),
               const SizedBox(width: 12),
-              Expanded(
-                child: _activityMetricCard('Open Support Tickets', '$_openTickets Open', Icons.support_agent, const Color(0xFFef4444)),
-              ),
+              Expanded(child: ticketsCard),
               const SizedBox(width: 12),
-              Expanded(
-                child: _activityMetricCard('Logistics Vanning Logs', '$_cargoSchedulesCount Logs', Icons.local_shipping, const Color(0xFF3b82f6)),
-              ),
+              Expanded(child: logsCard),
             ],
           );
         },

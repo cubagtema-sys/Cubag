@@ -7,6 +7,7 @@ import 'core/router.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/api_service.dart';
+import 'services/push_notification_service.dart';
 
 void main() async {
   // 1. Basic binding initialization
@@ -50,6 +51,7 @@ Future<void> _initFirebase() async {
   if (kIsWeb) return;
   try {
     await Firebase.initializeApp();
+    await PushNotificationService().initialize();
   } catch (e) {
     // Silent fail in production
   }

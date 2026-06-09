@@ -23,15 +23,15 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
   Future<void> _fetch() async {
     setState(() => _loading = true);
     try {
-      final data = await _cache.fetchCachedMap('/members/license-history');
-      if (mounted) {
+      final res = await ApiService().get('/members/license-history');
+      if (mounted && res.statusCode == 200 && res.data is Map) {
         setState(() {
-          _history = data['history'] ?? [];
-          _memberInfo = data['member'] as Map<String, dynamic>?;
+          _history = res.data['history'] ?? [];
+          _memberInfo = res.data['member'] as Map<String, dynamic>?;
         });
       }
     } catch (_) {}
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
@@ -233,7 +233,7 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
         ]),
         const SizedBox(height: 16),
         ...([
-          {'icon': Icons.verified, 'label': 'License Number', 'val': rec['license_number'] ?? (approved ? 'Validating...' : 'Pending')},
+          {'icon': Icons.verified, 'label': 'License Number', 'val': rec['license_number'] ?? (approved ? 'CBG-$yr-${rec['user_id']?.toString() ?? rec['id']?.toString() ?? 'LIC'}' : 'Pending')},
           {'icon': Icons.business, 'label': 'Organization', 'val': rec['company']},
           {'icon': Icons.location_on, 'label': 'Port of Operation', 'val': rec['port_of_operation']},
         ].where((r) => r['val'] != null)).map((r) => Container(

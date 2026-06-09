@@ -167,6 +167,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   String get _uniqueMemberId {
+    final agencyCode = _user['agency_code']?.toString() ?? '';
+    if (agencyCode.isNotEmpty && agencyCode != 'null') return agencyCode;
+
     final last = (_user['name']?.toString().split(' ').lastOrNull ?? '').toUpperCase();
     final id = _user['id']?.toString() ?? '';
     return id.isNotEmpty ? 'CUBAG-$last-00$id' : '—';
@@ -337,7 +340,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       Text(
                         (daysLeft != null && daysLeft < 0) 
                           ? 'EXPIRED / INACTIVE' 
-                          : _user['license_number']?.toString() ?? (_user['status'] == 'active' ? 'N/A' : 'PAYMENT REQUIRED'), 
+                          : _user['license_number']?.toString() ?? (_user['status'] == 'active' ? 'CBG-${DateTime.now().year}-${_user['id']?.toString() ?? 'LIC'}' : 'PAYMENT REQUIRED'), 
                         style: TextStyle(
                           fontWeight: FontWeight.bold, 
                           color: (daysLeft != null && daysLeft < 0) || _user['status'] != 'active' ? Colors.red : null, 
@@ -472,7 +475,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 12),
                         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                           const Text('LICENSE NO.', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                          Text(_user['license_number']?.toString() ?? 'PENDING', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                          Text(_user['license_number']?.toString() ?? (_user['status'] == 'active' ? 'CBG-${DateTime.now().year}-${_user['id']?.toString() ?? 'LIC'}' : 'PENDING'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                         ]),
                       ],
                       const SizedBox(height: 12),

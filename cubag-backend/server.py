@@ -249,9 +249,8 @@ try:
     start_news_worker()
     logger.info("[Init] News worker started.")
 
-    from rating_worker import start_rating_worker
-    start_rating_worker(interval_seconds=86400)
-    logger.info("[Init] Rating worker started.")
+    from jobs import start_scheduler
+    start_scheduler()
 
     @socketio.on('track_vessel')
     def handle_track_vessel(data):
@@ -280,6 +279,7 @@ from routes.settings import settings_bp
 from routes.intelligence import intelligence_bp
 from routes.uploads import uploads_bp
 from routes.news import news_bp
+from routes.compliance_settings import compliance_settings_bp
 
 app.register_blueprint(admin_bp,         url_prefix='/api/admin')
 app.register_blueprint(schedules_bp,     url_prefix='/api/schedules')
@@ -290,6 +290,7 @@ app.register_blueprint(intelligence_bp,  url_prefix='/api/intelligence')
 app.register_blueprint(uploads_bp,          url_prefix='/api/uploads')
 app.register_blueprint(news_bp,             url_prefix='/api/news')
 app.register_blueprint(sub_admins_bp,       url_prefix='/api/sub-admins')
+app.register_blueprint(compliance_settings_bp, url_prefix='/api/compliance-settings')
 
 @app.route('/api/ping', methods=['GET'])
 def ping():

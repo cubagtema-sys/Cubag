@@ -24,10 +24,89 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   bool _showNew = false;
   bool _showConfirm = false;
 
+  Map<String, dynamic> _complianceSettings = {};
+  bool _fetchingSettings = true;
+  bool _savingSettings = false;
+  String _settingsMessage = '';
+  bool _settingsSuccess = false;
+
+  final _payPunctualCtrl = TextEditingController();
+  final _payHistoryCtrl = TextEditingController();
+  final _licActiveCtrl = TextEditingController();
+  final _licInactiveCtrl = TextEditingController();
+  final _taskCtrl = TextEditingController();
+  final _surveyCtrl = TextEditingController();
+  final _agmActiveCtrl = TextEditingController();
+  final _agmInactiveCtrl = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _fetchUser();
+    _fetchSettings();
+  }
+
+  Future<void> _fetchSettings() async {
+    setState(() => _fetchingSettings = true);
+    try {
+      final res = await ApiService().get('/compliance-settings');
+      if (res.statusCode == 200) {
+        setState(() {
+          _complianceSettings = res.data ?? {};
+          _payPunctualCtrl.text = _complianceSettings['payment_punctual']?.toString() ?? '25';
+          _payHistoryCtrl.text = _complianceSettings['payment_history']?.toString() ?? '15';
+          _licActiveCtrl.text = _complianceSettings['license_active']?.toString() ?? '15';
+          _licInactiveCtrl.text = _complianceSettings['license_inactive']?.toString() ?? '5';
+          _taskCtrl.text = _complianceSettings['task_completion']?.toString() ?? '15';
+          _surveyCtrl.text = _complianceSettings['survey_completion']?.toString() ?? '10';
+          _agmActiveCtrl.text = _complianceSettings['agm_active']?.toString() ?? '10';
+          _agmInactiveCtrl.text = _complianceSettings['agm_inactive']?.toString() ?? '5';
+        });
+      }
+    } catch (_) {}
+    if (mounted) {
+      setState(() => _fetchingSettings = false);
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    setState(() {
+      _savingSettings = true;
+      _settingsMessage = '';
+    });
+    try {
+      final res = await ApiService().putData('compliance-settings', {
+        'payment_punctual': int.tryParse(_payPunctualCtrl.text) ?? 25,
+        'payment_history': int.tryParse(_payHistoryCtrl.text) ?? 15,
+        'license_active': int.tryParse(_licActiveCtrl.text) ?? 15,
+        'license_inactive': int.tryParse(_licInactiveCtrl.text) ?? 5,
+        'task_completion': int.tryParse(_taskCtrl.text) ?? 15,
+        'survey_completion': int.tryParse(_surveyCtrl.text) ?? 10,
+        'agm_active': int.tryParse(_agmActiveCtrl.text) ?? 10,
+        'agm_inactive': int.tryParse(_agmInactiveCtrl.text) ?? 5,
+      });
+      if (res.statusCode == 200) {
+        setState(() {
+          _settingsSuccess = true;
+          _settingsMessage = '✅ Settings updated and scores recalculated.';
+        });
+      } else {
+        setState(() {
+          _settingsSuccess = false;
+          _settingsMessage = '❌ Update failed.';
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _settingsSuccess = false;
+        _settingsMessage = '❌ Network error.';
+      });
+    } finally {
+      setState(() => _savingSettings = false);
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _settingsMessage = '');
+      });
+    }
   }
 
   Future<void> _fetchUser() async {
@@ -208,6 +287,109 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   ),
                 ),
               ),
+
+              // NEW COLUMN ITEM: Compliance Weights Card
+              const SizedBox(height: 20),
+              if (!_fetchingSettings)
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.score, color: primary, size: 24),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Compliance Scoring Weights',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        if (_settingsMessage.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: _settingsSuccess ? const Color(0x1510b981) : const Color(0x15ef4444),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _settingsMessage,
+                              style: TextStyle(
+                                color: _settingsSuccess ? const Color(0xFF10b981) : const Color(0xFFef4444),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        const Text("Payment Points", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(child: _weightField('Punctual', _payPunctualCtrl)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _weightField('History', _payHistoryCtrl)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("License Points", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(child: _weightField('Active', _licActiveCtrl)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _weightField('Inactive', _licInactiveCtrl)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("Tasks & Surveys Points", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(child: _weightField('Tasks', _taskCtrl)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _weightField('Surveys', _surveyCtrl)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("AGM Points", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(child: _weightField('Active', _agmActiveCtrl)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _weightField('Inactive', _agmInactiveCtrl)),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _savingSettings ? null : _saveSettings,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            child: _savingSettings
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text(
+                                    'Save Compliance Weights',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -262,6 +444,29 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
               icon: Icon(show ? Icons.visibility : Icons.visibility_off, color: Colors.grey, size: 20),
               onPressed: toggle,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _weightField(String label, TextEditingController ctrl) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+        ),
+        const SizedBox(height: 4),
+        TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFf08232), width: 2)),
           ),
         ),
       ],

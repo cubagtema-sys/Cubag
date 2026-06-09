@@ -357,7 +357,7 @@ def me():
         with conn.cursor() as cursor:
             try:
                 cursor.execute("""
-                    SELECT id, name, email, phone, company, license_number,
+                    SELECT id, name, email, phone, company, license_number, agency_code,
                            member_type, port_of_operation, status, profile_photo,
                            license_expiry_date, role, compliance_score, star_rating, manual_review_score
                     FROM members WHERE id = %s
@@ -366,14 +366,14 @@ def me():
                 conn.rollback()
                 try:
                     cursor.execute("""
-                        SELECT id, name, email, phone, company, license_number,
+                        SELECT id, name, email, phone, company, license_number, agency_code,
                                member_type, port_of_operation, status, profile_photo, role
                         FROM members WHERE id = %s
                     """, (member_id,))
                 except Exception:
                     conn.rollback()
                     cursor.execute("""
-                        SELECT id, name, email, phone, company, license_number,
+                        SELECT id, name, email, phone, company, license_number, agency_code,
                                member_type, port_of_operation, status, role
                         FROM members WHERE id = %s
                     """, (member_id,))
@@ -635,7 +635,8 @@ def forgot_password():
             user = cursor.fetchone()
             if user:
                 actual_email = user['email']
-                token = str(uuid.uuid4())
+                import secrets
+                token = str(secrets.randbelow(90000000) + 10000000) # 8-digit code
                 # Delete ALL otp entries for this email (PK constraint = one row per email)
                 cursor.execute("DELETE FROM otp_codes WHERE LOWER(email) = LOWER(%s)", (actual_email,))
                 # Insert the password reset token
@@ -708,4 +709,24 @@ def reset_password():
     finally:
         conn.close()
 
-
+@auth_bp.route('/fcm-token', methods=['PUT'])
+@jwt_required()
+def update_fcm_token():
+    member_id = get_jwt_identity()
+    data = request.get_json() or {}
+    token = data.get('fcm_token')
+    
+    if not token:
+        return jsonify({'message': 'FCM token is required'}), 400
+        
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE members SET fcm_token = %s WHERE id = %s", (token, member_id))
+            conn.commit()
+        return jsonify({'message': 'FCM token updated successfully'}), 200
+    except Exception as e:
+        logger.error(f'[update_fcm_token] {e}')
+        return jsonify({'message': 'Failed to update FCM token'}), 500
+    finally:
+        conn.close()

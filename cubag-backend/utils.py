@@ -178,17 +178,29 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         prev_score = prev_row['compliance_score'] if prev_row and prev_row['compliance_score'] is not None else None
         prev_stars = float(prev_row['star_rating']) if prev_row and prev_row['star_rating'] is not None else None
 
-        # 1. Payment Compliance (max 40)
-        # Punctual Dues Payment (no outstanding balance) (25 pts)
+        # Fetch compliance settings
+        cursor.execute("SELECT * FROM compliance_settings LIMIT 1")
+        settings = cursor.fetchone()
+        if not settings:
+            # Fallback to default if table is empty for some reason
+            settings = {
+                'payment_punctual': 25, 'payment_history': 15,
+                'license_active': 15, 'license_inactive': 5,
+                'task_completion': 15, 'survey_completion': 10,
+                'agm_active': 10, 'agm_inactive': 5
+            }
+
+        # 1. Payment Compliance
+        # Punctual Dues Payment (no outstanding balance)
         cursor.execute("""
             SELECT COUNT(*) as count 
             FROM payments 
             WHERE member_id = %s AND status = 'pending' AND due_date < CURRENT_DATE
         """, (member_id,))
         overdue_count = cursor.fetchone()['count']
-        payment_punctual = 25 if overdue_count == 0 else 0
+        payment_punctual = settings['payment_punctual'] if overdue_count == 0 else 0
 
-        # History of on-time payments (15 pts)
+        # History of on-time payments
         cursor.execute("""
             SELECT COUNT(*) as total_paid, 
                    SUM(CASE WHEN paid_at IS NOT NULL AND paid_at::date <= due_date THEN 1 ELSE 0 END) as on_time_paid 
@@ -203,12 +215,12 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         if total_paid == 0:
             payment_history = 0
         else:
-            payment_history = round((on_time_paid / total_paid) * 15)
+            payment_history = round((on_time_paid / total_paid) * settings['payment_history'])
 
         payment_score = payment_punctual + payment_history
 
-        # 2. Task & Document Compliance (max 30)
-        # License Renewal submitted before expiration (15 pts)
+        # 2. Task & Document Compliance
+        # License Renewal submitted before expiration
         cursor.execute("SELECT status, license_expiry_date, manual_review_score FROM members WHERE id = %s", (member_id,))
         member_row = cursor.fetchone()
         if not member_row:
@@ -234,11 +246,11 @@ def calculate_and_update_member_rating(member_id, cursor=None):
             is_expired = expiry_date < today
 
         if status == 'active' and not is_expired:
-            license_score = 15
+            license_score = settings['license_active']
         else:
-            license_score = 5
+            license_score = settings['license_inactive']
 
-        # Compliance tasks completed (15 pts)
+        # Compliance tasks completed
         cursor.execute("""
             SELECT COUNT(*) as total_tasks, 
                    SUM(CASE WHEN done = TRUE THEN 1 ELSE 0 END) as completed_tasks 
@@ -253,12 +265,12 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         if total_tasks == 0:
             task_completion_score = 0
         else:
-            task_completion_score = round((completed_tasks / total_tasks) * 15)
+            task_completion_score = round((completed_tasks / total_tasks) * settings['task_completion'])
 
         task_score = license_score + task_completion_score
 
-        # 3. Activity & Event Engagement (max 20)
-        # Survey completion rate (10 pts)
+        # 3. Activity & Event Engagement
+        # Survey completion rate
         cursor.execute("SELECT COUNT(*) as count FROM surveys")
         total_surveys = cursor.fetchone()['count']
         
@@ -266,13 +278,12 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         responded_surveys = cursor.fetchone()['count']
 
         if total_surveys == 0:
-            survey_score = 10
+            survey_score = settings['survey_completion']
         else:
-            survey_score = round((responded_surveys / total_surveys) * 10)
+            survey_score = round((responded_surveys / total_surveys) * settings['survey_completion'])
 
-        # Active Status Bonus (10 pts) — rewards members with active standing
-        # TODO: Replace with real AGM/event attendance tracking once check-in system is built
-        agm_score = 10 if status == 'active' else 5
+        # Active Status Bonus — rewards members with active standing
+        agm_score = settings['agm_active'] if status == 'active' else settings['agm_inactive']
         engagement_score = survey_score + agm_score
 
         # 4. Admin Review Rating (max 10)

@@ -214,12 +214,22 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   List<dynamic> get _active => _surveys.where((s) {
     if (s['active'] == false) return false;
     if (s['deadline'] == null) return true;
-    return s['deadline'].toString().compareTo(_today()) >= 0;
+    final d = DateTime.tryParse(s['deadline'].toString());
+    if (d == null) return true;
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final deadlineDate = DateTime(d.year, d.month, d.day);
+    return !deadlineDate.isBefore(today);
   }).toList();
 
-  List<dynamic> get _past => _surveys.where((s) =>
-    s['active'] == false || (s['deadline'] != null && s['deadline'].toString().compareTo(_today()) < 0)
-  ).toList();
+  List<dynamic> get _past => _surveys.where((s) {
+    if (s['active'] == false) return true;
+    if (s['deadline'] == null) return false;
+    final d = DateTime.tryParse(s['deadline'].toString());
+    if (d == null) return false;
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final deadlineDate = DateTime(d.year, d.month, d.day);
+    return deadlineDate.isBefore(today);
+  }).toList();
 
   Color _typeColor(String? t) { switch (t?.toLowerCase()) { case 'election': return _kPurple; case 'poll': return _kBlue; default: return _kOrange; } }
   IconData _typeIcon(String? t) { switch (t?.toLowerCase()) { case 'election': return Icons.how_to_vote_outlined; case 'poll': return Icons.bar_chart_outlined; default: return Icons.assignment_outlined; } }

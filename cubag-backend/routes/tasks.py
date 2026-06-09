@@ -218,6 +218,11 @@ def get_all_tasks_admin():
                 sub_id = task.get('submission_id')
                 task['files'] = files_by_submission.get(sub_id, [])
 
+                # Ensure dates are stringified
+                for date_field in ['due_date', 'created_at', 'submitted_at', 'admin_verified_at']:
+                    if hasattr(task.get(date_field), 'isoformat'):
+                        task[date_field] = task[date_field].isoformat()
+
         return jsonify(tasks), 200
     finally:
         conn.close()

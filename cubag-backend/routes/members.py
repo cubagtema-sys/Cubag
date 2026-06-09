@@ -241,10 +241,14 @@ def set_license_expiry(member_id):
                     FROM members WHERE id = %s
                 """, (member_id, member_id, str(current['license_expiry_date']), member_id))
 
-            # ── 4. Set new expiry and log the new period ──────────────────────
+            # ── 4. Set new expiry, update license number, and log the new period ──
+            import datetime
+            year = datetime.datetime.now().year
+            new_license = f"CUBAG-LIC-{year}-{member_id:04d}"
+
             cursor.execute(
-                "UPDATE members SET license_expiry_date = %s WHERE id = %s",
-                (expiry_date, member_id)
+                "UPDATE members SET license_expiry_date = %s, license_number = %s WHERE id = %s",
+                (expiry_date, new_license, member_id)
             )
             cursor.execute("""
                 INSERT INTO license_history

@@ -104,14 +104,14 @@ class PushNotificationService {
       debugPrint('FCM Token: $token');
       if (token != null) {
         ApiService()
-            .postData('/auth/update-fcm-token', {'token': token})
+            .putData('auth/fcm-token', {'fcm_token': token})
             .catchError((e) => debugPrint('Failed to save FCM token: $e'));
       }
 
       // Refresh token when it rotates
       _messaging.onTokenRefresh.listen((newToken) {
         ApiService()
-            .postData('/auth/update-fcm-token', {'token': newToken})
+            .putData('auth/fcm-token', {'fcm_token': newToken})
             .catchError((e) => debugPrint('Failed to refresh FCM token: $e'));
       });
 

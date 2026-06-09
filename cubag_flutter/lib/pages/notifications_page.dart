@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../services/cache_service.dart';
 import '../services/notification_service.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -33,26 +34,24 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _fetch() async {
     setState(() => _loading = true);
     try {
-      final res = await ApiService().get('/announcements');
+      final cachedData = await CacheService().fetchCached('/announcements');
       if (!mounted) return;
-      if (res.statusCode == 200) {
-        final data = ApiService.ensureList(res.data);
-        final list = data.map((a) => {
-          'id': a['id'],
-          'type': a['category']?.toString().toLowerCase() ?? 'announcement',
-          'title': a['title'] ?? '',
-          'message': a['body'] ?? a['content'] ?? '',
-          'time': a['created_at'] != null ? DateTime.tryParse(a['created_at'].toString())?.toLocal().toString().split(' ').first ?? '' : '',
-          'read': a['is_read'] == true,
-        }).toList();
-        
-        setState(() => _notifications = list);
-        
-        // Sync global unread count
-        final unreadCount = list.where((n) => n['read'] != true).length;
-        if (Provider.of<NotificationService>(context, listen: false).unreadCount != unreadCount) {
-          Provider.of<NotificationService>(context, listen: false).fetchUnreadCount();
-        }
+      final data = ApiService.ensureList(cachedData);
+      final list = data.map((a) => {
+        'id': a['id'],
+        'type': a['category']?.toString().toLowerCase() ?? 'announcement',
+        'title': a['title'] ?? '',
+        'message': a['body'] ?? a['content'] ?? '',
+        'time': a['created_at'] != null ? DateTime.tryParse(a['created_at'].toString())?.toLocal().toString().split(' ').first ?? '' : '',
+        'read': a['is_read'] == true,
+      }).toList();
+      
+      setState(() => _notifications = list);
+      
+      // Sync global unread count
+      final unreadCount = list.where((n) => n['read'] != true).length;
+      if (Provider.of<NotificationService>(context, listen: false).unreadCount != unreadCount) {
+        Provider.of<NotificationService>(context, listen: false).fetchUnreadCount();
       }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);

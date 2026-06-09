@@ -57,7 +57,7 @@ class _AppLayoutState extends State<AppLayout> {
     final unreadCount = notificationService.unreadCount;
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 800;
-    final isSmall = size.width < 360;
+    final isSmall = size.width < 600;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -117,8 +117,8 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   Widget _buildNotificationIcon(BuildContext context, String? role, bool isSmall, int unreadCount) {
-    // User requested the notification icon to open the Announcements page
-    final targetRoute = role == 'admin' ? '/admin/announcements' : '/announcements';
+    // Point the notification icon to the notifications page
+    final targetRoute = role == 'admin' ? '/admin/announcements' : '/notifications';
     return Stack(
       alignment: Alignment.center,
       children: [

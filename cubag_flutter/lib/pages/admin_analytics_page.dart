@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
@@ -869,7 +870,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> with SingleTick
 
 }
 
-class _CustomBarChart extends StatefulWidget {
+class _CustomBarChart extends StatelessWidget {
   final List<double> values;
   final List<String> labels;
   final double maxValue;
@@ -883,114 +884,92 @@ class _CustomBarChart extends StatefulWidget {
   });
 
   @override
-  State<_CustomBarChart> createState() => _CustomBarChartState();
-}
-
-class _CustomBarChartState extends State<_CustomBarChart> {
-  int? _selectedIndex;
-
-  @override
   Widget build(BuildContext context) {
+    if (values.isEmpty) return const SizedBox.shrink();
+
     return Container(
       height: 190,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        children: [
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(widget.values.length, (index) {
-                final val = widget.values[index];
-                final pct = widget.maxValue > 0 ? val / widget.maxValue : 0.0;
-                final label = widget.labels[index];
-                final isSelected = _selectedIndex == index;
-
-                return Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedIndex = isSelected ? null : index;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          val >= 1000 ? '₵${(val / 1000).toStringAsFixed(1)}k' : '₵${val.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: isSelected ? 10 : 8,
-                            fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                            color: isSelected ? widget.color : const Color(0xFF475569),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Expanded(
-                          child: FractionallySizedBox(
-                            heightFactor: pct.clamp(0.04, 1.0),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 10),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                  colors: isSelected
-                                      ? [widget.color, widget.color]
-                                      : [widget.color.withValues(alpha: 0.4), widget.color.withValues(alpha: 0.8)],
-                                ),
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                                border: isSelected
-                                    ? Border.all(color: Colors.white, width: 2)
-                                    : null,
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color: widget.color.withValues(alpha: 0.4),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, -2),
-                                        )
-                                      ]
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                            color: isSelected ? widget.color : const Color(0xFF64748b),
-                          ),
-                        ),
-                      ],
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: maxValue * 1.2,
+          barTouchData: BarTouchData(
+            enabled: true,
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                return BarTooltipItem(
+                  '${labels[group.x]}\n',
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                  children: <TextSpan>[
+                    TextSpan(
+                      text: '₵${rod.toY.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
+                  ],
                 );
-              }),
+              },
             ),
           ),
-          if (_selectedIndex != null) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: widget.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                'Selected: ${widget.labels[_selectedIndex!]} - ₵${widget.values[_selectedIndex!].toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: widget.color,
-                ),
+          titlesData: FlTitlesData(
+            show: true,
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (double value, TitleMeta meta) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      labels[value.toInt()],
+                      style: const TextStyle(color: Color(0xFF64748b), fontWeight: FontWeight.bold, fontSize: 9),
+                    ),
+                  );
+                },
+                reservedSize: 28,
               ),
             ),
-          ],
-        ],
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 36,
+                getTitlesWidget: (value, meta) {
+                  if (value == 0) return const SizedBox.shrink();
+                  final valStr = value >= 1000 ? '${(value / 1000).toStringAsFixed(1)}k' : value.toStringAsFixed(0);
+                  return Text('₵$valStr', style: const TextStyle(color: Color(0xFF64748b), fontSize: 9, fontWeight: FontWeight.bold));
+                },
+              ),
+            ),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withValues(alpha: 0.2), strokeWidth: 1, dashArray: [5, 5]),
+          ),
+          borderData: FlBorderData(show: false),
+          barGroups: List.generate(values.length, (index) {
+            return BarChartGroupData(
+              x: index,
+              barRods: [
+                BarChartRodData(
+                  toY: values[index],
+                  gradient: LinearGradient(
+                    colors: [color.withValues(alpha: 0.6), color],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                  width: 14,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                )
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
@@ -1007,66 +986,61 @@ class _CustomRingChart extends StatefulWidget {
 }
 
 class _CustomRingChartState extends State<_CustomRingChart> {
-  String? _selectedKey;
+  int touchedIndex = -1;
 
   @override
   Widget build(BuildContext context) {
     final total = widget.data.values.fold(0.0, (sum, val) => sum + val);
     
-    // Select first non-zero key by default if none selected
-    final activeKey = _selectedKey ?? widget.data.keys.firstWhere((k) => widget.data[k]! > 0, orElse: () => widget.data.keys.first);
-    final activeValue = widget.data[activeKey] ?? 0.0;
-    final activePct = total > 0 ? (activeValue / total * 100).toStringAsFixed(1) : '0';
-    final activeColor = widget.colors[activeKey] ?? Colors.grey;
+    final entries = widget.data.entries.toList();
 
     return Row(
       children: [
         SizedBox(
-          width: 100,
-          height: 100,
+          width: 120,
+          height: 120,
           child: Stack(
             children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _RingPainter(
-                    data: widget.data,
-                    colors: widget.colors,
-                    total: total,
-                    selectedKey: activeKey,
+              PieChart(
+                PieChartData(
+                  pieTouchData: PieTouchData(
+                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                      setState(() {
+                        if (!event.isInterestedForInteractions ||
+                            pieTouchResponse == null ||
+                            pieTouchResponse.touchedSection == null) {
+                          touchedIndex = -1;
+                          return;
+                        }
+                        touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                      });
+                    },
                   ),
+                  borderData: FlBorderData(show: false),
+                  sectionsSpace: 0,
+                  centerSpaceRadius: 40,
+                  sections: total == 0
+                      ? [PieChartSectionData(color: Colors.grey.shade200, value: 1, showTitle: false, radius: 12)]
+                      : List.generate(entries.length, (i) {
+                          final isTouched = i == touchedIndex;
+                          final radius = isTouched ? 18.0 : 12.0;
+                          final color = widget.colors[entries[i].key] ?? Colors.grey;
+                          
+                          return PieChartSectionData(
+                            color: color,
+                            value: entries[i].value,
+                            title: '',
+                            radius: radius,
+                          );
+                        }),
                 ),
               ),
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      activeKey.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade500,
-                        letterSpacing: 0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${activeValue.toInt()}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0f172a),
-                      ),
-                    ),
-                    Text(
-                      '$activePct%',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: activeColor,
-                      ),
-                    ),
+                    const Text('TOTAL', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+                    Text('${total.toInt()}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0f172a))),
                   ],
                 ),
               ),
@@ -1078,52 +1052,25 @@ class _CustomRingChartState extends State<_CustomRingChart> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
-            children: widget.data.entries.map((e) {
+            children: entries.map((e) {
               final color = widget.colors[e.key] ?? Colors.grey;
-              final isSelected = e.key == activeKey;
               final pct = total > 0 ? (e.value / total * 100).toStringAsFixed(1) : '0';
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2.0),
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedKey = e.key;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isSelected ? color.withValues(alpha: 0.08) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: isSelected ? color.withValues(alpha: 0.3) : Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${e.key.toUpperCase()}: ${e.value.toInt()} ($pct%)',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '${e.key.toUpperCase()}: ${e.value.toInt()} ($pct%)',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                              color: isSelected ? const Color(0xFF0f172a) : const Color(0xFF475569),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               );
@@ -1132,62 +1079,5 @@ class _CustomRingChartState extends State<_CustomRingChart> {
         ),
       ],
     );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  final Map<String, double> data;
-  final Map<String, Color> colors;
-  final double total;
-  final String? selectedKey;
-
-  _RingPainter({
-    required this.data,
-    required this.colors,
-    required this.total,
-    this.selectedKey,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    const strokeWidthNormal = 10.0;
-    const strokeWidthSelected = 14.0;
-
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    if (total == 0) {
-      paint.color = Colors.grey.shade100;
-      paint.strokeWidth = strokeWidthNormal;
-      canvas.drawCircle(center, radius - strokeWidthSelected / 2, paint);
-      return;
-    }
-
-    double startAngle = -3.14159 / 2;
-    data.forEach((key, val) {
-      if (val == 0) return;
-      final sweepAngle = (val / total) * 3.14159 * 2;
-      final isSelected = key == selectedKey;
-      
-      paint.color = isSelected ? (colors[key] ?? Colors.grey) : (colors[key] ?? Colors.grey).withValues(alpha: 0.4);
-      paint.strokeWidth = isSelected ? strokeWidthSelected : strokeWidthNormal;
-      
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius - strokeWidthSelected / 2),
-        startAngle,
-        sweepAngle,
-        false,
-        paint,
-      );
-      startAngle += sweepAngle;
-    });
-  }
-
-  @override
-  bool shouldRepaint(covariant _RingPainter oldDelegate) {
-    return oldDelegate.selectedKey != selectedKey || oldDelegate.total != total;
   }
 }

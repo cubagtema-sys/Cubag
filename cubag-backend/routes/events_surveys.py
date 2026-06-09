@@ -133,6 +133,13 @@ def get_all_events_admin():
             cursor.execute("SELECT COUNT(*) as total FROM events")
             total = cursor.fetchone().get('total', 0)
 
+            # Ensure dates are stringified
+            for ev in data:
+                if hasattr(ev.get('date'), 'isoformat'):
+                    ev['date'] = ev['date'].isoformat()
+                if hasattr(ev.get('created_at'), 'isoformat'):
+                    ev['created_at'] = ev['created_at'].isoformat()
+
         return jsonify({'items': data, 'page': page, 'per_page': per_page, 'total': total}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -270,13 +277,18 @@ def get_all_surveys_admin():
             cursor.execute("SELECT COUNT(*) as total FROM surveys")
             total = cursor.fetchone().get('total', 0)
 
-            # Parse options JSON string into object
+            # Parse options JSON string into object and ensure date serialization
             for s in data:
                 if isinstance(s.get('options'), str):
                     try:
                         s['options'] = json.loads(s['options'])
                     except:
                         s['options'] = []
+
+                if hasattr(s.get('created_at'), 'isoformat'):
+                    s['created_at'] = s['created_at'].isoformat()
+                if hasattr(s.get('deadline'), 'isoformat'):
+                    s['deadline'] = s['deadline'].isoformat()
 
         return jsonify({'items': data, 'page': page, 'per_page': per_page, 'total': total}), 200
     except Exception as e:

@@ -415,6 +415,27 @@ def init_db():
                 )
             """)
 
+            # Compliance Settings
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS compliance_settings (
+                    id SERIAL PRIMARY KEY,
+                    payment_punctual INT DEFAULT 25,
+                    payment_history INT DEFAULT 15,
+                    license_active INT DEFAULT 15,
+                    license_inactive INT DEFAULT 5,
+                    task_completion INT DEFAULT 15,
+                    survey_completion INT DEFAULT 10,
+                    agm_active INT DEFAULT 10,
+                    agm_inactive INT DEFAULT 5,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Insert default if empty
+            cursor.execute("SELECT COUNT(*) FROM compliance_settings")
+            if cursor.fetchone()['count'] == 0:
+                cursor.execute("INSERT INTO compliance_settings DEFAULT VALUES")
+
             # ── Performance Indexes ──────────────────────────────────────────
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_members_status ON members(status)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_members_role ON members(role)")

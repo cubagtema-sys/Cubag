@@ -110,7 +110,13 @@ class _NetworkingPageState extends State<NetworkingPage> {
                   decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)]),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
-                      CircleAvatar(radius: 22, backgroundColor: color.withValues(alpha: 0.1), child: Text(initials, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14))),
+                      Hero(
+                        tag: 'avatar_${m['id']}',
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: CircleAvatar(radius: 22, backgroundColor: color.withValues(alpha: 0.1), child: Text(initials, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14))),
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(m['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
@@ -167,7 +173,13 @@ class _NetworkingPageState extends State<NetworkingPage> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        CircleAvatar(radius: 30, backgroundColor: color.withValues(alpha: 0.1), child: Text(initials, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 20))),
+        Hero(
+          tag: 'avatar_${m['id']}',
+          child: Material(
+            type: MaterialType.transparency,
+            child: CircleAvatar(radius: 30, backgroundColor: color.withValues(alpha: 0.1), child: Text(initials, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 20))),
+          ),
+        ),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(m['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
@@ -175,16 +187,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
         ])),
       ]),
       const SizedBox(height: 16),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: isActive ? const Color(0x1910b981) : const Color(0x19ef4444), borderRadius: BorderRadius.circular(20)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(isActive ? Icons.verified : Icons.cancel, color: isActive ? const Color(0xFF10b981) : const Color(0xFFef4444), size: 16),
-          const SizedBox(width: 4),
-          Text((m['status']?.toString() ?? '').toUpperCase(), style: TextStyle(color: isActive ? const Color(0xFF10b981) : const Color(0xFFef4444), fontWeight: FontWeight.bold, fontSize: 12)),
-        ]),
-      ),
-      const SizedBox(height: 16),
+
 
       // Info rows
       ...([
@@ -211,11 +214,16 @@ class _NetworkingPageState extends State<NetworkingPage> {
       Row(children: [
         Expanded(flex: 2, child: ElevatedButton.icon(
           onPressed: () {
-            final id = m['id'];
-            final name = Uri.encodeComponent(m['name']?.toString() ?? '');
-            final company = Uri.encodeComponent(m['company']?.toString() ?? '');
+            final id = m['id']?.toString() ?? '';
+            final name = m['name']?.toString() ?? '';
+            final company = m['company']?.toString() ?? '';
+            final uri = Uri(path: '/messaging', queryParameters: {
+              'id': id,
+              'name': name,
+              'company': company,
+            });
+            context.go(uri.toString());
             setState(() => _selected = null);
-            context.go('/messaging?id=$id&name=$name&company=$company');
           },
           style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 46)),
           icon: const Icon(Icons.chat, color: Colors.white, size: 18),
@@ -229,8 +237,6 @@ class _NetworkingPageState extends State<NetworkingPage> {
           label: const Text('Email'),
         )),
       ]),
-      const SizedBox(height: 8),
-      SizedBox(width: double.infinity, child: TextButton(onPressed: () => setState(() => _selected = null), child: const Text('Close', style: TextStyle(color: Colors.grey)))),
     ]);
   }
 }

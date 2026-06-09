@@ -529,7 +529,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ]),
     ),
     _field('License # (Optional)', _licCtrl, hint: 'LIC/...', icon: Icons.assignment_outlined),
-    _field('Agency Code (Optional)', _agcCtrl, hint: 'CUB-...', icon: Icons.code_outlined),
+    _field('Member ID (Optional)', _agcCtrl, hint: 'CUB-...', icon: Icons.badge_outlined),
     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Primary Port of Operation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
       const SizedBox(height: 10),

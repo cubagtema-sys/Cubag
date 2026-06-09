@@ -41,26 +41,28 @@ class _MessagingPageState extends State<MessagingPage> {
   @override
   void didUpdateWidget(MessagingPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialUserId != oldWidget.initialUserId) {
-      _checkInitialChat();
+    if (widget.initialUserId != null && widget.initialUserId!.isNotEmpty) {
+      if (widget.initialUserId != oldWidget.initialUserId || _activeChat?['id']?.toString() != widget.initialUserId) {
+        _checkInitialChat();
+      }
     }
   }
 
   void _checkInitialChat() {
-    if (widget.initialUserId != null && mounted) {
+    if (widget.initialUserId != null && widget.initialUserId!.isNotEmpty && mounted) {
       // Find existing conversation or create a temporary one for the UI
-      final existing = _conversations.cast<Map<String, dynamic>?>().firstWhere(
-        (c) => c?['id']?.toString() == widget.initialUserId.toString(),
+      final existing = _conversations.firstWhere(
+        (c) => (c as Map?)?['id']?.toString() == widget.initialUserId.toString(),
         orElse: () => null,
       );
 
       if (existing != null) {
-        _openChat(Map<String, dynamic>.from(existing));
-      } else if (widget.initialUserName != null) {
-        // If no existing conversation, we can still start one if we have the name
+        _openChat(Map<String, dynamic>.from(existing as Map));
+      } else {
+        // If no existing conversation, we start one with whatever data we have
         _openChat({
           'id': widget.initialUserId,
-          'name': widget.initialUserName,
+          'name': widget.initialUserName ?? 'CUBAG Member',
           'company': widget.initialUserCompany ?? 'CUBAG Member',
         });
       }
