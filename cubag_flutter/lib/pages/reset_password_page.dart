@@ -163,20 +163,22 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       Align(
-        alignment: isMobile ? Alignment.centerLeft : Alignment.centerLeft,
+        alignment: Alignment.center,
         child: Column(
-          crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const AppLogo(size: 56, borderRadius: 12, showShadow: true),
             const SizedBox(height: 16),
             const Text(
               'Set New Password',
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0f172a), letterSpacing: -0.5),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
             Text(
               'Choose a new, secure password for your account.',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 14, height: 1.3),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

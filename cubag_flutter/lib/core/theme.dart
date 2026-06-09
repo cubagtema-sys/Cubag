@@ -30,10 +30,11 @@ class AppTheme {
       useMaterial3: true,
       visualDensity: VisualDensity.adaptivePlatformDensity,
       textTheme: GoogleFonts.interTextTheme().copyWith(
-        bodyMedium: GoogleFonts.inter(color: textLight, fontSize: 14),
-        headlineLarge: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.bold, fontSize: 28),
-        headlineMedium: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.bold, fontSize: 20),
-        titleLarge: GoogleFonts.inter(color: textHLight, fontWeight: FontWeight.bold, fontSize: 16),
+        headlineLarge: GoogleFonts.inter(color: textHLight, fontSize: 20, fontWeight: FontWeight.w600), // Header
+        headlineMedium: GoogleFonts.inter(color: textHLight, fontSize: 20, fontWeight: FontWeight.w600), // Amounts
+        titleLarge: GoogleFonts.inter(color: textHLight, fontSize: 18, fontWeight: FontWeight.w600), // Card titles
+        bodyMedium: GoogleFonts.inter(color: textLight, fontSize: 14, fontWeight: FontWeight.w400), // Body text
+        labelSmall: GoogleFonts.inter(color: textLight, fontSize: 12, fontWeight: FontWeight.w500), // Bottom navigation
       ),
       colorScheme: const ColorScheme.light(
         primary: accentLight,
@@ -87,9 +88,11 @@ class AppTheme {
       primaryColor: accentDark,
       scaffoldBackgroundColor: bgDark,
       textTheme: GoogleFonts.interTextTheme().copyWith(
-        bodyMedium: GoogleFonts.inter(color: textDark, fontSize: 14),
-        headlineLarge: GoogleFonts.inter(color: textHDark, fontWeight: FontWeight.w500),
-        headlineMedium: GoogleFonts.inter(color: textHDark, fontWeight: FontWeight.w500),
+        headlineLarge: GoogleFonts.inter(color: textHDark, fontSize: 20, fontWeight: FontWeight.w600), // Header
+        headlineMedium: GoogleFonts.inter(color: textHDark, fontSize: 20, fontWeight: FontWeight.w600), // Amounts
+        titleLarge: GoogleFonts.inter(color: textHDark, fontSize: 18, fontWeight: FontWeight.w600), // Card titles
+        bodyMedium: GoogleFonts.inter(color: textDark, fontSize: 14, fontWeight: FontWeight.w400), // Body text
+        labelSmall: GoogleFonts.inter(color: textDark, fontSize: 12, fontWeight: FontWeight.w500), // Bottom navigation
       ),
       colorScheme: const ColorScheme.dark(
         primary: accentDark,

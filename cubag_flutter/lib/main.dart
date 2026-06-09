@@ -79,6 +79,17 @@ class CubagApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        // Lock text scale factor to 1.0 across all devices (Mobile/Web)
+        // so the layout matches the web build exactly, ignoring Android
+        // system-level "Large Text" accessibility settings that break UI.
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.0),
+          ),
+          child: child!,
+        );
+      },
     );
   }
 }
