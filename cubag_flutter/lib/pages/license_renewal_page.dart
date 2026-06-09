@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';  // F-39 fix
+import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../services/cache_service.dart';
 import '../services/api_service.dart';  // F-39 fix
@@ -313,20 +314,26 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
   void _showCertificate(Map<String, dynamic> rec, int yr) {
     final primary = Theme.of(context).primaryColor;
     final user = _memberInfo ?? {};
+    final licenseNum = user['license_number']?.toString() ?? user['licenseNumber']?.toString() ?? rec['license_number']?.toString() ?? 'PENDING';
+    
     showDialog(context: context, builder: (ctx) => Dialog(
-      insetPadding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)), // Official sharp edges
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)), // Official sharp edges
       child: Container(
         width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 800),
         decoration: BoxDecoration(
-          color: const Color(0xFFfcfcfc),
-          border: Border.all(color: primary, width: 8),
+          color: const Color(0xFFfafaf9), // Off-white paper color
+          border: Border.all(color: primary, width: 12),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 15, offset: const Offset(0, 10)),
+          ]
         ),
         child: Container(
-          margin: const EdgeInsets.all(6),
-          padding: const EdgeInsets.all(24),
+          margin: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFcbd5e1), width: 1),
+            border: Border.all(color: const Color(0xFFd4af37), width: 3), // Inner gold border
           ),
           child: Stack(
             children: [
@@ -338,9 +345,9 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
                     child: Text(
                       'CUBAG',
                       style: TextStyle(
-                        fontSize: 100,
+                        fontSize: 120,
                         fontWeight: FontWeight.w900,
-                        color: primary.withAlpha(10), // ~4% opacity
+                        color: primary.withValues(alpha: 0.04),
                       ),
                     ),
                   ),
@@ -358,8 +365,9 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
                         Expanded(
                           child: Column(
                             children: [
-                              Text('CUBAG', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 36, color: primary, letterSpacing: 2)),
-                              const Text('CUSTOMS BROKERS ASSOCIATION OF GHANA', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Color(0xFF64748b), letterSpacing: 0.5)),
+                              Text('CUBAG', style: GoogleFonts.cinzel(fontWeight: FontWeight.w900, fontSize: 42, color: primary, letterSpacing: 4)),
+                              const SizedBox(height: 4),
+                              Text('CUSTOMS BROKERS ASSOCIATION OF GHANA', textAlign: TextAlign.center, style: GoogleFonts.montserrat(fontSize: 10, color: const Color(0xFF64748b), letterSpacing: 1.5, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
@@ -371,63 +379,97 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    const Text('CERTIFICATE OF MEMBERSHIP', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0f172a), letterSpacing: 1)),
-                    const SizedBox(height: 24),
-                    const Text('This is to officially certify that', style: TextStyle(fontSize: 14, color: Color(0xFF475569))),
-                    const SizedBox(height: 12),
-                    Text(user['company']?.toString() ?? rec['company']?.toString() ?? 'Company Name', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: Color(0xFF1e293b))),
-                    const SizedBox(height: 6),
-                    Text('represented by ${user['name']?.toString() ?? rec['name']?.toString() ?? 'Member Name'}', style: const TextStyle(color: Color(0xFF64748b), fontStyle: FontStyle.italic, fontSize: 14)),
-                    const SizedBox(height: 16),
-                    Text('is a registered and active ${user['member_type']?.toString() ?? rec['member_type']?.toString() ?? 'Member'} of CUBAG', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF0f172a))),
-                    const SizedBox(height: 6),
-                    Text('Authorized Port of Operation: ${user['port_of_operation']?.toString() ?? rec['port_of_operation']?.toString() ?? 'All Ports'}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
-                    const SizedBox(height: 24),
-                    Text('License Number: ${rec['license_number']?.toString() ?? 'PENDING'}   •   Valid Until: 31 Dec $yr', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
                     const SizedBox(height: 40),
+                    Text('CERTIFICATE OF LICENSURE', textAlign: TextAlign.center, style: GoogleFonts.cinzel(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF0f172a), letterSpacing: 2)),
+                    const SizedBox(height: 32),
+                    Text('This is to officially certify that', style: GoogleFonts.lora(fontSize: 16, fontStyle: FontStyle.italic, color: const Color(0xFF475569))),
+                    const SizedBox(height: 16),
+                    Text(user['company']?.toString() ?? rec['company']?.toString() ?? 'Company Name', textAlign: TextAlign.center, style: GoogleFonts.montserrat(fontWeight: FontWeight.w900, fontSize: 24, color: const Color(0xFF1e293b))),
+                    const SizedBox(height: 8),
+                    Text('represented by ${user['name']?.toString() ?? rec['name']?.toString() ?? 'Member Name'}', style: GoogleFonts.lora(color: const Color(0xFF64748b), fontStyle: FontStyle.italic, fontSize: 16)),
+                    const SizedBox(height: 24),
+                    Text('is a registered and active ${user['member_type']?.toString() ?? rec['member_type']?.toString() ?? 'Member'} of CUBAG', textAlign: TextAlign.center, style: GoogleFonts.lora(fontSize: 16, color: const Color(0xFF0f172a))),
+                    const SizedBox(height: 8),
+                    Text('Authorized Port of Operation: ${user['port_of_operation']?.toString() ?? rec['port_of_operation']?.toString() ?? 'All Ports'}', textAlign: TextAlign.center, style: GoogleFonts.lora(fontSize: 14, color: const Color(0xFF475569))),
+                    const SizedBox(height: 32),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFf8fafc),
+                        border: Border.all(color: const Color(0xFFe2e8f0)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('License Number:', style: GoogleFonts.montserrat(fontSize: 10, color: const Color(0xFF64748b), fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              Text('Valid Until:', style: GoogleFonts.montserrat(fontSize: 10, color: const Color(0xFF64748b), fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(licenseNum, style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF0f172a), letterSpacing: 1)),
+                              const SizedBox(height: 4),
+                              Text('31 Dec $yr', style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF0f172a), letterSpacing: 1)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 48),
                     // Signatures and Seal
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        // President Signature
                         Column(
                           children: [
-                            Container(width: 70, height: 1, color: Colors.black87),
+                            Text('A. Mensah', style: GoogleFonts.dancingScript(fontSize: 28, color: const Color(0xFF1e3a8a), fontWeight: FontWeight.w700)),
+                            Container(width: 100, height: 1, color: Colors.black87),
                             const SizedBox(height: 6),
-                            const Text('President', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                            Text('President', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                           ],
                         ),
                         // Official Gold Seal
                         Stack(
                           alignment: Alignment.center,
                           children: [
-                            const Icon(Icons.brightness_7, size: 70, color: Color(0xFFd4af37)),
+                            const Icon(Icons.brightness_7, size: 80, color: Color(0xFFd4af37)),
                             Container(
-                              width: 54, height: 54,
-                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1)),
+                              width: 62, height: 62,
+                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1.5)),
                             ),
                             Container(
-                              width: 46, height: 46,
-                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1)),
+                              width: 52, height: 52,
+                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1.5)),
                             ),
-                            const Column(
+                            Column(
                               children: [
-                                Text('OFFICIAL', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                                Text('SEAL', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                Text('OFFICIAL', style: GoogleFonts.cinzel(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                Text('SEAL', style: GoogleFonts.cinzel(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ],
                         ),
+                        // Secretary Signature
                         Column(
                           children: [
-                            Container(width: 70, height: 1, color: Colors.black87),
+                            Text('K. Osei', style: GoogleFonts.dancingScript(fontSize: 28, color: const Color(0xFF1e3a8a), fontWeight: FontWeight.w700)),
+                            Container(width: 100, height: 1, color: Colors.black87),
                             const SizedBox(height: 6),
-                            const Text('Secretary General', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                            Text('Secretary General', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                           ],
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
