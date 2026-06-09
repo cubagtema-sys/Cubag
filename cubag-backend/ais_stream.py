@@ -116,7 +116,7 @@ class AISStreamManager:
             logger.debug(f"[AIS] Failed to parse WS message: {e}")
 
     def _on_error(self, ws, error):
-        logger.error(f"[AIS] WebSocket Error: {error}")
+        logger.warning(f"[AIS] WebSocket interrupted ({error}). Auto-reconnecting...")
 
     def _on_close(self, ws, code, msg):
         logger.info(f"[AIS] WebSocket Closed: {msg}")
