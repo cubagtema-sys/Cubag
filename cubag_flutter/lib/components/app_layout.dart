@@ -182,8 +182,8 @@ class _AppLayoutState extends State<AppLayout> {
       offset: const Offset(0, 48),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       itemBuilder: (context) => [
-        PopupMenuItem(child: const Row(children: [Icon(Icons.person_outline, size: 20), SizedBox(width: 12), Text('My Profile', style: TextStyle(fontWeight: FontWeight.w600))]), onTap: () => context.go('/profile')),
-        PopupMenuItem(child: const Row(children: [Icon(Icons.settings_outlined, size: 20), SizedBox(width: 12), Text('Settings', style: TextStyle(fontWeight: FontWeight.w600))]), onTap: () => context.go(authService.userRole == 'admin' ? '/admin/settings' : '/settings')),
+        PopupMenuItem(child: const Row(children: [Icon(Icons.person_outline, size: 20, color: Color(0xFF1e293b)), SizedBox(width: 12), Text('My Profile', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1e293b)))]), onTap: () => context.go('/profile')),
+        PopupMenuItem(child: const Row(children: [Icon(Icons.settings_outlined, size: 20, color: Color(0xFF1e293b)), SizedBox(width: 12), Text('Settings', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1e293b)))]), onTap: () => context.go(authService.userRole == 'admin' ? '/admin/settings' : '/settings')),
         const PopupMenuDivider(),
         PopupMenuItem(
           child: const Row(children: [Icon(Icons.logout_rounded, size: 20, color: Color(0xFFef4444)), SizedBox(width: 12), Text('Sign Out', style: TextStyle(color: Color(0xFFef4444), fontWeight: FontWeight.bold))]),
@@ -247,12 +247,12 @@ class _AppLayoutState extends State<AppLayout> {
           if (index == 0) context.go('/admin/dashboard');
           if (index == 1) context.go('/admin/members');
           if (index == 2) context.go('/admin/payments');
-          if (index == 3) _showMobileMenu(context, role, currentRoute);
+          if (index == 3) context.go('/menu');
         } else {
           if (index == 0) context.go('/dashboard');
           if (index == 1) context.go('/networking');
           if (index == 2) context.go('/payments');
-          if (index == 3) _showMobileMenu(context, role, currentRoute);
+          if (index == 3) context.go('/menu');
         }
       },
       items: const [
@@ -264,30 +264,6 @@ class _AppLayoutState extends State<AppLayout> {
     );
   }
 
-  void _showMobileMenu(BuildContext context, String? role, String currentRoute) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (_, scrollController) => Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
-            const SizedBox(height: 16),
-            const Text('Menu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            Expanded(child: _buildNavItems(context, role, controller: scrollController)),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildSidebar(BuildContext context, String? role) {
     final primary = Theme.of(context).primaryColor;

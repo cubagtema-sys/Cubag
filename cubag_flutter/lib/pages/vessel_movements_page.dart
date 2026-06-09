@@ -411,20 +411,21 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
                                 'MMSI: ${activeVessel['mmsi']} · IMO: ${activeVessel['imo'] ?? 'N/A'}',
                                 style: const TextStyle(color: Colors.grey, fontSize: 12),
                               ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10b981).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  activeVessel['status']?.toString().toUpperCase() ?? 'UNDERWAY',
+                                  style: const TextStyle(color: Color(0xFF10b981), fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
+                              ),
                             ],
                           ),
                         ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10b981).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          activeVessel['status']?.toString().toUpperCase() ?? 'UNDERWAY',
-                          style: const TextStyle(color: Color(0xFF10b981), fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
                       ),
                     ],
                   ),

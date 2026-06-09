@@ -78,7 +78,7 @@ def get_messages(other_id):
             for m in msgs:
                 formatted.append({
                     'id': m['id'],
-                    'from': 'me' if m['sender_id'] == user_id else 'them',
+                    'from': 'me' if str(m['sender_id']) == str(user_id) else 'them',
                     'text': m['message'],
                     'time': m['created_at'].strftime('%b %d, %I:%M %p')
                 })

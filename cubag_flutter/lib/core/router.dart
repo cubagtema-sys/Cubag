@@ -33,6 +33,7 @@ import '../pages/login_page.dart';
 import '../pages/member_detail_page.dart';
 import '../pages/messaging_page.dart';
 import '../pages/networking_page.dart';
+import '../pages/mobile_menu_page.dart';
 import '../pages/notifications_page.dart';
 import '../pages/otp_verification_page.dart';
 import '../pages/payment_history_page.dart';
@@ -134,6 +135,7 @@ final GoRouter appRouter = GoRouter(
         ),
         GoRoute(path: '/networking',        builder: (c, s) => const NetworkingPage()),
         GoRoute(path: '/notifications',     builder: (c, s) => const NotificationsPage()),
+        GoRoute(path: '/menu',              builder: (c, s) => const MobileMenuPage()),
         GoRoute(path: '/payment-history',   builder: (c, s) => const PaymentHistoryPage()),
         GoRoute(path: '/payments',          builder: (c, s) => const PaymentsPage()),
         GoRoute(path: '/profile',           builder: (c, s) => const ProfilePage()),
