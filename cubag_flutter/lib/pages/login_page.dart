@@ -111,10 +111,10 @@ class _LoginPageState extends State<LoginPage> {
               consent = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Enable Biometric Login?'),
-                  content: const Text('Would you like to use fingerprint or face recognition next time?'),
+                  title: const Text('Enable Biometric Login?', style: TextStyle(color: Colors.grey)),
+                  content: const Text('Would you like to use fingerprint or face recognition next time?', style: TextStyle(color: Colors.grey)),
                   actions: [
-                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Not Now')),
+                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Not Now', style: TextStyle(color: Colors.grey))),
                     ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), style: ElevatedButton.styleFrom(backgroundColor: _kOrange), child: const Text('Enable', style: TextStyle(color: Colors.white))),
                   ],
                 ),

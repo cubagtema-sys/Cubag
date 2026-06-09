@@ -130,7 +130,10 @@ class _NetworkingPageState extends State<NetworkingPage> {
                       Row(children: [const Icon(Icons.business, size: 14, color: Colors.grey), const SizedBox(width: 4), Expanded(child: Text(m['company']?.toString() ?? 'Independent', style: const TextStyle(fontSize: 12, color: Colors.grey), overflow: TextOverflow.ellipsis))]),
                       const SizedBox(height: 16),
                       SizedBox(width: double.infinity, child: ElevatedButton(
-                        onPressed: () => setState(() => _selected = Map<String, dynamic>.from(m)),
+                        onPressed: () {
+                          setState(() => _selected = Map<String, dynamic>.from(m));
+                          _showMemberDetails(context, m, primary);
+                        },
                         style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(vertical: 8)),
                         child: const Text('View', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       )),
@@ -141,32 +144,44 @@ class _NetworkingPageState extends State<NetworkingPage> {
             ),
         ]),
 
-        // Member Detail Bottom Sheet
-        if (_selected != null)
-          Positioned.fill(child: GestureDetector(
-            onTap: () => setState(() => _selected = null),
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.6),
-              alignment: Alignment.bottomCenter,
-              child: GestureDetector(
-                onTap: () {},
-                child: Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(maxWidth: 520, maxHeight: 600),
-                  decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 40, height: 4, margin: const EdgeInsets.only(top: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-                    Expanded(child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: _buildDetailSheet(primary),
-                    )),
-                  ]),
-                ),
-              ),
-            ),
-          )),
       ]),
     );
+  }
+
+  void _showMemberDetails(BuildContext context, Map<String, dynamic> m, Color primary) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        width: double.infinity,
+        constraints: BoxConstraints(
+          maxWidth: 600,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4, margin: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: _buildDetailSheet(primary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(() {
+      if (mounted) setState(() => _selected = null);
+    });
   }
 
   Widget _buildDetailSheet(Color primary) {

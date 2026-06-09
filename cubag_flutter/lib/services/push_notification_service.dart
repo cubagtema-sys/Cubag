@@ -51,12 +51,14 @@ class PushNotificationService {
           ?.createNotificationChannel(_channel);
 
       // ── Request FCM permissions ─────────────────────────────────────────────
-      final settings = await _messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      debugPrint('FCM permission: ${settings.authorizationStatus}');
+      final currentSettings = await _messaging.getNotificationSettings();
+      if (currentSettings.authorizationStatus == AuthorizationStatus.notDetermined) {
+         // Do not request permission yet, let the UI handle the soft prompt!
+         debugPrint('FCM permission not determined yet, skipping native prompt.');
+      } else {
+         final settings = await _messaging.requestPermission(alert: true, badge: true, sound: true);
+         debugPrint('FCM permission: ${settings.authorizationStatus}');
+      }
 
       // ── Background handler ──────────────────────────────────────────────────
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
