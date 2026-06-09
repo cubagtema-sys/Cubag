@@ -194,13 +194,20 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   Widget _buildDesktopHeader(BuildContext context, AuthService authService, int unreadCount) {
+    final isAdmin = authService.userRole == 'admin' || authService.userRole == 'sub_admin';
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFf1f5f9)))),
       child: Row(
         children: [
-          Row(children: [const AppLogo(size: 32, borderRadius: 8, showShadow: false), const SizedBox(width: 12), Text(widget.title, style: const TextStyle(color: Color(0xFF0f172a), fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5))]),
+          Row(children: [
+            if (!isAdmin) ...[
+              const AppLogo(size: 32, borderRadius: 8, showShadow: false), 
+              const SizedBox(width: 12),
+            ],
+            Text(widget.title, style: const TextStyle(color: Color(0xFF0f172a), fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5))
+          ]),
           const Spacer(),
           if (!widget.hideSearch)
             IconButton(

@@ -247,15 +247,6 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
     return AppLayout(
       title: 'Surveys & Elections',
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: _kOrange.withAlpha(20), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.how_to_vote_rounded, color: _kOrange, size: 22)),
-          const SizedBox(width: 12),
-          const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Surveys & Elections', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0f172a))),
-            Text('Create polls, elections, and surveys for your members', style: TextStyle(fontSize: 12, color: Color(0xFF64748b))),
-          ]),
-        ]),
-        const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(color: const Color(0xFFf1f5f9), borderRadius: BorderRadius.circular(14)),
