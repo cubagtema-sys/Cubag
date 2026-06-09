@@ -31,42 +31,41 @@ class LandingPage extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Logo
-                    const AppLogo(size: 80, borderRadius: 20, showShadow: true),
-                    const SizedBox(height: 20),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'CUBAG',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isMobile ? 32 : 42,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -1.5,
-                        ),
+                    // Logo and Title Section
+                    const AppLogo(size: 84, borderRadius: 22, showShadow: true),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'CUBAG',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.5,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 8),
+                    const Text(
                       'Enterprise Mobility Platform',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white70,
-                        fontSize: isMobile ? 13 : 15,
-                        letterSpacing: 0.3,
+                        fontSize: 15,
+                        letterSpacing: 0.5,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 48),
 
-                    // 4 Feature Cards
+                    // Feature Grid with standardized alignment
                     GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: isMobile ? 0.9 : 1.5,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.1,
                       children: const [
                         _FeatureCard(icon: Icons.local_shipping_outlined, label: 'Live Logistics', description: 'Track vessels\n& cargo'),
                         _FeatureCard(icon: Icons.payments_outlined, label: 'Payment', description: 'Dues & license\nrenewal'),
@@ -74,45 +73,47 @@ class LandingPage extends StatelessWidget {
                         _FeatureCard(icon: Icons.group_outlined, label: 'Networking', description: 'Connect with\nbrokers'),
                       ],
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 48),
 
-                    // Get Started button
+                    // Action Buttons - Large, bold, and aligned
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
+                      height: 56,
                       child: ElevatedButton(
                         onPressed: () => context.go('/register'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: _kOrange,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
-                        child: const Text('Get Started', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: const Text('Get Started', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       ),
                     ),
-                    const SizedBox(height: 14),
-
-                    // Login to Account button
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
+                      height: 56,
                       child: OutlinedButton(
                         onPressed: () => context.go('/login'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white54, width: 1.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          side: const BorderSide(color: Colors.white54, width: 2.0),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
-                        child: const Text('Login to Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        child: const Text('Login to Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 32),
 
-                    // Footer
-                    Text(
-                      '© ${DateTime.now().year} Customs Brokers Association of Ghana',
-                      style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    // Centered Footer
+                    const Opacity(
+                      opacity: 0.5,
+                      child: Text(
+                        '© 2024 Customs Brokers Association of Ghana',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ],
                 ),
@@ -139,40 +140,27 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(20),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withAlpha(30)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(25),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-          const SizedBox(height: 8),
+          Icon(icon, color: Colors.white, size: 24),
+          const SizedBox(height: 12),
           Text(
             label, 
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), 
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
             textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             description, 
-            style: TextStyle(color: Colors.white.withAlpha(150), fontSize: 10, height: 1.2), 
+            style: TextStyle(color: Colors.white.withAlpha(160), fontSize: 10, height: 1.3),
             textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import '../components/app_layout.dart';
+import '../components/skeleton_loader.dart';
 import '../services/api_service.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -26,7 +27,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _loading = true);
+    // If we already have data, don't show the full skeleton loader
+    if (_tasks.isEmpty) setState(() => _loading = true);
 
     // 1. Get user data from local storage (Instant)
     final prefs = await SharedPreferences.getInstance();
@@ -98,13 +100,16 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return AppLayout(
       title: 'Dashboard',
-      child: _loading
-          ? const Center(child: CircularProgressIndicator())
+      child: _loading && _tasks.isEmpty
+          ? const DashboardSkeleton()
           : RefreshIndicator(
               onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 400),
+                opacity: _loading ? 0.6 : 1.0,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Welcome Banner
@@ -282,6 +287,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
             ),
+          ),
     );
   }
 
