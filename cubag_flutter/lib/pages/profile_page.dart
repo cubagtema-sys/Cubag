@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../components/app_layout.dart';
 import '../components/trend_line.dart';
 import '../services/api_service.dart';
@@ -156,9 +157,13 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   String get _initials {
-    final name = _user['name']?.toString() ?? '';
-    if (name.isEmpty) return '—';
-    return name.split(' ').map((n) => n.isEmpty ? '' : n[0]).join('').toUpperCase().substring(0, name.split(' ').length.clamp(0, 2));
+    final name = _user['name']?.toString().trim() ?? '';
+    if (name.isEmpty) return '??';
+    final parts = name.split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '??';
+
+    final initials = parts.map((n) => n[0]).join('').toUpperCase();
+    return initials.length > 2 ? initials.substring(0, 2) : initials;
   }
 
   String get _uniqueMemberId {
@@ -214,10 +219,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         backgroundColor: Colors.white,
                         child: _user['profile_photo'] != null && _user['profile_photo'].toString().isNotEmpty
                           ? ClipOval(
-                              child: Image.network(
-                                _user['profile_photo'].toString(),
+                              child: CachedNetworkImage(
+                                imageUrl: _user['profile_photo'].toString(),
                                 width: 72, height: 72, fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => CircleAvatar(
+                                placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                                errorWidget: (_, __, ___) => CircleAvatar(
                                   radius: 36,
                                   backgroundColor: primary.withValues(alpha: 0.1),
                                   child: Text(_initials, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primary)),
@@ -439,8 +445,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: _user['profile_photo'] != null && _user['profile_photo'].toString().isNotEmpty
-                            ? Image.network(_user['profile_photo'].toString(), width: 90, height: 90, fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))))
+                            ? CachedNetworkImage(
+                                imageUrl: _user['profile_photo'].toString(),
+                                width: 90, height: 90, fit: BoxFit.cover,
+                                placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                errorWidget: (_, __, ___) => CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))))
                             : CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))),
                         ),
                       ),

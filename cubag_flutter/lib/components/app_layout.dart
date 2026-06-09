@@ -104,7 +104,7 @@ class _AppLayoutState extends State<AppLayout> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (isDesktop) _buildDesktopHeader(context, authService),
+                if (isDesktop) _buildDesktopHeader(context, authService, unreadCount),
                 Expanded(
                   child: widget.scrollable
                       ? SingleChildScrollView(
@@ -194,7 +194,7 @@ class _AppLayoutState extends State<AppLayout> {
     );
   }
 
-  Widget _buildDesktopHeader(BuildContext context, AuthService authService) {
+  Widget _buildDesktopHeader(BuildContext context, AuthService authService, int unreadCount) {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),

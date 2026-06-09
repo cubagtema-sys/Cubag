@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
 
@@ -27,39 +27,64 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _loadData() async {
     setState(() => _loading = true);
+
+    // 1. Get user data from local storage (Instant)
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    setState(() => _user = {'name': prefs.getString('cubag_name') ?? 'Member', 'role': prefs.getString('cubag_role') ?? ''});
+    setState(() {
+      _user = {
+        'name': prefs.getString('cubag_name') ?? 'Member',
+        'role': prefs.getString('cubag_role') ?? ''
+      };
+    });
 
+    // 2. Fetch all remote data in PARALLEL (Much faster)
     try {
-      final api = ApiService();
-      final taskRes = await api.get('/tasks');
-      final annRes  = await api.get('/announcements');
-      if (!mounted) return;
-      if (taskRes.statusCode == 200) setState(() => _tasks = ApiService.ensureList(taskRes.data));
-      if (annRes.statusCode  == 200) setState(() => _announcements = ApiService.ensureList(annRes.data).take(3).toList());
-    } catch (_) {}
-
-    try {
-      final res = await http.get(Uri.parse('https://open.er-api.com/v6/latest/GHS'));
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        final body = res.body;
-        String extractRate(String currency) {
-          final pattern = '"$currency":';
-          final idx = body.indexOf(pattern);
-          if (idx == -1) return '...';
-          final start = idx + pattern.length;
-          final end = body.indexOf(',', start);
-          final rateStr = body.substring(start, end).trim();
-          final rate = double.tryParse(rateStr);
-          return rate != null ? (1 / rate).toStringAsFixed(2) : '...';
-        }
-        setState(() => _forex = {'USD': extractRate('USD'), 'EUR': extractRate('EUR')});
-      }
-    } catch (_) {}
+      await Future.wait([
+        _fetchTasks(),
+        _fetchAnnouncements(),
+        _fetchForex(),
+      ]);
+    } catch (e) {
+      debugPrint('Dashboard data load error: $e');
+    }
 
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _fetchTasks() async {
+    try {
+      final res = await ApiService().get('/tasks');
+      if (res.statusCode == 200 && mounted) {
+        setState(() => _tasks = ApiService.ensureList(res.data));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchAnnouncements() async {
+    try {
+      final res = await ApiService().get('/announcements');
+      if (res.statusCode == 200 && mounted) {
+        setState(() => _announcements = ApiService.ensureList(res.data).take(3).toList());
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchForex() async {
+    try {
+      // Use a more modern approach for Forex
+      final dio = Dio();
+      final res = await dio.get('https://open.er-api.com/v6/latest/GHS');
+      if (res.statusCode == 200 && mounted) {
+        final rates = res.data['rates'] as Map<String, dynamic>;
+        setState(() {
+          _forex = {
+            'USD': (1 / (rates['USD'] ?? 1.0)).toStringAsFixed(2),
+            'EUR': (1 / (rates['EUR'] ?? 1.0)).toStringAsFixed(2),
+          };
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -75,181 +100,187 @@ class _DashboardPageState extends State<DashboardPage> {
       title: 'Dashboard',
       child: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome Banner (Responsive layout)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [primary, primary.withValues(alpha: 0.75)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: isMobile 
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Good day, $firstName!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 6),
-                            Text('You have ${pending.length} pending item${pending.length != 1 ? 's' : ''}.', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
-                            const SizedBox(height: 14),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Welcome Banner
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [primary, primary.withValues(alpha: 0.75)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: isMobile
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _forexBadge('USD: ${_forex['USD']}'),
-                                _forexBadge('EUR: ${_forex['EUR']}'),
+                                Text('Good day, $firstName!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 6),
+                                Text('You have ${pending.length} pending item${pending.length != 1 ? 's' : ''}.', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
+                                const SizedBox(height: 14),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    _forexBadge('USD: ${_forex['USD']}'),
+                                    _forexBadge('EUR: ${_forex['EUR']}'),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 44,
+                                  child: ElevatedButton(
+                                    onPressed: () => context.go('/payments'),
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                                    child: const Text('Renew License', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  ),
+                                )
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Good day, $firstName!', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 6),
+                                      Text('You have ${pending.length} pending item${pending.length != 1 ? 's' : ''}.', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          _forexBadge('USD: ${_forex['USD']}'),
+                                          const SizedBox(width: 8),
+                                          _forexBadge('EUR: ${_forex['EUR']}'),
+                                        ],
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () => context.go('/payments'),
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: primary, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                                  child: const Text('Renew License', style: TextStyle(fontWeight: FontWeight.bold)),
+                                )
                               ],
                             ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 44,
-                              child: ElevatedButton(
-                                onPressed: () => context.go('/payments'),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                                child: const Text('Renew License', style: TextStyle(fontWeight: FontWeight.bold)),
-                              ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Priority Tasks
+                    _sectionCard(
+                      title: 'Priority Tasks',
+                      icon: Icons.task_alt,
+                      child: pending.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Center(child: Column(children: [Icon(Icons.check_circle, size: 32, color: Colors.grey), SizedBox(height: 8), Text('No pending tasks! You are all caught up.', style: TextStyle(color: Colors.grey))])),
                             )
-                          ],
-                        )
-                      : Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Good day, $firstName!', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 6),
-                                  Text('You have ${pending.length} pending item${pending.length != 1 ? 's' : ''}.', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      _forexBadge('USD: ${_forex['USD']}'),
-                                      const SizedBox(width: 8),
-                                      _forexBadge('EUR: ${_forex['EUR']}'),
-                                    ],
-                                  )
-                                ],
-                              ),
+                          : Column(
+                              children: [
+                                ...pending.map((task) {
+                                  bool overdue = task['due_date'] != null && DateTime.tryParse(task['due_date'].toString())?.isBefore(DateTime.now()) == true;
+                                  return ListTile(
+                                    leading: CircleAvatar(backgroundColor: primary.withValues(alpha: 0.1), child: Icon(Icons.description, color: primary, size: 18)),
+                                    title: Text(task['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                    subtitle: Text(overdue ? '⚠ Overdue: ${task['due_date']}' : 'Due: ${task['due_date'] ?? 'No deadline'}', style: TextStyle(fontSize: 12, color: overdue ? Colors.red : Colors.grey)),
+                                    trailing: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('Required', style: TextStyle(fontSize: 10, color: primary, fontWeight: FontWeight.bold))),
+                                  );
+                                }),
+                                TextButton(onPressed: () => context.go('/tasks'), child: const Text('View all tasks')),
+                              ],
                             ),
-                            ElevatedButton(
-                              onPressed: () => context.go('/payments'),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: primary, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                              child: const Text('Renew License', style: TextStyle(fontWeight: FontWeight.bold)),
-                            )
-                          ],
-                        ),
-                ),
-                const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 16),
 
-                // Priority Tasks
-                _sectionCard(
-                  title: 'Priority Tasks',
-                  icon: Icons.task_alt,
-                  child: pending.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Center(child: Column(children: [Icon(Icons.check_circle, size: 32, color: Colors.grey), SizedBox(height: 8), Text('No pending tasks! You are all caught up.', style: TextStyle(color: Colors.grey))])),
-                        )
-                      : Column(
-                          children: [
-                            ...pending.map((task) {
-                              bool overdue = task['due_date'] != null && DateTime.tryParse(task['due_date'].toString())?.isBefore(DateTime.now()) == true;
-                              return ListTile(
-                                leading: CircleAvatar(backgroundColor: primary.withValues(alpha: 0.1), child: Icon(Icons.description, color: primary, size: 18)),
-                                title: Text(task['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                                subtitle: Text(overdue ? '⚠ Overdue: ${task['due_date']}' : 'Due: ${task['due_date'] ?? 'No deadline'}', style: TextStyle(fontSize: 12, color: overdue ? Colors.red : Colors.grey)),
-                                trailing: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('Required', style: TextStyle(fontSize: 10, color: primary, fontWeight: FontWeight.bold))),
-                              );
-                            }),
-                            TextButton(onPressed: () => context.go('/tasks'), child: const Text('View all tasks')),
-                          ],
-                        ),
-                ),
-                const SizedBox(height: 16),
+                    // Announcements
+                    _sectionCard(
+                      title: 'Announcements',
+                      icon: Icons.campaign,
+                      child: _announcements.isEmpty
+                          ? const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No new announcements.', style: TextStyle(color: Colors.grey))))
+                          : Column(
+                              children: [
+                                ..._announcements.map((a) => ListTile(
+                                  leading: Icon(Icons.campaign, color: primary),
+                                  title: Text(a['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                  subtitle: Text(a['content'] ?? a['body'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                                )),
+                                TextButton(onPressed: () => context.go('/announcements'), child: const Text('View all announcements')),
+                              ],
+                            ),
+                    ),
+                    const SizedBox(height: 16),
 
-                // Announcements
-                _sectionCard(
-                  title: 'Announcements',
-                  icon: Icons.campaign,
-                  child: _announcements.isEmpty
-                      ? const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No new announcements.', style: TextStyle(color: Colors.grey))))
-                      : Column(
-                          children: [
-                            ..._announcements.map((a) => ListTile(
-                              leading: Icon(Icons.campaign, color: primary),
-                              title: Text(a['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              subtitle: Text(a['content'] ?? a['body'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
-                            )),
-                            TextButton(onPressed: () => context.go('/announcements'), child: const Text('View all announcements')),
-                          ],
-                        ),
-                ),
-                const SizedBox(height: 16),
-
-                // Quick Shortcuts (Responsive grid layout)
-                _sectionCard(
-                  title: 'Quick Shortcuts',
-                  icon: Icons.apps,
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: isMobile ? 2 : 4,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: isMobile ? 2.5 : 1.3,
-                    padding: const EdgeInsets.all(12),
-                    children: [
-                      _quickAction(context, Icons.payments, 'Pay Dues', '/payments', isMobile),
-                      _quickAction(context, Icons.bar_chart, 'Live Data', '/live-data', isMobile),
-                      _quickAction(context, Icons.group, 'Networking', '/networking', isMobile),
-                      _quickAction(context, Icons.support_agent, 'Support', '/engagement', isMobile),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Live Forex
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: primary.withAlpha(50)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    // Quick Shortcuts
+                    _sectionCard(
+                      title: 'Quick Shortcuts',
+                      icon: Icons.apps,
+                      child: GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: isMobile ? 2 : 4,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: isMobile ? 2.5 : 1.3,
+                        padding: const EdgeInsets.all(12),
                         children: [
-                          Text('Live Forex', style: TextStyle(fontWeight: FontWeight.bold, color: primary, fontSize: 16)),
-                          const Spacer(),
-                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF10b981), shape: BoxShape.circle)),
-                          const SizedBox(width: 4),
-                          const Text('LIVE', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          _quickAction(context, Icons.payments, 'Pay Dues', '/payments', isMobile),
+                          _quickAction(context, Icons.bar_chart, 'Live Data', '/live-data', isMobile),
+                          _quickAction(context, Icons.group, 'Networking', '/networking', isMobile),
+                          _quickAction(context, Icons.support_agent, 'Support', '/engagement', isMobile),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      _forexRow('\$', 'USD/GHS', _forex['USD']!, Theme.of(context).primaryColor),
-                      const SizedBox(height: 12),
-                      _forexRow('€', 'EUR/GHS', _forex['EUR']!, const Color(0xFF3b82f6)),
-                      const SizedBox(height: 16),
-                      OutlinedButton(
-                        onPressed: () => context.go('/live-data'),
-                        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                        child: const Text('View Full Data Hub'),
-                      )
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Live Forex
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: primary.withAlpha(50)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text('Live Forex', style: TextStyle(fontWeight: FontWeight.bold, color: primary, fontSize: 16)),
+                              const Spacer(),
+                              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF10b981), shape: BoxShape.circle)),
+                              const SizedBox(width: 4),
+                              const Text('LIVE', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _forexRow('\$', 'USD/GHS', _forex['USD']!, Theme.of(context).primaryColor),
+                          const SizedBox(height: 12),
+                          _forexRow('€', 'EUR/GHS', _forex['EUR']!, const Color(0xFF3b82f6)),
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: () => context.go('/live-data'),
+                            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                            child: const Text('View Full Data Hub'),
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
     );
   }

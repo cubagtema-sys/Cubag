@@ -5,13 +5,8 @@ import 'socket_service.dart';
 import 'push_notification_service.dart';
 
 class AuthService extends ChangeNotifier {
-  static AuthService? _instance;
-  static AuthService get instance {
-    _instance ??= AuthService._internal();
-    return _instance!;
-  }
-
-  factory AuthService() => instance;
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
   AuthService._internal();
 
   final ApiService _apiService = ApiService();
@@ -22,15 +17,13 @@ class AuthService extends ChangeNotifier {
   String? _userRole;
   String? _userPhotoUrl;
   List<String> _permissions = [];
+  bool _notificationsInitialized = false;
 
   bool get isAuthenticated => _isAuthenticated;
   String? get userRole => _userRole;
   String? get userPhotoUrl => _userPhotoUrl;
-
-  /// Permission keys granted to this user (sub-admins only; admins always pass).
   List<String> get permissions => _permissions;
 
-  /// Returns true if this user can access a given admin module.
   bool hasPermission(String key) {
     if (_userRole == 'admin') return true;
     return _permissions.contains(key);
@@ -59,11 +52,17 @@ class AuthService extends ChangeNotifier {
 
   void _initServices() {
     _socketService.initSocket();
-    _pushNotificationService.initialize();
+
+    // Guard against multiple initializations
+    if (!_notificationsInitialized) {
+      _pushNotificationService.initialize();
+      _notificationsInitialized = true;
+    }
   }
 
   void _disposeServices() {
     _socketService.dispose();
+    _notificationsInitialized = false;
   }
 
   Future<void> _fetchPermissions() async {
@@ -97,9 +96,12 @@ class AuthService extends ChangeNotifier {
         if (user['id'] != null) await prefs.setString('cubag_id', user['id'].toString());
         if (user['name'] != null) await prefs.setString('cubag_name', user['name'].toString());
         if (user['email'] != null) await prefs.setString('cubag_email', user['email'].toString());
+        if (user['profile_photo'] != null) await prefs.setString('cubag_photo', user['profile_photo'].toString());
 
         _isAuthenticated = true;
         _userRole = role;
+        _userPhotoUrl = user['profile_photo']?.toString();
+
         _initServices();
 
         if (role == 'admin' || role == 'sub_admin') {

@@ -6,66 +6,63 @@ import 'core/theme.dart';
 import 'core/router.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
-import 'services/push_notification_service.dart';
+import 'services/api_service.dart';
 
 void main() async {
+  // 1. Basic binding initialization
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Prevent tree-shaking of MapEntryIterable.where (and other collections) by the Dart Web compiler (dart2js).
-  // This is a known compiler issue where internal go_router references to pathParameters.entries.where
-  // get optimized away if the compiler doesn't detect other references to MapEntryIterable's where method.
-  if (kIsWeb) {
-    final maps = <Map<String, dynamic>>[
-      <String, String>{},
-      const <String, String>{},
-      const <String, String>{'a': 'b'},
-      Map<String, String>.unmodifiable({'a': 'b'}),
-      <String, dynamic>{'a': 'b'},
-    ];
-    for (final map in maps) {
-      map.entries.where((e) => e.key == 'a').toList();
-      map.keys.where((k) => k == 'a').toList();
-      map.values.where((v) => v == 'b').toList();
-    }
-    // Explicitly protect List.where and List.take which are used in Dashboard
-    final lists = <List<dynamic>>[
-      [],
-      ['a'],
-      [1, 2, 3],
-    ];
-    for (final list in lists) {
-      list.where((e) => e == 'a').toList();
-      list.take(1).toList();
-    }
+  // 2. Silence logs in Production to boost speed
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
   }
 
-  // ── Firebase & Push Notifications (mobile only) ──────────────────────────
-  if (!kIsWeb) {
-    try {
-      await Firebase.initializeApp();
-      await PushNotificationService().initialize();
-    } catch (e) {
-      debugPrint('Firebase init failed (non-fatal): $e');
-    }
-  }
+  // 3. Start services in parallel (Non-blocking)
+  _initAppServices();
 
-  final authService = AuthService();
-  try {
-    await authService.checkAuthStatus();
-  } catch (e, stack) {
-    debugPrint('Error checking auth status: $e');
-    debugPrint(stack.toString());
-  }
-
+  // 4. Launch App immediately
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: authService),
+        ChangeNotifierProvider.value(value: AuthService()),
         ChangeNotifierProvider(create: (_) => NotificationService()),
       ],
       child: const CubagApp(),
     ),
   );
+}
+
+/// Initializes heavy services in the background to speed up startup.
+Future<void> _initAppServices() async {
+  if (kIsWeb) {
+    _protectWebCollections();
+  }
+
+  // Firebase, Auth check, and Backend Heartbeat in parallel
+  await Future.wait([
+    _initFirebase(),
+    AuthService().checkAuthStatus(),
+    _backendHeartbeat(), // "Wake up" Render backend
+  ]);
+}
+
+Future<void> _initFirebase() async {
+  if (kIsWeb) return;
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    // Silent fail in production
+  }
+}
+
+/// Pings the backend immediately on startup to wake it up from "Sleep" (Render.com free tier)
+Future<void> _backendHeartbeat() async {
+  try {
+    // A simple GET to the health endpoint or base URL
+    await ApiService().getPublic('health').timeout(const Duration(seconds: 5));
+  } catch (_) {
+    // We don't care if it fails, the goal is just to trigger the "Wake up"
+  }
 }
 
 class CubagApp extends StatelessWidget {
@@ -81,5 +78,29 @@ class CubagApp extends StatelessWidget {
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
     );
+  }
+}
+
+void _protectWebCollections() {
+  final maps = <Map<String, dynamic>>[
+    <String, String>{},
+    const <String, String>{},
+    const <String, String>{'a': 'b'},
+    Map<String, String>.unmodifiable({'a': 'b'}),
+    <String, dynamic>{'a': 'b'},
+  ];
+  for (final map in maps) {
+    map.entries.where((e) => e.key == 'a').toList();
+    map.keys.where((k) => k == 'a').toList();
+    map.values.where((v) => v == 'b').toList();
+  }
+  final lists = <List<dynamic>>[
+    [],
+    ['a'],
+    [1, 2, 3],
+  ];
+  for (final list in lists) {
+    list.where((e) => e == 'a').toList();
+    list.take(1).toList();
   }
 }

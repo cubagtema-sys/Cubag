@@ -243,112 +243,139 @@ class _AdminUnavailableBodyState extends State<_AdminUnavailableBody> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFfff7ed),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFf08232).withAlpha(60), width: 2),
-                  ),
-                  child: const Icon(Icons.desktop_windows_outlined, size: 44, color: Color(0xFFf08232)),
-                ),
-                const SizedBox(height: 24),
-
-                // Title
-                const Text(
-                  'Admin Portal',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0f172a)),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'The admin console is only available\non the web browser.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: Color(0xFF64748b), height: 1.5),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Logged-in-as chip
-                if (_email != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFf1f5f9),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFe2e8f0)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.account_circle_outlined, size: 18, color: Color(0xFF64748b)),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Logged in as $_email',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                const SizedBox(height: 12),
-
-                // Web URL hint
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFfff7ed),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFf08232).withAlpha(50)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Icon(Icons.open_in_browser, size: 18, color: Color(0xFFf08232)),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'cubag-backend.onrender.com',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFf08232)),
+                      // Visual Element
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFfff7ed),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFf08232).withAlpha(40), width: 3),
+                        ),
+                        child: const Icon(Icons.desktop_windows_rounded, size: 48, color: Color(0xFFf08232)),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Title
+                      const Text(
+                        'Admin Portal Restricted',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0f172a),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Description
+                      const Text(
+                        'To maintain security and full functionality, the admin dashboard is only accessible via a desktop web browser.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF64748b),
+                          height: 1.6,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+
+                      // Account Info Card
+                      if (_email != null)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFf8fafc),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFe2e8f0)),
+                          ),
+                          child: Row(
+                            children: [
+                              const CircleAvatar(
+                                backgroundColor: Color(0xFFe2e8f0),
+                                radius: 18,
+                                child: Icon(Icons.person, size: 20, color: Color(0xFF64748b)),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('LOGGED IN AS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94a3b8), letterSpacing: 1)),
+                                    Text(_email!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1e293b))),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      const SizedBox(height: 12),
+
+                      // Web URL Action
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFfff7ed),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFf08232).withAlpha(50)),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.link, size: 18, color: Color(0xFFf08232)),
+                            SizedBox(width: 8),
+                            Text(
+                              'cubag-platform.web.app',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFf08232)),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 48),
+
+                      // Action Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed: _loggingOut ? null : _logout,
+                          icon: _loggingOut
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Icon(Icons.logout_rounded, size: 20),
+                          label: Text(
+                            _loggingOut ? 'Signing out...' : 'Sign Out',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFf08232),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 36),
-
-                // Logout button
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    onPressed: _loggingOut ? null : _logout,
-                    icon: _loggingOut
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Icon(Icons.logout_rounded, size: 20),
-                    label: Text(
-                      _loggingOut ? 'Signing out...' : 'Sign Out & Switch Account',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFf08232),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

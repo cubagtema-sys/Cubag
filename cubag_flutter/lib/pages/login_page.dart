@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
 import '../components/app_logo.dart';
@@ -46,6 +47,13 @@ class _LoginPageState extends State<LoginPage> {
         if (savedMode != null) _loginMode = savedMode;
       });
     }
+  }
+
+  Future<void> _checkBiometric() async {
+    if (kIsWeb) return;
+    final available = await _bioService.isBiometricAvailable();
+    final enabled = await _bioService.isBiometricEnabled();
+    if (mounted) setState(() { _bioAvailable = available; _bioEnabled = enabled; });
   }
 
   Future<void> _handleBiometricLogin() async {
