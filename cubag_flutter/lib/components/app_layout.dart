@@ -117,7 +117,8 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   Widget _buildNotificationIcon(BuildContext context, String? role, bool isSmall, int unreadCount) {
-    final targetRoute = role == 'admin' ? '/admin/announcements' : '/notifications';
+    // User requested the notification icon to open the Announcements page
+    final targetRoute = role == 'admin' ? '/admin/announcements' : '/announcements';
     return Stack(
       alignment: Alignment.center,
       children: [

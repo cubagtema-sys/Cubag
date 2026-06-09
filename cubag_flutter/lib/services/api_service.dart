@@ -38,8 +38,8 @@ class ApiService {
     debugPrint('[ApiService] Initializing Singleton Base URL: $_normalizedBase');
     _dio = Dio(BaseOptions(
       baseUrl: _normalizedBase,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
     ));
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 import 'api_service.dart';
 import 'socket_service.dart';
 import 'push_notification_service.dart';
@@ -111,9 +112,17 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return null;
       }
-      return 'Invalid credentials';
+      return 'Incorrect email or password.';
     } catch (e) {
-      return 'Invalid credentials';
+      if (e is DioException) {
+        if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+          return 'Server is waking up. Please try again in 5 seconds.';
+        }
+        if (e.response?.statusCode == 401) {
+          return 'Incorrect email or password.';
+        }
+      }
+      return 'The server is still starting up. Please try again in a moment.';
     }
   }
 
