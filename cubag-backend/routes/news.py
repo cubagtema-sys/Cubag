@@ -96,7 +96,6 @@ FEED_SOURCES = [
     { 'url': 'https://gcaptain.com/feed/',                  'source': 'gCaptain',            'color': '#f08232' },
     { 'url': 'https://www.hellenicshippingnews.com/feed/',  'source': 'Hellenic Shipping',   'color': '#1a6b3c' },
     { 'url': 'https://splash247.com/feed/',                 'source': 'Splash247',           'color': '#0066cc' },
-    { 'url': 'https://worldmaritimenews.com/feed/',         'source': 'World Maritime News', 'color': '#7c3aed' },
     { 'url': 'https://www.ship-technology.com/feed/',       'source': 'Ship Technology',     'color': '#c0392b' },
     { 'url': 'https://www.freightwaves.com/news/feed',      'source': 'FreightWaves',        'color': '#003580' },
 ]

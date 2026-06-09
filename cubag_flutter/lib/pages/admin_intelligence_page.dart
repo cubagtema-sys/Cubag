@@ -10,7 +10,6 @@ const _feedSources = [
   {'url': 'https://gcaptain.com/feed/',                 'source': 'gCaptain',            'color': 0xFFf08232},
   {'url': 'https://www.hellenicshippingnews.com/feed/', 'source': 'Hellenic Shipping',   'color': 0xFF1a6b3c},
   {'url': 'https://splash247.com/feed/',                'source': 'Splash247',           'color': 0xFF0066cc},
-  {'url': 'https://worldmaritimenews.com/feed/',        'source': 'World Maritime News', 'color': 0xFF7c3aed},
   {'url': 'https://www.ship-technology.com/feed/',      'source': 'Ship Technology',     'color': 0xFFc0392b},
   {'url': 'https://www.freightwaves.com/news/feed',     'source': 'FreightWaves',        'color': 0xFF003580},
 ];
@@ -138,7 +137,7 @@ class _State extends State<AdminIntelligencePage> {
             const SizedBox(height: 8),
             const Text(
               'The Intelligence Hub is directly connected to 6 maritime and customs news networks — '
-              'gCaptain, Hellenic Shipping News, Splash247, World Maritime News, Ship Technology, and FreightWaves. '
+              'gCaptain, Hellenic Shipping News, Splash247, Ship Technology, and FreightWaves. '
               'Live data is pulled 24/7 for all CUBAG members.',
               style: TextStyle(fontSize: 13, color: Color(0xFF64748b), height: 1.5),
             ),
