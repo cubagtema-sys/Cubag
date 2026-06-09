@@ -249,15 +249,58 @@ class _AppLayoutState extends State<AppLayout> {
     List<Widget> sections = [];
     if (isAdmin) {
       sections = [
-        _buildSection(context, 'CORE', currentRoute, [
+        _buildSection(context, 'CORE MANAGEMENT', currentRoute, [
           _NavItemData('Dashboard', Icons.grid_view_rounded, '/admin/dashboard'),
           _NavItemData('Members', Icons.people_alt_rounded, '/admin/members'),
           _NavItemData('Announcements', Icons.campaign_rounded, '/admin/announcements'),
         ]),
-        _buildSection(context, 'FINANCE', currentRoute, [
-          _NavItemData('Financials', Icons.account_balance_wallet_rounded, '/admin/payments'),
+        _buildSection(context, 'OPERATIONS & SUPPORT', currentRoute, [
+          _NavItemData('Cargo Schedules', Icons.local_shipping_rounded, '/admin/cargo-schedules'),
+          _NavItemData('Intelligence Hub', Icons.cell_tower_rounded, '/admin/intelligence'),
+          _NavItemData('Support Tickets', Icons.support_agent_rounded, '/admin/tickets'),
+        ]),
+        _buildSection(context, 'FINANCIALS & RECORDS', currentRoute, [
+          _NavItemData('Financial Center', Icons.account_balance_wallet_rounded, '/admin/payments'),
+          _NavItemData('Payment Settings', Icons.payment_rounded, '/admin/payment-settings'),
           _NavItemData('Platform Fees', Icons.receipt_rounded, '/admin/fees'),
         ]),
+        _buildSection(context, 'ENGAGEMENT & EVENTS', currentRoute, [
+          _NavItemData('Events', Icons.event_rounded, '/admin/events'),
+          _NavItemData('Surveys & Elections', Icons.how_to_vote_rounded, '/admin/surveys'),
+        ]),
+        _buildSection(context, 'ADMINISTRATION', currentRoute, [
+          _NavItemData('Sub-Admins', Icons.admin_panel_settings_rounded, '/admin/sub-admins'),
+          _NavItemData('Audit Log', Icons.history_rounded, '/admin/audit-log'),
+        ]),
+      ];
+    } else if (role == 'sub_admin') {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final allAdminItems = <String, List<_NavItemData>>{
+        'members':          [_NavItemData('Members', Icons.people_alt_rounded, '/admin/members')],
+        'announcements':    [_NavItemData('Announcements', Icons.campaign_rounded, '/admin/announcements')],
+        'schedules':        [_NavItemData('Cargo Schedules', Icons.local_shipping_rounded, '/admin/cargo-schedules')],
+        'intelligence':     [_NavItemData('Intelligence Hub', Icons.cell_tower_rounded, '/admin/intelligence')],
+        'tickets':          [_NavItemData('Support Tickets', Icons.support_agent_rounded, '/admin/tickets')],
+        'payments':         [_NavItemData('Financial Center', Icons.account_balance_wallet_rounded, '/admin/payments')],
+        'fees':             [_NavItemData('Platform Fees', Icons.receipt_rounded, '/admin/fees')],
+        'events':           [_NavItemData('Events', Icons.event_rounded, '/admin/events')],
+        'surveys':          [_NavItemData('Surveys & Elections', Icons.how_to_vote_rounded, '/admin/surveys')],
+        'audit_log':        [_NavItemData('Audit Log', Icons.history_rounded, '/admin/audit-log')],
+        'settings':         [_NavItemData('Settings', Icons.settings_rounded, '/admin/settings')],
+      };
+      
+      final permittedItems = <_NavItemData>[];
+      final orderedKeys = ['members', 'announcements', 'schedules', 'intelligence', 'tickets', 'payments', 'fees', 'events', 'surveys', 'audit_log', 'settings'];
+      for (final key in orderedKeys) {
+        if (auth.hasPermission(key)) permittedItems.addAll(allAdminItems[key] ?? []);
+      }
+      
+      sections = [
+        _buildSection(context, 'OVERVIEW', currentRoute, [
+          _NavItemData('Dashboard', Icons.grid_view_rounded, '/admin/dashboard'),
+        ]),
+        if (permittedItems.isNotEmpty)
+          _buildSection(context, 'MY MODULES', currentRoute, permittedItems),
       ];
     } else {
       sections = [
@@ -286,7 +329,7 @@ class _AppLayoutState extends State<AppLayout> {
       children: [
         ...sections,
         const Divider(indent: 20, endIndent: 20, color: Color(0xFFf1f5f9)),
-        _navTile(context, 'Settings', Icons.settings_rounded, isAdmin ? '/admin/settings' : '/settings', currentRoute),
+        _navTile(context, 'Settings', Icons.settings_rounded, (isAdmin || role == 'sub_admin') ? '/admin/settings' : '/settings', currentRoute),
       ],
     );
   }
