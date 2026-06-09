@@ -82,6 +82,8 @@ class MobileMenuPage extends StatelessWidget {
           _MenuItem('License Renewal', Icons.verified_user_rounded, '/license-renewal'),
           _MenuItem('Networking', Icons.language_rounded, '/networking'),
           _MenuItem('Messaging', Icons.chat_bubble_outline_rounded, '/messaging'),
+          _MenuItem('Events', Icons.event_rounded, '/events'),
+          _MenuItem('Surveys & Elections', Icons.how_to_vote_rounded, '/surveys'),
         ]),
         _buildSection(context, 'RESOURCES', [
           _MenuItem('Live Logistics', Icons.analytics_rounded, '/live-data'),
