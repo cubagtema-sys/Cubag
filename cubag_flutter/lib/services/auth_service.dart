@@ -114,15 +114,11 @@ class AuthService extends ChangeNotifier {
       }
       return 'Incorrect email or password.';
     } catch (e) {
-      if (e is DioException) {
-        if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
-          return 'Server is waking up. Please try again in 5 seconds.';
-        }
-        if (e.response?.statusCode == 401) {
-          return 'Incorrect email or password.';
-        }
+      final err = e.toString().toLowerCase();
+      if (err.contains('timeout') || err.contains('connecting')) {
+        return 'Server is waking up. Please try again in 5 seconds.';
       }
-      return 'The server is still starting up. Please try again in a moment.';
+      return 'Incorrect email or password.';
     }
   }
 
