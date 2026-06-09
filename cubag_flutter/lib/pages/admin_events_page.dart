@@ -32,8 +32,8 @@ class _State extends State<AdminEventsPage> {
 
   Future<void> _fetch() async {
     setState(() => _loading = true);
-    final data = await _api.fetchData('events');
-    if (mounted) setState(() { _events = data is List ? data : []; _loading = false; });
+    final data = await _api.fetchData('events/admin/all?per_page=200');
+    if (mounted) setState(() { _events = ApiService.ensureList(data); _loading = false; });
   }
 
   String _today() {

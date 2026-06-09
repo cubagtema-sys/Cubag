@@ -96,42 +96,46 @@ class _NetworkingPageState extends State<NetworkingPage> {
           else if (filtered.isEmpty)
             Container(padding: const EdgeInsets.all(60), alignment: Alignment.center, decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)), child: const Column(children: [Icon(Icons.search_off, size: 48, color: Colors.grey), SizedBox(height: 12), Text('No members match your search.', style: TextStyle(color: Colors.grey))]))
           else
-            GridView.builder(
+            ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 280, childAspectRatio: 1.1, mainAxisSpacing: 12, crossAxisSpacing: 12),
               itemCount: filtered.length,
+              separatorBuilder: (context, i) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final m = filtered[i];
                 final color = _typeColors[m['member_type']] ?? primary;
                 final initials = _initials(m['name']?.toString() ?? '');
                 return Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)]),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Hero(
-                        tag: 'avatar_${m['id']}',
-                        child: Material(
-                          type: MaterialType.transparency,
-                          child: CircleAvatar(radius: 22, backgroundColor: color.withValues(alpha: 0.1), child: Text(initials, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14))),
+                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)], border: Border.all(color: Theme.of(context).dividerColor)),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children: [
+                      Row(children: [
+                        Hero(
+                          tag: 'avatar_${m['id']}',
+                          child: Material(
+                            type: MaterialType.transparency,
+                            child: CircleAvatar(radius: 22, backgroundColor: color.withValues(alpha: 0.1), child: Text(initials, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14))),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(m['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
-                        Text((m['member_type']?.toString() ?? '').split(' ').first, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.bold)),
-                      ])),
-                    ]),
-                    const SizedBox(height: 10),
-                    Row(children: [const Icon(Icons.business, size: 14, color: Colors.grey), const SizedBox(width: 4), Expanded(child: Text(m['company']?.toString() ?? 'Independent', style: const TextStyle(fontSize: 12, color: Colors.grey), overflow: TextOverflow.ellipsis))]),
-                    const Spacer(),
-                    SizedBox(width: double.infinity, child: ElevatedButton(
-                      onPressed: () => setState(() => _selected = Map<String, dynamic>.from(m)),
-                      style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(vertical: 8)),
-                      child: const Text('View', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    )),
-                  ]),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(m['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
+                          Text((m['member_type']?.toString() ?? '').split(' ').first, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.bold)),
+                        ])),
+                      ]),
+                      const SizedBox(height: 10),
+                      Row(children: [const Icon(Icons.business, size: 14, color: Colors.grey), const SizedBox(width: 4), Expanded(child: Text(m['company']?.toString() ?? 'Independent', style: const TextStyle(fontSize: 12, color: Colors.grey), overflow: TextOverflow.ellipsis))]),
+                      const SizedBox(height: 16),
+                      SizedBox(width: double.infinity, child: ElevatedButton(
+                        onPressed: () => setState(() => _selected = Map<String, dynamic>.from(m)),
+                        style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(vertical: 8)),
+                        child: const Text('View', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      )),
+                    ],
+                  ),
                 );
               },
             ),
