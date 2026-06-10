@@ -55,7 +55,8 @@ services:
         sync: false # GITHUB BLOCKED THIS SECRET FROM BEING UPLOADED FOR YOUR SAFETY! Please paste it manually in Render.
 
   # 2. Flutter Web Frontend Static Site
-  - type: static
+  - type: web
+    env: static
     name: cubag-frontend
     region: frankfurt
     rootDirectory: cubag_flutter
