@@ -208,11 +208,11 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(height: 12),
         const Text('Enterprise Mobility Platform', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
         const SizedBox(height: 48),
-        _sidebarFeature(Icons.shield_outlined, 'Official Credentials'),
+        _sidebarFeature(Icons.people_outline, 'Seamless Member Access'),
         const SizedBox(height: 24),
-        _sidebarFeature(Icons.bar_chart, 'Real-time Intelligence'),
+        _sidebarFeature(Icons.directions_boat_outlined, 'Live Cargo Schedules'),
         const SizedBox(height: 24),
-        _sidebarFeature(Icons.lock_outline, 'Bank-grade Security'),
+        _sidebarFeature(Icons.payments_outlined, 'Secure Digital Payments'),
       ])),
   );
 
