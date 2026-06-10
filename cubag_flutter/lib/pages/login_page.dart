@@ -204,8 +204,6 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildSidebar() => Container(
     decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [_kOrange, _kOrangeDark])),
     child: Padding(padding: const EdgeInsets.all(48), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-        const AppLogo(size: 64, borderRadius: 16, showShadow: true),
-        const SizedBox(height: 32),
         const Text('CUBAG', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1)),
         const SizedBox(height: 12),
         const Text('Enterprise Mobility Platform', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
