@@ -11,7 +11,7 @@ class ApiService {
 
   late Dio _dio;
 
-  static const _base = 'http://localhost:5001/api';
+  static const _base = 'https://cubag-backend.onrender.com/api';
 
   static String get _normalizedBase {
     String url = _base.trim();
