@@ -605,8 +605,27 @@ class _AttendeesSheetState extends State<_AttendeesSheet> {
       final res = await ApiService().get('/events/${widget.eventId}/attendees');
       if (mounted && res.statusCode == 200) {
         setState(() { _attendees = res.data['attendees'] ?? []; });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to load attendees: ${res.data}'),
+          backgroundColor: Colors.red,
+        ));
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        String msg = e.toString();
+        try {
+          final dynamic dioErr = e;
+          if (dioErr.response != null && dioErr.response.data != null) {
+            msg = dioErr.response.data['message'] ?? dioErr.response.data.toString();
+          }
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error loading attendees: $msg'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
     if (mounted) setState(() => _loading = false);
   }
 
