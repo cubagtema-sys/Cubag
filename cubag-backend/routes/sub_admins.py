@@ -43,7 +43,7 @@ def list_sub_admins():
     try:
         with conn.cursor() as cursor:
             role = _get_caller_role(cursor, caller_id)
-            if role != 'admin':
+            if role not in ('admin', 'super_admin'):
                 return jsonify({'message': 'Full admin access required'}), 403
 
             cursor.execute("""
@@ -98,7 +98,7 @@ def create_sub_admin():
     try:
         with conn.cursor() as cursor:
             role = _get_caller_role(cursor, caller_id)
-            if role != 'admin':
+            if role not in ('admin', 'super_admin'):
                 return jsonify({'message': 'Full admin access required'}), 403
 
             # Prevent duplicate email
@@ -153,7 +153,7 @@ def update_permissions(sub_admin_id):
     try:
         with conn.cursor() as cursor:
             role = _get_caller_role(cursor, caller_id)
-            if role != 'admin':
+            if role not in ('admin', 'super_admin'):
                 return jsonify({'message': 'Full admin access required'}), 403
 
             cursor.execute("SELECT name, role FROM members WHERE id = %s", (sub_admin_id,))
@@ -193,7 +193,7 @@ def remove_sub_admin(sub_admin_id):
     try:
         with conn.cursor() as cursor:
             role = _get_caller_role(cursor, caller_id)
-            if role != 'admin':
+            if role not in ('admin', 'super_admin'):
                 return jsonify({'message': 'Full admin access required'}), 403
 
             cursor.execute("SELECT name, role FROM members WHERE id = %s", (sub_admin_id,))
@@ -228,8 +228,8 @@ def my_permissions():
             role = _get_caller_role(cursor, caller_id)
             if role is None:
                 return jsonify({'message': 'Account not found'}), 404
-            if role == 'admin':
-                return jsonify({'role': 'admin', 'permissions': ALL_PERMISSIONS}), 200
+            if role in ('admin', 'super_admin'):
+                return jsonify({'role': role, 'permissions': ALL_PERMISSIONS}), 200
             if role != 'sub_admin':
                 return jsonify({'message': 'Not a sub-admin account'}), 403
 

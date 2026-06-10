@@ -13,7 +13,7 @@ def run_rating_update_cycle():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT id FROM members WHERE role != 'admin' AND status = 'active'")
+            cursor.execute("SELECT id FROM members WHERE role NOT IN ('admin', 'super_admin') AND status = 'active'")
             member_ids = [row['id'] for row in cursor.fetchall()]
 
             logger.info(f"[Rating Worker] Found {len(member_ids)} active members to process.")

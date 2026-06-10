@@ -393,7 +393,7 @@ def get_member(member_id):
             # Check caller's role
             cursor.execute("SELECT role FROM members WHERE id = %s", (caller_id,))
             caller = cursor.fetchone()
-            is_admin = caller and caller.get('role') in ('admin', 'sub_admin')
+            is_admin = caller and caller.get('role') in ('admin', 'sub_admin', 'super_admin')
             is_owner = str(caller_id) == str(member_id)
 
             if is_owner or is_admin:

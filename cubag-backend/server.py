@@ -148,7 +148,7 @@ def require_admin_role_for_admin_api():
         claims = get_jwt()
         role = claims.get('role')
 
-        if role not in ('admin', 'sub_admin'):
+        if role not in ('admin', 'sub_admin', 'super_admin'):
             return jsonify({'message': 'Admin access required'}), 403
 
     except Exception:

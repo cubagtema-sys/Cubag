@@ -313,13 +313,18 @@ def login():
 
             # Audit log for admin & sub_admin logins
             role = member.get('role', 'member')
-            if role in ('admin', 'sub_admin'):
+            if role in ('admin', 'sub_admin', 'super_admin'):
                 from utils import log_admin_action
+                
+                # Fetch actual IP, falling back to remote_addr if no proxy header exists
+                forwarded_for = request.headers.get('X-Forwarded-For')
+                actual_ip = forwarded_for.split(',')[0].strip() if forwarded_for else request.remote_addr
+                
                 log_admin_action(
                     member['id'],
-                    f'{"Admin" if role == "admin" else "Sub-Admin"} Login',
+                    f'{role.replace("_", " ").title()} Login',
                     role, member['id'], member['name'],
-                    f'IP: {request.remote_addr}'
+                    f'IP: {actual_ip}'
                 )
 
             return jsonify({

@@ -16,7 +16,7 @@ def get_dashboard_stats():
             # Determine permissions
             cursor.execute("SELECT role FROM members WHERE id = %s", (caller_id,))
             user = cursor.fetchone()
-            is_full_admin = user['role'] == 'admin'
+            is_full_admin = user['role'] in ('admin', 'super_admin')
 
             perms = []
             if not is_full_admin:
@@ -184,7 +184,7 @@ def get_audit_log():
             # Check permission
             cursor.execute("SELECT role FROM members WHERE id = %s", (caller_id,))
             user = cursor.fetchone()
-            if user['role'] != 'admin':
+            if user['role'] not in ('admin', 'super_admin'):
                 cursor.execute("SELECT 1 FROM sub_admin_permissions WHERE sub_admin_id = %s AND permission_key = 'audit_log' AND granted = TRUE", (caller_id,))
                 if not cursor.fetchone():
                     return jsonify({'message': 'Permission denied'}), 403

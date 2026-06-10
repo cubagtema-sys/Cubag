@@ -162,7 +162,7 @@ def serve_file(filename):
             # Verify the file belongs to a submission by this member (or an admin)
             cursor.execute("SELECT role FROM members WHERE id = %s", (member_id,))
             member = cursor.fetchone()
-            is_admin = member and member.get('role') in ('admin', 'sub_admin')
+            is_admin = member and member.get('role') in ('admin', 'sub_admin', 'super_admin')
             if not is_admin:
                 # Check member owns the submission this file belongs to
                 cursor.execute("""

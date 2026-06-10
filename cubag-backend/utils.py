@@ -421,7 +421,7 @@ def admin_required(fn):
             with conn.cursor() as cursor:
                 cursor.execute("SELECT role FROM members WHERE id = %s", (admin_id,))
                 res = cursor.fetchone()
-                if not res or res.get('role') not in ('admin', 'sub_admin'):
+                if not res or res.get('role') not in ('admin', 'sub_admin', 'super_admin'):
                     return jsonify({'message': 'Admin privilege required'}), 403
                 # Sub-admins pass through here — individual route decorators can
                 # add further permission checks via sub_admin_required().
@@ -443,7 +443,7 @@ def admin_required(fn):
 def sub_admin_required(permission: str):
     """
     Decorator that requires the caller to be either:
-      - a full admin (role == 'admin') — always allowed, OR
+      - a full admin (role == 'admin' or role == 'super_admin') — always allowed, OR
       - a sub_admin with the given permission key granted.
 
     Supported permission keys:
@@ -472,7 +472,7 @@ def sub_admin_required(permission: str):
                         return jsonify({'message': 'User not found'}), 403
 
                     role = res.get('role')
-                    if role == 'admin':
+                    if role in ('admin', 'super_admin'):
                         # Full admin — unconditional access
                         pass
                     elif role == 'sub_admin':
