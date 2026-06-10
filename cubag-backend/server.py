@@ -1,6 +1,4 @@
-import eventlet
-eventlet.monkey_patch()
-
+# Removed eventlet to avoid psycopg2 kqueue bugs on macOS
 import os
 import json
 import logging
@@ -378,4 +376,4 @@ logger.info("[Init] CUBAG Backend fully loaded and ready to accept requests.")
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
     logger.info(f"Running on port {port}")
-    socketio.run(app, host='0.0.0.0', port=port, debug=False)
+    socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)

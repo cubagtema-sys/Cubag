@@ -661,7 +661,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
                 ),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 12),
             Row(children: [
               Expanded(child: OutlinedButton(onPressed: () => _selectMember(m), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 4), minimumSize: const Size(0, 36), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Details', style: TextStyle(fontSize: 11)))),
               if (m['status'] == 'pending') ...[const SizedBox(width: 6), Expanded(child: ElevatedButton(onPressed: _updating ? null : () => _updateStatus(m['id'], 'active'), style: ElevatedButton.styleFrom(backgroundColor: primary, padding: const EdgeInsets.symmetric(vertical: 4), minimumSize: const Size(0, 36), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Approve', style: TextStyle(color: Colors.white, fontSize: 11))))],

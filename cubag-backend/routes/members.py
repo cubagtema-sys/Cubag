@@ -75,7 +75,7 @@ def get_all_members_admin():
                 LEFT JOIN LATERAL (
                     SELECT payment_ref
                     FROM payments
-                    WHERE member_id = m.id AND description ILIKE '%License Renewal%'
+                    WHERE member_id = m.id AND description ILIKE '%%License Renewal%%'
                     ORDER BY created_at DESC
                     LIMIT 1
                 ) p ON TRUE
