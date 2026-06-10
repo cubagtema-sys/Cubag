@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 
 const _kOrange = Color(0xFFf08232);
@@ -17,6 +18,7 @@ class _State extends State<AdminTasksPage> {
   List<dynamic> _tasks = [];
   List<dynamic> _members = [];
   bool _loading = true;
+  bool _hasError = false;
   bool _loadingMore = false;
   String _tab = 'submissions';
   String _message = '';
@@ -74,12 +76,17 @@ class _State extends State<AdminTasksPage> {
       if (!_loading) setState(() => _loading = true);
     }
     
-    await _api.fetchDataWithCache('/tasks/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
+    await _api.fetchDataWithCache('/tasks/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (hasError && _tasks.isEmpty) {
+        setState(() { _loading = false; _hasError = true; });
+        return;
+      }
       if (data == null) { setState(() => _loading = false); return; }
       final d = data as Map<String, dynamic>;
       setState(() { 
         _loading = false;
+          _hasError = false;
         _tasks = ApiService.ensureList(d); 
         if (d.containsKey('total')) {
           _total = d['total'];
@@ -258,6 +265,7 @@ class _State extends State<AdminTasksPage> {
         itemBuilder: (ctx, i) => const ShimmerListTile(),
       );
     }
+    if (_hasError && _tasks.isEmpty) return FetchErrorView(onRetry: () => _fetchTasks(refresh: true));
     if (_tasks.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No tasks found.', style: TextStyle(color: Colors.grey))));
     
     return Column(children: [

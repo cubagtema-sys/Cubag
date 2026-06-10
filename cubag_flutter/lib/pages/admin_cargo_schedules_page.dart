@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
+import '../components/fetch_error_view.dart';
 import '../services/api_service.dart';
 import '../components/shimmer_loader.dart';
 
@@ -19,6 +20,7 @@ class _State extends State<AdminCargoSchedulesPage> {
   bool _loading = false, _success = false;
   bool _fetching = true;
   bool _loadingMore = false;
+  bool _hasError = false;
   String _tab = 'upload';
   String _type = 'vanning', _status = 'Scheduled';
   String _filterStatus = 'All', _filterType = 'All';
@@ -73,14 +75,19 @@ class _State extends State<AdminCargoSchedulesPage> {
     final String typeQuery = _filterType == 'All' ? '' : 'type=$_filterType&';
     final String statusQuery = 'status=$_filterStatus';
     
-    await _api.fetchDataWithCache('schedules?$typeQuery$statusQuery&page=$_page&per_page=20', (data, isCached) {
+    await _api.fetchDataWithCache('schedules?$typeQuery$statusQuery&page=$_page&per_page=20', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (hasError && _schedules.isEmpty) {
+        setState(() { _fetching = false; _hasError = true; });
+        return;
+      }
       if (data == null) {
         setState(() => _fetching = false);
         return;
       }
       setState(() {
         _fetching = false;
+        _hasError = false;
         if (data is Map) {
           _schedules = ApiService.ensureList(data);
           if (data.containsKey('total')) {
@@ -282,7 +289,9 @@ class _State extends State<AdminCargoSchedulesPage> {
         itemBuilder: (ctx, i) => const ShimmerListTile(),
       );
     }
-    
+    if (_hasError) {
+      return FetchErrorView(onRetry: () => _fetch(refresh: true));
+    }
     return Column(children: [
       Row(children: [
         Expanded(

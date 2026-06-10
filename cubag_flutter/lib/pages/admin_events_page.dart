@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
+import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 import 'admin_qr_scanner_page.dart';
 
@@ -16,6 +17,7 @@ class _State extends State<AdminEventsPage> {
   final _api = ApiService();
   List<dynamic> _events = [];
   bool _loading = true;
+  bool _hasError = false;
   bool _loadingMore = false;
   bool _submitting = false;
   String _tab = 'upcoming';
@@ -71,12 +73,17 @@ class _State extends State<AdminEventsPage> {
       if (!_loading) setState(() => _loading = true);
     }
     
-    await _api.fetchDataWithCache('/events/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
+    await _api.fetchDataWithCache('/events/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (hasError && _events.isEmpty) {
+        setState(() { _loading = false; _hasError = true; });
+        return;
+      }
       if (data == null) { setState(() => _loading = false); return; }
       final d = data as Map<String, dynamic>;
       setState(() { 
         _loading = false;
+          _hasError = false;
         _events = ApiService.ensureList(d); 
         if (d.containsKey('total')) {
           _total = d['total'];
@@ -283,6 +290,7 @@ class _State extends State<AdminEventsPage> {
         itemBuilder: (ctx, i) => const ShimmerListTile(),
       );
     }
+    if (_hasError && _events.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
     if (_events.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No events found.', style: TextStyle(color: Colors.grey))));
     
     return Column(children: [

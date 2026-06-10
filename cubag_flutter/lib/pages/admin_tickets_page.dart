@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 
 const _kOrange = Color(0xFFf08232);
@@ -23,6 +24,7 @@ class _State extends State<AdminTicketsPage> {
   String _tab = 'inbox';
   bool _sending = false;
   bool _loading = true;
+  bool _hasError = false;
   bool _loadingMore = false;
 
   int _page = 1;
@@ -70,12 +72,17 @@ class _State extends State<AdminTicketsPage> {
       if (!_loading) setState(() => _loading = true);
     }
     
-    await _api.fetchDataWithCache('/tickets/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
+    await _api.fetchDataWithCache('/tickets/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (hasError && _tickets.isEmpty) {
+        setState(() { _loading = false; _hasError = true; });
+        return;
+      }
       if (data == null) { setState(() => _loading = false); return; }
       final d = data as Map<String, dynamic>;
       setState(() { 
         _loading = false;
+          _hasError = false;
         _tickets = ApiService.ensureList(d); 
         if (d.containsKey('total')) {
           _total = d['total'];
@@ -191,6 +198,8 @@ class _State extends State<AdminTicketsPage> {
       return Container(
       padding: const EdgeInsets.all(48),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+      if (_hasError && _tickets.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
+    return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
       child: Center(child: Text(_tab == 'inbox' ? 'No open tickets.' : 'No archived tickets.', style: const TextStyle(color: Colors.grey))),
     );
     }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 
 class AdminPaymentsPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class AdminPaymentsPage extends StatefulWidget {
 
 class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
   bool _loading = true;
+  bool _hasError = false;
   bool _loadingMore = false;
   Map<String, dynamic> _kpis = {'revenue': 0, 'pending': 0, 'failed': 0};
   List<dynamic> _transactions = [];
@@ -56,8 +58,12 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
       if (!_loading) setState(() => _loading = true);
     }
     
-    await ApiService().fetchDataWithCache('/payments/admin/all?page=$_page&limit=20&search=$_search&status=$_filterStatus', (data, isCached) {
+    await ApiService().fetchDataWithCache('/payments/admin/all?page=$_page&limit=20&search=$_search&status=$_filterStatus', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (hasError && _transactions.isEmpty) {
+        setState(() { _loading = false; _hasError = true; });
+        return;
+      }
       if (data == null) { setState(() => _loading = false); return; }
       final d = data as Map<String, dynamic>;
       setState(() { 
@@ -371,6 +377,8 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
               separatorBuilder: (ctx, i) => const SizedBox(height: 12),
               itemBuilder: (ctx, i) => const ShimmerListTile(),
             )
+          else if (_hasError && _transactions.isEmpty)
+            FetchErrorView(onRetry: () => _fetch(refresh: true))
           else if (_transactions.isEmpty)
             Container(
               padding: const EdgeInsets.all(40),

@@ -3,6 +3,7 @@ import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../components/trend_line.dart';
 import '../services/api_service.dart';
+import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 
 class StandingTier {
@@ -59,6 +60,7 @@ class AdminMembersPage extends StatefulWidget {
 
 class _AdminMembersPageState extends State<AdminMembersPage> {
   bool _loading = true;
+  bool _hasError = false;
   bool _loadingMore = false;
   int _page = 1;
   int _total = 0;
@@ -114,11 +116,16 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
       if (!_loading) setState(() => _loading = true);
     }
     
-    await ApiService().fetchDataWithCache('/members/admin/all?page=$_page&limit=20', (data, isCached) {
+    await ApiService().fetchDataWithCache('/members/admin/all?page=$_page&limit=20', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (hasError && _members.isEmpty) {
+        setState(() { _loading = false; _hasError = true; });
+        return;
+      }
       if (data == null) { setState(() => _loading = false); return; }
       setState(() {
         _loading = false;
+          _hasError = false;
         _members = ApiService.ensureList(data);
         if (data is Map && data.containsKey('total')) {
           _total = data['total'];
@@ -351,6 +358,8 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
                 );
               }
             )
+          else if (_hasError && _members.isEmpty)
+            FetchErrorView(onRetry: () => _fetch(refresh: true))
           else if (filtered.isEmpty)
             const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No members found.', style: TextStyle(color: Colors.grey))))
           else

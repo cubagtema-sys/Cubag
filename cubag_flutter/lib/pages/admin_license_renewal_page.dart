@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
+import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 
 const _kOrange = Color(0xFFf08232);
@@ -39,6 +40,7 @@ class _State extends State<AdminLicenseRenewalPage> {
   final _api = ApiService();
   List<dynamic> _members = [];
   bool _loading = true;
+  bool _hasError = false;
   String _tab = 'pending';
   Map<String, dynamic> _msg = {'text': '', 'ok': true};
   dynamic _selectedPayment;
@@ -81,8 +83,12 @@ class _State extends State<AdminLicenseRenewalPage> {
       if (!_loading) setState(() => _loading = true);
     }
     
-    await _api.fetchDataWithCache('members/admin/all?page=$_page&limit=20&status=$_tab', (data, isCached) {
+    await _api.fetchDataWithCache('members/admin/all?page=$_page&limit=20&status=$_tab', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (hasError && _members.isEmpty) {
+        setState(() { _loading = false; _hasError = true; });
+        return;
+      }
       if (data == null) { setState(() => _loading = false); return; }
       setState(() {
         _loading = false;
@@ -216,8 +222,10 @@ class _State extends State<AdminLicenseRenewalPage> {
                   separatorBuilder: (ctx, i) => const SizedBox(height: 12),
                   itemBuilder: (ctx, i) => const ShimmerListTile(),
                 ),
-              if (!_loading && _tab == 'pending') _buildPendingTab(),
-              if (!_loading && _tab == 'active')  _buildActiveTab(),
+              if (!_loading && _hasError && _members.isEmpty)
+                FetchErrorView(onRetry: () => _fetch(refresh: true)),
+              if (!_loading && !_hasError && _tab == 'pending') _buildPendingTab(),
+              if (!_loading && !_hasError && _tab == 'active')  _buildActiveTab(),
             ]),
           ),
         ),

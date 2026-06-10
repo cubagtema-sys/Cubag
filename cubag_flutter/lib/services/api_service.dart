@@ -97,7 +97,8 @@ class ApiService {
   /// Instantly fires [onData] with cached local data (if any), 
   /// then fetches fresh data from the API in the background, updates the cache, 
   /// and fires [onData] again with the fresh data.
-  Future<void> fetchDataWithCache(String path, Function(dynamic data, bool isCached) onData) async {
+  /// [hasError] is true when the network request failed (timeout, server error, etc.)
+  Future<void> fetchDataWithCache(String path, Function(dynamic data, bool isCached, {bool hasError}) onData) async {
     final prefs = await SharedPreferences.getInstance();
     final cacheKey = 'cache_v1_${_path(path)}';
 
@@ -106,7 +107,7 @@ class ApiService {
     if (cachedStr != null) {
       try {
         final cachedJson = await compute(jsonDecode, cachedStr);
-        onData(cachedJson, true);
+        onData(cachedJson, true, hasError: false);
       } catch (e) {
         debugPrint('[Cache Error] Failed to decode cache for $path: $e');
       }
@@ -126,11 +127,11 @@ class ApiService {
       }
       
       // Always call onData so pages can exit their loading state
-      onData(freshData, false);
+      onData(freshData, false, hasError: false);
     } catch (e) {
       debugPrint('[API Error] Background fetch failed for $path: $e');
-      // Always call onData even on error so loading spinners don't freeze
-      onData(null, false);
+      // Notify pages of error so they can show retry UI instead of blank
+      onData(null, false, hasError: true);
     }
   }
 

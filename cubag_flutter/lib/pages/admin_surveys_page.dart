@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 
 const _kOrange = Color(0xFFf08232);
@@ -24,6 +25,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   final _api = ApiService();
   List<dynamic> _surveys = [];
   bool _loading = true, _submitting = false;
+  bool _hasError = false;
   bool _loadingMore = false;
   String _tab = 'active';
   dynamic _viewingResults;
@@ -94,8 +96,12 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
     } else {
       if (!_loading) setState(() => _loading = true);
     }
-    await _api.fetchDataWithCache('surveys/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
+    await _api.fetchDataWithCache('surveys/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (hasError && _surveys.isEmpty) {
+        setState(() { _loading = false; _hasError = true; });
+        return;
+      }
       if (data == null) { setState(() => _loading = false); return; }
       setState(() {
         final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
@@ -349,6 +355,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         );
       }
 
+      if (_hasError && _surveys.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
       if (_surveys.isEmpty) return _emptyState();
 
       return Column(children: [
