@@ -115,18 +115,18 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
     }
     
     await ApiService().fetchDataWithCache('/members/admin/all?page=$_page&limit=20', (data, isCached) {
-      if (mounted && data != null) {
-        setState(() {
-          _loading = false;
-          _members = ApiService.ensureList(data);
-          if (data is Map && data.containsKey('total')) {
-            _total = data['total'];
-            _hasMore = _members.length < _total;
-          } else {
-            _hasMore = false;
-          }
-        });
-      }
+      if (!mounted) return;
+      if (data == null) { setState(() => _loading = false); return; }
+      setState(() {
+        _loading = false;
+        _members = ApiService.ensureList(data);
+        if (data is Map && data.containsKey('total')) {
+          _total = data['total'];
+          _hasMore = _members.length < _total;
+        } else {
+          _hasMore = false;
+        }
+      });
     });
   }
 

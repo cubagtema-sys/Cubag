@@ -57,20 +57,20 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
     }
     
     await ApiService().fetchDataWithCache('/payments/admin/all?page=$_page&limit=20&search=$_search&status=$_filterStatus', (data, isCached) {
-      if (mounted && data != null) {
-        final d = data as Map<String, dynamic>;
-        setState(() { 
-          _loading = false;
-          _kpis = d['kpis'] ?? _kpis; 
-          _transactions = ApiService.ensureList(d);
-          if (d.containsKey('total')) {
-            _total = d['total'];
-            _hasMore = _transactions.length < _total;
-          } else {
-            _hasMore = false;
-          }
-        });
-      }
+      if (!mounted) return;
+      if (data == null) { setState(() => _loading = false); return; }
+      final d = data as Map<String, dynamic>;
+      setState(() { 
+        _loading = false;
+        _kpis = d['kpis'] ?? _kpis; 
+        _transactions = ApiService.ensureList(d);
+        if (d.containsKey('total')) {
+          _total = d['total'];
+          _hasMore = _transactions.length < _total;
+        } else {
+          _hasMore = false;
+        }
+      });
     });
   }
 

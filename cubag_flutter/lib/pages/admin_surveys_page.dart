@@ -95,19 +95,19 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
       if (!_loading) setState(() => _loading = true);
     }
     await _api.fetchDataWithCache('surveys/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
-      if (mounted && data != null) {
-        setState(() {
-          final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
-          _surveys = raw is List ? raw : [];
-          if (data is Map && data.containsKey('total')) {
-            _total = data['total'];
-            _hasMore = _surveys.length < _total;
-          } else {
-            _hasMore = false;
-          }
-          _loading = false;
-        });
-      }
+      if (!mounted) return;
+      if (data == null) { setState(() => _loading = false); return; }
+      setState(() {
+        final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
+        _surveys = raw is List ? raw : [];
+        if (data is Map && data.containsKey('total')) {
+          _total = data['total'];
+          _hasMore = _surveys.length < _total;
+        } else {
+          _hasMore = false;
+        }
+        _loading = false;
+      });
     });
   }
 

@@ -82,31 +82,31 @@ class _State extends State<AdminLicenseRenewalPage> {
     }
     
     await _api.fetchDataWithCache('members/admin/all?page=$_page&limit=20&status=$_tab', (data, isCached) {
-      if (mounted && data != null) {
-        setState(() {
-          _loading = false;
-          if (data is Map) {
-            _members = ApiService.ensureList(data);
-            if (data.containsKey('total')) {
-              _total = data['total'];
-              _hasMore = _members.length < _total;
-            } else {
-              _hasMore = false;
-            }
-          } else if (data is List) {
-            _members = data;
+      if (!mounted) return;
+      if (data == null) { setState(() => _loading = false); return; }
+      setState(() {
+        _loading = false;
+        if (data is Map) {
+          _members = ApiService.ensureList(data);
+          if (data.containsKey('total')) {
+            _total = data['total'];
+            _hasMore = _members.length < _total;
+          } else {
             _hasMore = false;
           }
+        } else if (data is List) {
+          _members = data;
+          _hasMore = false;
+        }
 
-          for (final m in _members) {
-            final id = m['id'] as int;
-            if (!_editors.containsKey(id)) {
-              final exp = m['license_expiry_date']?.toString().split('T')[0] ?? '';
-              _editors[id] = {'preset': null, 'customDate': exp, 'saving': false};
-            }
+        for (final m in _members) {
+          final id = m['id'] as int;
+          if (!_editors.containsKey(id)) {
+            final exp = m['license_expiry_date']?.toString().split('T')[0] ?? '';
+            _editors[id] = {'preset': null, 'customDate': exp, 'saving': false};
           }
-        });
-      }
+        }
+      });
     });
   }
 

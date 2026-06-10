@@ -125,10 +125,12 @@ class ApiService {
         prefs.setString(cacheKey, _encodeJson(freshData));
       }
       
-      // Return fresh data
+      // Always call onData so pages can exit their loading state
       onData(freshData, false);
     } catch (e) {
       debugPrint('[API Error] Background fetch failed for $path: $e');
+      // Always call onData even on error so loading spinners don't freeze
+      onData(null, false);
     }
   }
 

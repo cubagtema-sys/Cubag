@@ -71,22 +71,22 @@ class _State extends State<AdminTicketsPage> {
     }
     
     await _api.fetchDataWithCache('/tickets/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
-      if (mounted && data != null) {
-        final d = data as Map<String, dynamic>;
-        setState(() { 
-          _loading = false;
-          _tickets = ApiService.ensureList(d); 
-          if (d.containsKey('total')) {
-            _total = d['total'];
-            _hasMore = _tickets.length < _total;
-          } else {
-            _hasMore = false;
-          }
-          if (_selected != null) {
-            _selected = _tickets.firstWhere((t) => t['id'] == _selected['id'], orElse: () => null);
-          }
-        });
-      }
+      if (!mounted) return;
+      if (data == null) { setState(() => _loading = false); return; }
+      final d = data as Map<String, dynamic>;
+      setState(() { 
+        _loading = false;
+        _tickets = ApiService.ensureList(d); 
+        if (d.containsKey('total')) {
+          _total = d['total'];
+          _hasMore = _tickets.length < _total;
+        } else {
+          _hasMore = false;
+        }
+        if (_selected != null) {
+          _selected = _tickets.firstWhere((t) => t['id'] == _selected['id'], orElse: () => null);
+        }
+      });
     });
   }
 

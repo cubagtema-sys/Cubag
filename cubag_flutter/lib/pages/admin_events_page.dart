@@ -72,19 +72,19 @@ class _State extends State<AdminEventsPage> {
     }
     
     await _api.fetchDataWithCache('/events/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
-      if (mounted && data != null) {
-        final d = data as Map<String, dynamic>;
-        setState(() { 
-          _loading = false;
-          _events = ApiService.ensureList(d); 
-          if (d.containsKey('total')) {
-            _total = d['total'];
-            _hasMore = _events.length < _total;
-          } else {
-            _hasMore = false;
-          }
-        });
-      }
+      if (!mounted) return;
+      if (data == null) { setState(() => _loading = false); return; }
+      final d = data as Map<String, dynamic>;
+      setState(() { 
+        _loading = false;
+        _events = ApiService.ensureList(d); 
+        if (d.containsKey('total')) {
+          _total = d['total'];
+          _hasMore = _events.length < _total;
+        } else {
+          _hasMore = false;
+        }
+      });
     });
   }
 

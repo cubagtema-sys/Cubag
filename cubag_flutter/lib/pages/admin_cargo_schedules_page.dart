@@ -74,23 +74,26 @@ class _State extends State<AdminCargoSchedulesPage> {
     final String statusQuery = 'status=$_filterStatus';
     
     await _api.fetchDataWithCache('schedules?$typeQuery$statusQuery&page=$_page&per_page=20', (data, isCached) {
-      if (mounted && data != null) {
-        setState(() {
-          _fetching = false;
-          if (data is Map) {
-            _schedules = ApiService.ensureList(data);
-            if (data.containsKey('total')) {
-              _total = data['total'];
-              _hasMore = _schedules.length < _total;
-            } else {
-              _hasMore = false;
-            }
+      if (!mounted) return;
+      if (data == null) {
+        setState(() => _fetching = false);
+        return;
+      }
+      setState(() {
+        _fetching = false;
+        if (data is Map) {
+          _schedules = ApiService.ensureList(data);
+          if (data.containsKey('total')) {
+            _total = data['total'];
+            _hasMore = _schedules.length < _total;
           } else {
-            _schedules = ApiService.ensureList(data);
             _hasMore = false;
           }
-        });
-      }
+        } else {
+          _schedules = ApiService.ensureList(data);
+          _hasMore = false;
+        }
+      });
     });
   }
 
