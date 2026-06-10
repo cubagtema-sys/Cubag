@@ -178,63 +178,19 @@ def calculate_and_update_member_rating(member_id, cursor=None):
         prev_score = prev_row['compliance_score'] if prev_row and prev_row['compliance_score'] is not None else None
         prev_stars = float(prev_row['star_rating']) if prev_row and prev_row['star_rating'] is not None else None
 
-        # Fetch compliance settings
-        cursor.execute("SELECT * FROM compliance_settings LIMIT 1")
-        settings = cursor.fetchone()
-        if not settings:
-            # Fallback to default if table is empty for some reason
-            settings = {
-                'payment_punctual': 25, 'payment_history': 15,
-                'license_active': 15, 'license_inactive': 5,
-                'task_completion': 15, 'survey_completion': 10,
-                'agm_active': 10, 'agm_inactive': 5
-            }
-
-        # 1. Payment Compliance
-        # Punctual Dues Payment (no outstanding balance)
-        cursor.execute("""
-            SELECT COUNT(*) as count 
-            FROM payments 
-            WHERE member_id = %s AND status = 'pending' AND due_date < CURRENT_DATE
-        """, (member_id,))
-        overdue_count = cursor.fetchone()['count']
-        payment_punctual = settings['payment_punctual'] if overdue_count == 0 else 0
-
-        # History of on-time payments
-        cursor.execute("""
-            SELECT COUNT(*) as total_paid, 
-                   SUM(CASE WHEN paid_at IS NOT NULL AND paid_at::date <= due_date THEN 1 ELSE 0 END) as on_time_paid 
-            FROM payments 
-            WHERE member_id = %s AND status = 'paid'
-        """, (member_id,))
-        pay_history = cursor.fetchone()
-        total_paid = pay_history['total_paid']
-        on_time_paid = pay_history['on_time_paid'] or 0
-
-        # New members with no payment history start at 0 — they earn their score
-        if total_paid == 0:
-            payment_history = 0
-        else:
-            payment_history = round((on_time_paid / total_paid) * settings['payment_history'])
-
-        payment_score = payment_punctual + payment_history
-
-        # 2. Task & Document Compliance
-        # License Renewal submitted before expiration
-        cursor.execute("SELECT status, license_expiry_date, manual_review_score FROM members WHERE id = %s", (member_id,))
+        cursor.execute("SELECT status, license_expiry_date, manual_review_score, created_at FROM members WHERE id = %s", (member_id,))
         member_row = cursor.fetchone()
         if not member_row:
-            # Member not found — return honest zeros, not a fake perfect score
             return {'compliance_score': 0, 'star_rating': 0.0, 'manual_review_score': 0}
             
-        status = member_row['status']
+        status = str(member_row['status'] or '').lower()
         expiry_date = member_row['license_expiry_date']
         manual_review = member_row['manual_review_score']
+        created_at = member_row['created_at']
         if manual_review is None:
             manual_review = 10
 
         today = date.today()
-        # Ensure expiry_date is a date object for comparison
         is_expired = False
         if expiry_date:
             if isinstance(expiry_date, str):
@@ -243,54 +199,53 @@ def calculate_and_update_member_rating(member_id, cursor=None):
                     expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d').date()
                 except Exception as e:
                     logger.debug("Failed to parse expiry_date for member %s: %s", member_id, e)
-            is_expired = expiry_date < today
+            if isinstance(expiry_date, date):
+                is_expired = expiry_date < today
 
-        if status == 'active' and not is_expired:
-            license_score = settings['license_active']
-        else:
-            license_score = settings['license_inactive']
-
-        # Compliance tasks completed
+        # 1. Licensing & Good Standing (40 Points)
+        standing_score = 0
+        if status == 'active':
+            if expiry_date and not is_expired:
+                standing_score = 40
+            else:
+                standing_score = 20 # Active but license expired (grace period)
+        elif status in ('pending', 'suspended', 'inactive'):
+            standing_score = 0
+            
+        # 2. Financial Compliance (30 Points)
         cursor.execute("""
-            SELECT COUNT(*) as total_tasks, 
-                   SUM(CASE WHEN done = TRUE THEN 1 ELSE 0 END) as completed_tasks 
-            FROM tasks 
+            SELECT COUNT(*) as total_count,
+                   SUM(CASE WHEN LOWER(status) = 'paid' THEN 1 ELSE 0 END) as paid_count
+            FROM payments
             WHERE member_id = %s
         """, (member_id,))
-        task_row = cursor.fetchone()
-        total_tasks = task_row['total_tasks']
-        completed_tasks = task_row['completed_tasks'] or 0
-
-        # New members with no tasks start at 0 — they earn their score as tasks are completed
-        if total_tasks == 0:
-            task_completion_score = 0
-        else:
-            task_completion_score = round((completed_tasks / total_tasks) * settings['task_completion'])
-
-        task_score = license_score + task_completion_score
-
-        # 3. Activity & Event Engagement
-        # Survey completion rate
-        cursor.execute("SELECT COUNT(*) as count FROM surveys")
-        total_surveys = cursor.fetchone()['count']
+        pay_stats = cursor.fetchone()
+        total_invoices = pay_stats['total_count'] or 0
+        paid_invoices = pay_stats['paid_count'] or 0
         
-        cursor.execute("SELECT COUNT(*) as count FROM survey_responses WHERE member_id = %s", (member_id,))
-        responded_surveys = cursor.fetchone()['count']
-
-        if total_surveys == 0:
-            survey_score = settings['survey_completion']
+        if total_invoices == 0:
+            financial_score = 30 # Innocent until proven guilty / Brand new member
         else:
-            survey_score = round((responded_surveys / total_surveys) * settings['survey_completion'])
+            financial_score = round((paid_invoices / total_invoices) * 30)
 
-        # Active Status Bonus — rewards members with active standing
-        agm_score = settings['agm_active'] if status == 'active' else settings['agm_inactive']
-        engagement_score = survey_score + agm_score
+        # 3. Event Attendance (20 Points)
+        # Count total events held SINCE the member joined
+        cursor.execute("SELECT COUNT(*) as count FROM events WHERE created_at >= %s", (created_at,))
+        total_events = cursor.fetchone()['count'] or 0
+        
+        cursor.execute("SELECT COUNT(*) as count FROM event_attendance WHERE member_id = %s", (member_id,))
+        attended_events = cursor.fetchone()['count'] or 0
+        
+        if total_events == 0:
+            event_score = 20 # No events held yet
+        else:
+            event_score = round((min(attended_events, total_events) / total_events) * 20)
 
-        # 4. Admin Review Rating (max 10)
-        admin_score = manual_review
+        # 4. Admin Trust Score (10 Points)
+        admin_score = manual_review # directly maps 0-10
 
         # Total Score & Rating
-        total_score = payment_score + task_score + engagement_score + admin_score
+        total_score = standing_score + financial_score + event_score + admin_score
         total_score = max(0, min(100, total_score))
         star_rating = round(total_score / 20.0, 2)
 
@@ -301,11 +256,21 @@ def calculate_and_update_member_rating(member_id, cursor=None):
             WHERE id = %s
         """, (total_score, star_rating, manual_review, member_id))
 
-        # Save to rating history
+        # Log history
         cursor.execute("""
             INSERT INTO member_rating_history (member_id, compliance_score, star_rating)
             VALUES (%s, %s, %s)
         """, (member_id, total_score, star_rating))
+
+        if should_close:
+            conn.commit()
+
+        breakdown = {
+            'standing': standing_score,
+            'financial': financial_score,
+            'events': event_score,
+            'admin': admin_score
+        }
 
         # Check for standing tier changes
         def get_tier(score):
@@ -350,25 +315,7 @@ def calculate_and_update_member_rating(member_id, cursor=None):
             'compliance_score': total_score,
             'star_rating': float(star_rating),
             'manual_review_score': manual_review,
-            'breakdown': {
-                'payment_score': payment_score,
-                'payment_punctual_score': payment_punctual,
-                'payment_history_score': payment_history,
-                'overdue_payments_count': overdue_count,
-                'total_payments_paid': total_paid,
-                'on_time_payments_paid': on_time_paid,
-                'task_score': task_score,
-                'license_score': license_score,
-                'task_completion_score': task_completion_score,
-                'total_tasks': total_tasks,
-                'completed_tasks': completed_tasks,
-                'engagement_score': engagement_score,
-                'survey_score': survey_score,
-                'total_surveys': total_surveys,
-                'responded_surveys': responded_surveys,
-                'agm_score': agm_score,
-                'admin_score': admin_score
-            }
+            'breakdown': breakdown
         }
     except Exception as e:
         logger.exception("Error calculating member rating: %s", e)
