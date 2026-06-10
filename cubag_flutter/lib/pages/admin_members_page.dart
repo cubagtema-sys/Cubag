@@ -671,6 +671,9 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
           ],
         ),
       ),
+    );
+  }
+
   Widget _buildMathBreakdownSection(Map<String, dynamic> m, Color primary) {
     final bd = m['breakdown'] as Map<String, dynamic>?;
     if (bd == null || bd.isEmpty || !bd.containsKey('standing')) {
