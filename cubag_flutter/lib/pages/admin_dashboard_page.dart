@@ -186,97 +186,104 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
     // Fire off all requests in parallel for better performance
     // Use limit=200 for payments & members so charts/date-filters have enough data
-    final results = await Future.wait([
-      api.get('/admin/dashboard'),
-      api.get('/payments/admin/all?page=1&limit=200').catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 403, data: null)),
-      api.get('/members/admin/all?page=1&limit=500').catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 403, data: null)),
-    ]);
+    try {
+      final results = await Future.wait([
+        api.get('/admin/dashboard').catchError((e) => Response(requestOptions: RequestOptions(), statusCode: 500, data: {'message': e.toString()})),
+        api.get('/payments/admin/all?page=1&limit=200').catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 403, data: null)),
+        api.get('/members/admin/all?page=1&limit=500').catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 403, data: null)),
+      ]);
 
-    final dRes = results[0];
-    final fRes = results[1];
-    final mRes = results[2];
+      final dRes = results[0];
+      final fRes = results[1];
+      final mRes = results[2];
 
-    bool dashboardFailed = false;
+      bool dashboardFailed = false;
 
-    // ── 1. Handle Dashboard KPIs (always use these for global counts — SQL aggregates over ALL rows) ──
-    if (dRes.statusCode == 200) {
-      final dData = dRes.data as Map<String, dynamic>;
+      // ── 1. Handle Dashboard KPIs ──
+      if (dRes.statusCode == 200 && dRes.data is Map) {
+        final dData = Map<String, dynamic>.from(dRes.data);
 
-      if (dData['kpis'] != null) {
-        _stats = Map<String, dynamic>.from(dData['kpis']);
-        _totalMembers = int.tryParse(_stats['total_members']?.toString() ?? '') ?? 0;
-        _openTickets = int.tryParse(_stats['open_tickets']?.toString() ?? '') ?? 0;
-        _revenue = double.tryParse(_stats['revenue']?.toString() ?? '') ?? 0.0;
-        _pendingRevenue = double.tryParse(_stats['pending_revenue']?.toString() ?? '') ?? 0.0;
-        _failedRevenue = double.tryParse(_stats['failed_revenue']?.toString() ?? '') ?? 0.0;
-        _announcementsCount = int.tryParse(_stats['announcements']?.toString() ?? '') ?? 0;
-        _cargoSchedulesCount = int.tryParse(_stats['schedules']?.toString() ?? '') ?? 0;
+        if (dData['kpis'] != null) {
+          _stats = Map<String, dynamic>.from(dData['kpis']);
+          _totalMembers = int.tryParse(_stats['total_members']?.toString() ?? '') ?? 0;
+          _openTickets = int.tryParse(_stats['open_tickets']?.toString() ?? '') ?? 0;
+          _revenue = double.tryParse(_stats['revenue']?.toString() ?? '') ?? 0.0;
+          _pendingRevenue = double.tryParse(_stats['pending_revenue']?.toString() ?? '') ?? 0.0;
+          _failedRevenue = double.tryParse(_stats['failed_revenue']?.toString() ?? '') ?? 0.0;
+          _announcementsCount = int.tryParse(_stats['announcements']?.toString() ?? '') ?? 0;
+          _cargoSchedulesCount = int.tryParse(_stats['schedules']?.toString() ?? '') ?? 0;
+        }
+
+        if (dData['status_counts'] != null) {
+          final sc = Map<String, dynamic>.from(dData['status_counts']);
+          _statusCounts = sc.map((k, v) => MapEntry(k.toString(), double.tryParse(v?.toString() ?? '0') ?? 0.0));
+        }
+        if (dData['type_counts'] != null) {
+          final tc = Map<String, dynamic>.from(dData['type_counts']);
+          _typeCounts = tc.map((k, v) => MapEntry(k.toString(), double.tryParse(v?.toString() ?? '0') ?? 0.0));
+        }
+        if (dData['recent_members'] != null) {
+          _recentMembers = ApiService.ensureList(dData['recent_members']);
+        }
+      } else {
+        dashboardFailed = true;
+        if (dRes.data != null && dRes.data is Map) {
+          _error = dRes.data['message'] ?? dRes.data['error_details'];
+        } else {
+          _error = 'Server error loading dashboard stats';
+        }
       }
 
-      // ── Use server-side SQL aggregate counts for member insight charts ──
-      // These are computed over ALL members (not a paginated slice).
-      if (dData['status_counts'] != null) {
-        final sc = Map<String, dynamic>.from(dData['status_counts']);
-        _statusCounts = sc.map((k, v) => MapEntry(k.toString(), double.tryParse(v?.toString() ?? '0') ?? 0.0));
-      }
-      if (dData['type_counts'] != null) {
-        final tc = Map<String, dynamic>.from(dData['type_counts']);
-        _typeCounts = tc.map((k, v) => MapEntry(k.toString(), double.tryParse(v?.toString() ?? '0') ?? 0.0));
-      }
-      if (dData['recent_members'] != null) {
-        _recentMembers = ApiService.ensureList(dData['recent_members']);
-      }
-    } else {
-      dashboardFailed = true;
-      _error = dRes.data != null && dRes.data is Map ? (dRes.data['message'] ?? dRes.data['error_details']) : 'Server error';
-    }
+      // ── 2. Handle Payments ──
+      if (fRes.statusCode == 200 && fRes.data != null) {
+        final fData = fRes.data is Map ? Map<String, dynamic>.from(fRes.data) : null;
+        _transactions = ApiService.ensureList(fRes.data);
 
-    // ── 2. Handle Payments — populate transaction list & refine revenue KPIs ──
-    if (fRes.statusCode == 200 && fRes.data is Map) {
-      final fData = fRes.data as Map<String, dynamic>;
-      // fData['data'] contains the paginated list of payments
-      _transactions = ApiService.ensureList(fData);
-      // Prefer the server-computed KPI totals (aggregated over ALL payments)
-      final kpis = fData['kpis'] as Map<String, dynamic>? ?? {};
-      if (kpis.isNotEmpty) {
-        _revenue = double.tryParse(kpis['revenue']?.toString() ?? '') ?? _revenue;
-        _pendingRevenue = double.tryParse(kpis['pending']?.toString() ?? '') ?? _pendingRevenue;
-        _failedRevenue = double.tryParse(kpis['failed']?.toString() ?? '') ?? _failedRevenue;
-      }
-    }
-
-    // ── 3. Handle Members — store raw list for date-filtered views ──
-    // Note: _statusCounts and _typeCounts are already set from /admin/dashboard SQL aggregates above.
-    // _rawMembers here is only used for date-range filtering on the frontend.
-    if (mRes.statusCode == 200) {
-      _rawMembers = ApiService.ensureList(mRes.data);
-      // Only override the insight counts from raw members when the user switches to a date-filtered view
-      // (handled in the _filteredStatusCountsMap and _filteredTypeCountsMap getters).
-      // For 'All Time', we keep the more-accurate server aggregate counts.
-      if (_dateFilter != 'All Time' && _rawMembers.isNotEmpty) {
-        final Map<String, double> sc = {'active': 0, 'pending': 0, 'suspended': 0, 'inactive': 0};
-        final Map<String, double> tc = {'Corporate Agency': 0, 'Individual Broker': 0, 'Freight Forwarder': 0, 'Shipping Line': 0};
-        for (var m in _rawMembers) {
-          final status = (m['status'] ?? '').toString().toLowerCase();
-          if (sc.containsKey(status)) sc[status] = sc[status]! + 1;
-          final type = (m['member_type'] ?? '').toString();
-          if (type.isNotEmpty) {
-            if (tc.containsKey(type)) tc[type] = tc[type]! + 1;
-            else tc[type] = (tc[type] ?? 0) + 1;
+        if (fData != null) {
+          final kpis = fData['kpis'] as Map<String, dynamic>? ?? {};
+          if (kpis.isNotEmpty) {
+            _revenue = double.tryParse(kpis['revenue']?.toString() ?? '') ?? _revenue;
+            _pendingRevenue = double.tryParse(kpis['pending']?.toString() ?? '') ?? _pendingRevenue;
+            _failedRevenue = double.tryParse(kpis['failed']?.toString() ?? '') ?? _failedRevenue;
           }
         }
-        _statusCounts = sc;
-        _typeCounts = tc;
       }
-    }
 
-    if (mounted) {
-      setState(() {
-        _loading = false;
-        if (dashboardFailed && _error == null) {
-          _error = 'Dashboard could not load critical data.';
+      // ── 3. Handle Members ──
+      if (mRes.statusCode == 200 && mRes.data != null) {
+        _rawMembers = ApiService.ensureList(mRes.data);
+        if (_dateFilter != 'All Time' && _rawMembers.isNotEmpty) {
+          final Map<String, double> sc = {'active': 0, 'pending': 0, 'suspended': 0, 'inactive': 0};
+          final Map<String, double> tc = {'Corporate Agency': 0, 'Individual Broker': 0, 'Freight Forwarder': 0, 'Shipping Line': 0};
+          for (var m in _rawMembers) {
+            final status = (m['status'] ?? '').toString().toLowerCase();
+            if (sc.containsKey(status)) sc[status] = sc[status]! + 1;
+            final type = (m['member_type'] ?? '').toString();
+            if (type.isNotEmpty) {
+              if (tc.containsKey(type)) tc[type] = tc[type]! + 1;
+              else tc[type] = (tc[type] ?? 0) + 1;
+            }
+          }
+          _statusCounts = sc;
+          _typeCounts = tc;
         }
-      });
+      }
+
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          if (dashboardFailed && _error == null) {
+            _error = 'Dashboard could not load critical data.';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'An unexpected error occurred: $e';
+        });
+      }
     }
   }
 

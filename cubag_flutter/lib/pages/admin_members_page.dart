@@ -118,17 +118,34 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
     
     await ApiService().fetchDataWithCache('/members/admin/all?page=$_page&limit=20', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
-      if (hasError && _members.isEmpty) {
-        setState(() { _loading = false; _hasError = true; });
+
+      if (hasError) {
+        if (_members.isEmpty) {
+          setState(() { _loading = false; _hasError = true; });
+        } else {
+          // If we already have cached data, don't show full error view,
+          // but we should still exit loading state.
+          setState(() { _loading = false; });
+        }
         return;
       }
-      if (data == null) { setState(() => _loading = false); return; }
+
+      if (data == null) {
+        setState(() => _loading = false);
+        return;
+      }
+
       setState(() {
         _loading = false;
-          _hasError = false;
-        _members = ApiService.ensureList(data);
+        _hasError = false;
+        final List<dynamic> newMembers = ApiService.ensureList(data);
+
+        // If it's fresh data (not cached), replace. If cached, just set.
+        // Actually fetchDataWithCache calls once for cache and once for fresh.
+        _members = newMembers;
+
         if (data is Map && data.containsKey('total')) {
-          _total = data['total'];
+          _total = int.tryParse(data['total']?.toString() ?? '0') ?? 0;
           _hasMore = _members.length < _total;
         } else {
           _hasMore = false;
