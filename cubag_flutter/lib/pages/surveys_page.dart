@@ -134,18 +134,7 @@ class _SurveysPageState extends State<SurveysPage> {
       child: Stack(children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Page header
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: _kOrange.withAlpha(20), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.how_to_vote_rounded, color: _kOrange, size: 22),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Surveys & Elections', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0f172a))),
-            ])),
-          ]),
-          const SizedBox(height: 20),
+
 
           if (_answering != null)
             _buildAnswerForm()
@@ -238,100 +227,69 @@ class _SurveysPageState extends State<SurveysPage> {
     final coverImage = s['cover_image']?.toString();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: hasVoted ? _kGreen.withAlpha(50) : const Color(0xFFe2e8f0)),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 10, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(4), blurRadius: 6, offset: const Offset(0, 2))],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Cover image banner
-        if (coverImage != null && coverImage.isNotEmpty)
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Image.network(
-              coverImage, width: double.infinity, height: 120, fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
-        // Type strip
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          decoration: BoxDecoration(
-            color: color.withAlpha(10),
-            borderRadius: (coverImage != null && coverImage.isNotEmpty)
-                ? BorderRadius.zero
-                : const BorderRadius.vertical(top: Radius.circular(16)),
-            border: Border(bottom: BorderSide(color: color.withAlpha(25))),
-          ),
-          child: Row(children: [
-            Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 14, color: color)),
-            const SizedBox(width: 8),
-            Text('$emoji ${(type ?? 'Survey').toUpperCase()}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.8)),
-            const Spacer(),
-            if (hasVoted)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: _kGreen.withAlpha(20), borderRadius: BorderRadius.circular(20)),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.check_circle, color: _kGreen, size: 12),
-                  SizedBox(width: 4),
-                  Text('Voted', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _kGreen)),
-                ]),
-              ),
-          ]),
-        ),
-        // Body
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(s['title']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Color(0xFF0f172a))),
-            const SizedBox(height: 4),
-            Text(s['description']?.toString() ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF64748b), fontSize: 13)),
-            const SizedBox(height: 12),
-            Row(children: [
-              const Icon(Icons.calendar_today, size: 13, color: Color(0xFF94a3b8)),
-              const SizedBox(width: 4),
-              Text('Closes: ${_deadlineLabel(s['deadline'])}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748b))),
-            ]),
-            const SizedBox(height: 14),
-            if (isActive && !hasVoted)
-              SizedBox(
-                width: double.infinity, height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () => setState(() { _answering = s; _selected = ''; }),
-                  icon: Icon(icon, size: 18),
-                  label: const Text('Participate Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: color, foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0,
-                  ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (coverImage != null && coverImage.isNotEmpty)
+              ClipRRect(
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                child: Image.network(
+                  coverImage, width: 100, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(width: 100, color: const Color(0xFFf1f5f9), child: const Icon(Icons.image_not_supported, color: Color(0xFFcbd5e1), size: 24)),
                 ),
-              )
-            else if (hasVoted)
-              Container(
-                width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(color: _kGreen.withAlpha(10), borderRadius: BorderRadius.circular(12), border: Border.all(color: _kGreen.withAlpha(40))),
-                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.verified, color: _kGreen, size: 18),
-                  SizedBox(width: 8),
-                  Text('Your response has been recorded', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w700, fontSize: 13)),
-                ]),
-              )
-            else
-              Container(
-                width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(color: const Color(0xFFf1f5f9), borderRadius: BorderRadius.circular(12)),
-                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.lock_outline, color: Color(0xFF94a3b8), size: 16),
-                  SizedBox(width: 8),
-                  Text('This poll is now closed', style: TextStyle(color: Color(0xFF94a3b8), fontWeight: FontWeight.w600, fontSize: 13)),
-                ]),
               ),
-          ]),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(6)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 10, color: color), const SizedBox(width: 4), Text('$emoji ${(type ?? 'Survey').toUpperCase()}', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: color))])),
+                        const SizedBox(width: 8),
+                        if (hasVoted) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: _kGreen.withAlpha(20), borderRadius: BorderRadius.circular(6)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.check_circle, color: _kGreen, size: 10), SizedBox(width: 4), Text('Voted', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: _kGreen))])),
+                        const Spacer(),
+                        const Icon(Icons.calendar_today, size: 11, color: Color(0xFF94a3b8)),
+                        const SizedBox(width: 4),
+                        Text(_deadlineLabel(s['deadline']), style: const TextStyle(fontSize: 10, color: Color(0xFF64748b))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(s['title']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0f172a))),
+                    const SizedBox(height: 4),
+                    Text(s['description']?.toString() ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF64748b), fontSize: 12)),
+                    if (isActive && !hasVoted) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: () => setState(() { _answering = s; _selected = ''; }),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: color, foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                          child: const Text('Participate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      )
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      ]),
+      ),
     );
   }
 
