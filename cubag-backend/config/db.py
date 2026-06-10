@@ -155,6 +155,16 @@ def init_db():
                 ALTER TABLE events ADD COLUMN IF NOT EXISTS capacity INT;
             """)
 
+            # Event Attendance
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS event_attendance (
+                    event_id INT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                    member_id INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                    checked_in_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (event_id, member_id)
+                )
+            """)
+
             # Payments / Dues
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS payments (

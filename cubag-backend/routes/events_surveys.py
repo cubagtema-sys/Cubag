@@ -148,6 +148,64 @@ def get_all_events_admin():
         conn.close()
 
 
+@events_bp.route('/<int:event_id>/check-in', methods=['POST'])
+@sub_admin_required('events')
+def check_in_member(event_id):
+    admin_id = get_jwt_identity()
+    data = request.get_json() or {}
+    member_id = data.get('member_id')
+    if not member_id:
+        return jsonify({'message': 'Member ID is required'}), 400
+    
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            # Verify event exists
+            cursor.execute("SELECT title FROM events WHERE id = %s", (event_id,))
+            event = cursor.fetchone()
+            if not event:
+                return jsonify({'message': 'Event not found'}), 404
+            
+            # Upsert into event_attendance
+            cursor.execute("""
+                INSERT INTO event_attendance (event_id, member_id)
+                VALUES (%s, %s)
+                ON CONFLICT (event_id, member_id) DO NOTHING
+            """, (event_id, member_id))
+            conn.commit()
+            
+            log_admin_action(admin_id, 'Checked in member', 'event', event_id, event['title'], f"Member ID: {member_id}")
+        return jsonify({'message': f'Member #{member_id} checked in successfully'}), 200
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+@events_bp.route('/<int:event_id>/attendees', methods=['GET'])
+@sub_admin_required('events')
+def get_attendees(event_id):
+    conn = get_db()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT m.id, m.name, m.email, m.company, m.member_type, ea.checked_in_at
+                FROM event_attendance ea
+                JOIN members m ON ea.member_id = m.id
+                WHERE ea.event_id = %s
+                ORDER BY ea.checked_in_at DESC
+            """, (event_id,))
+            data = cursor.fetchall()
+            for row in data:
+                if hasattr(row.get('checked_in_at'), 'isoformat'):
+                    row['checked_in_at'] = row['checked_in_at'].isoformat()
+        return jsonify({'attendees': data}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
 # ─────────────────────────────────────────────
 #  SURVEYS
 # ─────────────────────────────────────────────
