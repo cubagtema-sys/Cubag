@@ -146,7 +146,8 @@ def create_payment():
                 payment_id = cursor.fetchone()['id']
 
             # If it's a license renewal, ensure member status is 'pending' while waiting for pay
-            if 'Renewal' in description or 'License' in description:
+            desc_lower = description.lower()
+            if 'renewal' in desc_lower or 'license' in desc_lower:
                 cursor.execute(
                     "UPDATE members SET status = 'pending' WHERE id = %s",
                     (member_id,)
@@ -223,7 +224,8 @@ def create_payment():
                         "UPDATE payments SET payment_ref = %s WHERE id = %s",
                         (tx_ref, payment_id)
                     )
-                    if 'Renewal' in description or 'License' in description:
+                    desc_lower = description.lower()
+                    if 'renewal' in desc_lower or 'license' in desc_lower:
                         cursor.execute(
                             "UPDATE members SET payment_ref = %s WHERE id = %s",
                             (tx_ref, member_id)
@@ -454,7 +456,8 @@ def _mark_payment_as_paid(payment_id):
             # ── Handle License Issuance & Expiry ──
             license_issued = False
             expiry_date_str = None
-            if 'Renewal' in description or 'License' in description:
+            desc_lower = description.lower()
+            if 'renewal' in desc_lower or 'license' in desc_lower:
                 import datetime
                 now = datetime.datetime.now()
                 expiry_date = now + datetime.timedelta(days=365)
