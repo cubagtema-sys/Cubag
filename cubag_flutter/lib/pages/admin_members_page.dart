@@ -234,14 +234,15 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).primaryColor;
     final total   = _members.length;
-    final active  = _members.where((m) => m['status'] == 'active').length;
-    final pending = _members.where((m) => m['status'] == 'pending').length;
+    final active  = _members.where((m) => m['status']?.toString().toLowerCase() == 'active').length;
+    final pending = _members.where((m) => m['status']?.toString().toLowerCase() == 'pending').length;
     
     final filtered = _members.where((m) {
       final q = _search.toLowerCase();
+      final status = m['status']?.toString().toLowerCase() ?? '';
+      if (_filterStatus != 'all' && status != _filterStatus) return false;
       return ((m['name'] ?? '').toString().toLowerCase().contains(q) ||
-              (m['email'] ?? '').toString().toLowerCase().contains(q)) &&
-             (_filterStatus == 'all' || m['status'] == _filterStatus);
+              (m['email'] ?? '').toString().toLowerCase().contains(q));
     }).toList();
 
     // Sort logic
