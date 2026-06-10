@@ -27,118 +27,59 @@ class _State extends State<AdminAnnouncementsPage> {
   // Pagination State for Active
   List<dynamic> _active = [];
   bool _loadingActive = true;
-  bool _loadingMoreActive = false;
   int _pageActive = 1;
   bool _hasMoreActive = true;
 
   // Pagination State for Archived
   List<dynamic> _archived = [];
   bool _loadingArchived = true;
-  bool _loadingMoreArchived = false;
   int _pageArchived = 1;
   bool _hasMoreArchived = true;
 
-  final ScrollController _scrollController = ScrollController();
-
   @override void initState() { 
     super.initState(); 
-    _fetchActive(); 
-    _fetchArchived();
-    _scrollController.addListener(_onScroll);
+    _fetchActive(page: 1); 
+    _fetchArchived(page: 1);
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      if (_tab == 'history' && !_loadingActive && !_loadingMoreActive && _hasMoreActive) {
-        _fetchMoreActive();
-      } else if (_tab == 'archived' && !_loadingArchived && !_loadingMoreArchived && _hasMoreArchived) {
-        _fetchMoreArchived();
+  Future<void> _fetchActive({int page = 1}) async {
+    setState(() { _pageActive = page; _loadingActive = true; });
+    try {
+      final res = await _api.get('/announcements/admin/all?archived=false&page=$_pageActive&limit=10');
+      if (res.statusCode == 200) {
+        final data = res.data;
+        if (mounted) setState(() {
+          _active = ApiService.ensureList(data);
+          if (data is Map && data.containsKey('total')) {
+            _hasMoreActive = (_pageActive * 10) < data['total'];
+          } else {
+            _hasMoreActive = _active.length == 10;
+          }
+        });
       }
+    } finally {
+      if (mounted) setState(() => _loadingActive = false);
     }
   }
 
-  Future<void> _fetchActive({bool refresh = false}) async {
-    if (refresh) setState(() { _pageActive = 1; _loadingActive = true; _hasMoreActive = true; });
-    await _api.fetchDataWithCache('/announcements/admin/all?archived=false&page=$_pageActive&limit=20', (data, isCached, {bool hasError = false}) {
-      if (mounted && data != null) {
-        setState(() {
-          _active = ApiService.ensureList(data);
-          if (data is Map && data.containsKey('total')) {
-            _hasMoreActive = _active.length < data['total'];
-          } else {
-            _hasMoreActive = false;
-          }
-          _loadingActive = false;
-        });
-      }
-    });
-    if (mounted) setState(() => _loadingActive = false);
-  }
-
-  Future<void> _fetchMoreActive() async {
-    setState(() => _loadingMoreActive = true);
-    _pageActive++;
+  Future<void> _fetchArchived({int page = 1}) async {
+    setState(() { _pageArchived = page; _loadingArchived = true; });
     try {
-      final res = await _api.get('/announcements/admin/all?archived=false&page=$_pageActive&limit=20');
+      final res = await _api.get('/announcements/admin/all?archived=true&page=$_pageArchived&limit=10');
       if (res.statusCode == 200) {
         final data = res.data;
-        final newItems = ApiService.ensureList(data);
-        setState(() {
-          _active.addAll(newItems);
-          if (data is Map && data.containsKey('total')) {
-            _hasMoreActive = _active.length < data['total'];
-          } else {
-            _hasMoreActive = newItems.isNotEmpty;
-          }
-        });
-      }
-    } catch (_) { _pageActive--; }
-    setState(() => _loadingMoreActive = false);
-  }
-
-  Future<void> _fetchArchived({bool refresh = false}) async {
-    if (refresh) setState(() { _pageArchived = 1; _loadingArchived = true; _hasMoreArchived = true; });
-    await _api.fetchDataWithCache('/announcements/admin/all?archived=true&page=$_pageArchived&limit=20', (data, isCached, {bool hasError = false}) {
-      if (mounted && data != null) {
-        setState(() {
+        if (mounted) setState(() {
           _archived = ApiService.ensureList(data);
           if (data is Map && data.containsKey('total')) {
-            _hasMoreArchived = _archived.length < data['total'];
+            _hasMoreArchived = (_pageArchived * 10) < data['total'];
           } else {
-            _hasMoreArchived = false;
-          }
-          _loadingArchived = false;
-        });
-      }
-    });
-    if (mounted) setState(() => _loadingArchived = false);
-  }
-
-  Future<void> _fetchMoreArchived() async {
-    setState(() => _loadingMoreArchived = true);
-    _pageArchived++;
-    try {
-      final res = await _api.get('/announcements/admin/all?archived=true&page=$_pageArchived&limit=20');
-      if (res.statusCode == 200) {
-        final data = res.data;
-        final newItems = ApiService.ensureList(data);
-        setState(() {
-          _archived.addAll(newItems);
-          if (data is Map && data.containsKey('total')) {
-            _hasMoreArchived = _archived.length < data['total'];
-          } else {
-            _hasMoreArchived = newItems.isNotEmpty;
+            _hasMoreArchived = _archived.length == 10;
           }
         });
       }
-    } catch (_) { _pageArchived--; }
-    setState(() => _loadingMoreArchived = false);
+    } finally {
+      if (mounted) setState(() => _loadingArchived = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -147,45 +88,34 @@ class _State extends State<AdminAnnouncementsPage> {
     await _api.postData('announcements', {'title': _titleCtrl.text, 'body': _bodyCtrl.text, 'category': _category, 'posted_by': 'System Administrator'});
     _titleCtrl.clear(); _bodyCtrl.clear();
     setState(() => _category = 'General');
-    await _fetchActive(refresh: true);
+    await _fetchActive(page: 1);
     if (mounted) setState(() { _submitting = false; _msg = 'Announcement broadcasted!'; _tab = 'history'; });
     Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _msg = ''); });
   }
 
   Future<void> _delete(int id) async {
-    // Optimistic UI Update
-    final index = _active.indexWhere((a) => a['id'] == id);
-    if (index != -1) {
-      final item = _active.removeAt(index);
-      setState(() => _archived.insert(0, item));
-    }
-
+    // Optimistic update
+    setState(() => _active.removeWhere((a) => a['id'] == id));
     try {
       await _api.deleteData('announcements/$id');
       setState(() => _msg = 'Archived successfully.');
       Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _msg = ''); });
+      _fetchArchived(page: 1);
     } catch (_) {
-      // Revert on error (could be improved to fully revert)
-      _fetchActive(refresh: true);
-      _fetchArchived(refresh: true);
+      _fetchActive(page: _pageActive);
     }
   }
 
   Future<void> _restore(int id) async {
-    // Optimistic UI Update
-    final index = _archived.indexWhere((a) => a['id'] == id);
-    if (index != -1) {
-      final item = _archived.removeAt(index);
-      setState(() => _active.insert(0, item));
-    }
-
+    // Optimistic update
+    setState(() => _archived.removeWhere((a) => a['id'] == id));
     try {
       await _api.patchData('announcements/$id/restore', {});
       setState(() => _msg = 'Restored.');
       Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _msg = ''); });
+      _fetchActive(page: 1);
     } catch (_) {
-      _fetchActive(refresh: true);
-      _fetchArchived(refresh: true);
+      _fetchArchived(page: _pageArchived);
     }
   }
 
@@ -198,46 +128,43 @@ class _State extends State<AdminAnnouncementsPage> {
     ];
     return AppLayout(
       title: 'Announcements',
-      scrollable: false,
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Tab bar
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-            child: Row(children: tabs.map((t) {
-              final active = _tab == t['id'];
-              return Expanded(child: GestureDetector(
-                onTap: () {
-                  setState(() => _tab = t['id']!);
-                  if (t['id'] == 'history' && _active.isEmpty) _fetchActive(refresh: true);
-                  if (t['id'] == 'archived' && _archived.isEmpty) _fetchArchived(refresh: true);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-                  alignment: Alignment.center,
-                  child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
-                ),
-              ));
-            }).toList()),
-          ),
-          const SizedBox(height: 16),
+      scrollable: true,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Tab bar
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+          child: Row(children: tabs.map((t) {
+            final active = _tab == t['id'];
+            return Expanded(child: GestureDetector(
+              onTap: () {
+                setState(() => _tab = t['id']!);
+                if (t['id'] == 'history') _fetchActive(page: 1);
+                if (t['id'] == 'archived') _fetchArchived(page: 1);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                alignment: Alignment.center,
+                child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
+              ),
+            ));
+          }).toList()),
+        ),
+        const SizedBox(height: 16),
 
-          // Toast
-          if (_msg.isNotEmpty) Container(
-            padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12), border: Border.all(color: _kGreen.withAlpha(50))),
-            child: Text(_msg, style: const TextStyle(color: _kGreen, fontWeight: FontWeight.w700, fontSize: 13)),
-          ),
+        // Toast
+        if (_msg.isNotEmpty) Container(
+          padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12), border: Border.all(color: _kGreen.withAlpha(50))),
+          child: Text(_msg, style: const TextStyle(color: _kGreen, fontWeight: FontWeight.w700, fontSize: 13)),
+        ),
 
-          if (_tab == 'create') _buildCreate(),
-          if (_tab == 'history') _buildList(_active, archived: false, loading: _loadingActive, loadingMore: _loadingMoreActive),
-          if (_tab == 'archived') _buildList(_archived, archived: true, loading: _loadingArchived, loadingMore: _loadingMoreArchived),
-        ]),
-      )
+        if (_tab == 'create') _buildCreate(),
+        if (_tab == 'history') _buildList(_active, archived: false, loading: _loadingActive, page: _pageActive, hasMore: _hasMoreActive, onPage: (p) => _fetchActive(page: p)),
+        if (_tab == 'archived') _buildList(_archived, archived: true, loading: _loadingArchived, page: _pageArchived, hasMore: _hasMoreArchived, onPage: (p) => _fetchArchived(page: p)),
+      ]),
     );
   }
 
@@ -295,7 +222,7 @@ class _State extends State<AdminAnnouncementsPage> {
     ]),
   );
 
-  Widget _buildList(List items, {required bool archived, required bool loading, required bool loadingMore}) {
+  Widget _buildList(List items, {required bool archived, required bool loading, required int page, required bool hasMore, required Function(int) onPage}) {
     if (loading) {
       return ListView.separated(
         shrinkWrap: true,
@@ -337,8 +264,30 @@ class _State extends State<AdminAnnouncementsPage> {
           Text('Posted by: ${ann['posted_by'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
         ]),
       )),
-      if (loadingMore) const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()),
+      
+      // Pagination Controls
+      const SizedBox(height: 16),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextButton.icon(
+            onPressed: page > 1 ? () => onPage(page - 1) : null,
+            icon: const Icon(Icons.chevron_left),
+            label: const Text('Previous'),
+            style: TextButton.styleFrom(foregroundColor: _kOrange),
+          ),
+          const SizedBox(width: 16),
+          Text('Page $page', style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 16),
+          TextButton.icon(
+            onPressed: hasMore ? () => onPage(page + 1) : null,
+            icon: const Icon(Icons.chevron_right),
+            label: const Text('Next'),
+            style: TextButton.styleFrom(foregroundColor: _kOrange),
+          ),
+        ],
+      ),
+      const SizedBox(height: 20),
     ]);
   }
 }
-
