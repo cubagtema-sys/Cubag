@@ -1,0 +1,41 @@
+services:
+  # 1. PostgreSQL Database
+  - type: psql
+    name: cubag-db
+    plan: free
+
+  # 2. Flask Backend Web Service
+  - type: web
+    name: cubag-backend
+    env: python
+    region: frankfurt
+    plan: free
+    rootDirectory: cubag-backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn --worker-class gthread --threads 50 -w 1 server:app"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cubag-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGINS
+        value: "*" # Temporarily allow all origins to ensure the frontend can connect
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false # You will need to manually paste your firebase-key.json in the Render Dashboard
+
+  # 3. Flutter Web Frontend Static Site
+  - type: static
+    name: cubag-frontend
+    region: frankfurt
+    rootDirectory: cubag_flutter
+    buildCommand: "git clone https://github.com/flutter/flutter.git -b stable && export PATH=\"$PATH:$(pwd)/flutter/bin\" && flutter build web --release"
+    staticPublishPath: build/web
+    routes:
+      # Redirect all 404s to index.html for Flutter Web's routing to work
+      - type: rewrite
+        source: /*
+        destination: /index.html
