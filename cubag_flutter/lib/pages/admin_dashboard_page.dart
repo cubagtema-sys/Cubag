@@ -214,14 +214,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
 
       if (dData['status_counts'] != null) {
         final sc = Map<String, dynamic>.from(dData['status_counts']);
-        _statusCounts = sc.map((k, v) => MapEntry(k.toString(), (v ?? 0).toDouble()));
+        _statusCounts = sc.map((k, v) => MapEntry(k.toString(), double.tryParse(v?.toString() ?? '0') ?? 0.0));
       }
       if (dData['type_counts'] != null) {
         final tc = Map<String, dynamic>.from(dData['type_counts']);
-        _typeCounts = tc.map((k, v) => MapEntry(k.toString(), (v ?? 0).toDouble()));
+        _typeCounts = tc.map((k, v) => MapEntry(k.toString(), double.tryParse(v?.toString() ?? '0') ?? 0.0));
       }
       if (dData['recent_members'] != null) {
-        _recentMembers = dData['recent_members'] as List<dynamic>;
+        _recentMembers = ApiService.ensureList(dData['recent_members']);
       }
     } else {
       dashboardFailed = true;
@@ -231,7 +231,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
     // ── 2. Handle Payments Supplement ──
     if (fRes.statusCode == 200 && fRes.data is Map) {
       final fData = fRes.data as Map<String, dynamic>;
-      _transactions = ApiService.ensureList(fData['transactions']);
+      _transactions = ApiService.ensureList(fData);
       final kpis = fData['kpis'] as Map<String, dynamic>? ?? {};
       if (kpis.isNotEmpty) {
         _revenue = double.tryParse(kpis['revenue']?.toString() ?? '') ?? _revenue;
