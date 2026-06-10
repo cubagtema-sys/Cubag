@@ -117,14 +117,12 @@ class ApiService {
       final res = await _dio.get(_path(path));
       dynamic freshData = res.data;
       if (freshData is String) {
-        try { freshData = await compute(_decodeJsonString, freshData); } catch (_) {}
+        try { freshData = _decodeJsonString(freshData); } catch (_) {}
       }
       
       // Update cache asynchronously
       if (freshData != null) {
-        compute(_encodeJson, freshData).then((str) {
-          prefs.setString(cacheKey, str);
-        });
+        prefs.setString(cacheKey, _encodeJson(freshData));
       }
       
       // Return fresh data
