@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 import 'admin_qr_scanner_page.dart';
+import 'admin_event_attendees_page.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kRed    = Color(0xFFef4444);
@@ -398,11 +399,11 @@ class _State extends State<AdminEventsPage> {
   }
 
   void _viewAttendees(int eventId, String title) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _AttendeesSheet(eventId: eventId, title: title),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminEventAttendeesPage(eventId: eventId, title: title),
+      ),
     );
   }
 
@@ -582,90 +583,4 @@ class _State extends State<AdminEventsPage> {
       ),
     ),
   ]);
-}
-
-class _AttendeesSheet extends StatefulWidget {
-  final int eventId;
-  final String title;
-  const _AttendeesSheet({required this.eventId, required this.title});
-  @override State<_AttendeesSheet> createState() => _AttendeesSheetState();
-}
-
-class _AttendeesSheetState extends State<_AttendeesSheet> {
-  bool _loading = true;
-  List<dynamic> _attendees = [];
-
-  @override void initState() {
-    super.initState();
-    _fetch();
-  }
-
-  Future<void> _fetch() async {
-    try {
-      final res = await ApiService().get('/events/${widget.eventId}/attendees');
-      if (mounted && res.statusCode == 200) {
-        setState(() { _attendees = res.data['attendees'] ?? []; });
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed to load attendees: ${res.data}'),
-          backgroundColor: Colors.red,
-        ));
-      }
-    } catch (e) {
-      if (mounted) {
-        String msg = e.toString();
-        try {
-          final dynamic dioErr = e;
-          if (dioErr.response != null && dioErr.response.data != null) {
-            msg = dioErr.response.data['message'] ?? dioErr.response.data.toString();
-          }
-        } catch (_) {}
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error loading attendees: $msg'),
-          backgroundColor: Colors.red,
-        ));
-      }
-    }
-    if (mounted) setState(() => _loading = false);
-  }
-
-  @override Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
-      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
-        const SizedBox(height: 16),
-        Row(children: [
-          Expanded(child: Text('Attendees: ${widget.title}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-        ]),
-        const Divider(),
-        if (_loading) const Expanded(child: Center(child: CircularProgressIndicator()))
-        else if (_attendees.isEmpty) const Expanded(child: Center(child: Text('No attendees checked in yet.', style: TextStyle(color: Colors.grey))))
-        else Expanded(
-          child: ListView.separated(
-            itemCount: _attendees.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (ctx, i) {
-              final a = _attendees[i];
-              final nameStr = a['name']?.toString() ?? '';
-              final initial = nameStr.trim().isNotEmpty ? nameStr.trim()[0].toUpperCase() : '?';
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFf08232).withAlpha(30),
-                  child: Text(initial, style: const TextStyle(color: Color(0xFFf08232), fontWeight: FontWeight.bold)),
-                ),
-                title: Text(a['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: Text('${a['email'] ?? ''}\n${a['company'] ?? ''}', style: const TextStyle(fontSize: 12)),
-                isThreeLine: true,
-                trailing: const Icon(Icons.check_circle, color: Color(0xFF10b981), size: 20),
-              );
-            },
-          ),
-        ),
-      ]),
-    );
-  }
 }

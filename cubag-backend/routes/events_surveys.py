@@ -209,12 +209,12 @@ def get_attendees(event_id):
     conn = get_db()
     try:
         with conn.cursor() as cursor:
+            # We want all members to know who attended and who didn't.
             cursor.execute("""
                 SELECT m.id, m.name, m.email, m.company, m.member_type, ea.checked_in_at
-                FROM event_attendance ea
-                JOIN members m ON ea.member_id = m.id
-                WHERE ea.event_id = %s
-                ORDER BY ea.checked_in_at DESC
+                FROM members m
+                LEFT JOIN event_attendance ea ON m.id = ea.member_id AND ea.event_id = %s
+                ORDER BY ea.checked_in_at DESC NULLS LAST, m.name ASC
             """, (event_id,))
             data = cursor.fetchall()
             for row in data:
