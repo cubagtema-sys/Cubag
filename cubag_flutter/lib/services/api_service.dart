@@ -5,7 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/router.dart';
 import 'auth_service.dart';
 
-
+dynamic _decodeJsonString(String data) => jsonDecode(data);
+String _encodeJson(dynamic data) => jsonEncode(data);
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -116,12 +117,12 @@ class ApiService {
       final res = await _dio.get(_path(path));
       dynamic freshData = res.data;
       if (freshData is String) {
-        try { freshData = await compute(jsonDecode, freshData); } catch (_) {}
+        try { freshData = await compute(_decodeJsonString, freshData); } catch (_) {}
       }
       
       // Update cache asynchronously
       if (freshData != null) {
-        compute(jsonEncode, freshData).then((str) {
+        compute(_encodeJson, freshData).then((str) {
           prefs.setString(cacheKey, str);
         });
       }
