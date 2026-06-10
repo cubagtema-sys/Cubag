@@ -370,7 +370,6 @@ class _AppLayoutState extends State<AppLayout> {
           _NavItemData('Networking', Icons.language_rounded, '/networking'),
           _NavItemData('Messaging', Icons.chat_bubble_outline_rounded, '/messaging'),
           _NavItemData('Events', Icons.event_rounded, '/events'),
-          _NavItemData('Surveys & Elections', Icons.how_to_vote_rounded, '/surveys'),
         ]),
         _buildSection(context, 'RESOURCES', currentRoute, [
           _NavItemData('Live Logistics', Icons.analytics_rounded, '/live-data'),
