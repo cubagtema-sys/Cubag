@@ -671,38 +671,19 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
           ],
         ),
       ),
-    );
-  }
-
   Widget _buildMathBreakdownSection(Map<String, dynamic> m, Color primary) {
     final bd = m['breakdown'] as Map<String, dynamic>?;
-    if (bd == null) {
+    if (bd == null || bd.isEmpty || !bd.containsKey('standing')) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
         child: Center(child: Text('Loading compliance breakdown details...', style: TextStyle(color: Colors.grey, fontSize: 12))),
       );
     }
 
-    final paymentScore = bd['payment_score'] ?? 0;
-    final paymentPunctual = bd['payment_punctual_score'] ?? 0;
-    final paymentHistory = bd['payment_history_score'] ?? 0;
-    final overdueCount = bd['overdue_payments_count'] ?? 0;
-    final totalPaid = bd['total_payments_paid'] ?? 0;
-    final onTimePaid = bd['on_time_payments_paid'] ?? 0;
-
-    final taskScore = bd['task_score'] ?? 0;
-    final licenseScore = bd['license_score'] ?? 0;
-    final taskCompletionScore = bd['task_completion_score'] ?? 0;
-    final totalTasks = bd['total_tasks'] ?? 0;
-    final completedTasks = bd['completed_tasks'] ?? 0;
-
-    final engagementScore = bd['engagement_score'] ?? 0;
-    final surveyScore = bd['survey_score'] ?? 0;
-    final totalSurveys = bd['total_surveys'] ?? 0;
-    final respondedSurveys = bd['responded_surveys'] ?? 0;
-    final agmScore = bd['agm_score'] ?? 0;
-
-    final adminScore = bd['admin_score'] ?? 0;
+    final standingScore = bd['standing'] ?? 0;
+    final financialScore = bd['financial'] ?? 0;
+    final eventScore = bd['events'] ?? 0;
+    final adminScore = bd['admin'] ?? 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,46 +695,46 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
         const SizedBox(height: 12),
         
         _breakdownTile(
+          icon: Icons.verified_user_outlined,
+          color: const Color(0xFF3B82F6),
+          title: 'Licensing & Good Standing',
+          scoreText: '$standingScore / 40 pts',
+          details: [
+            '• 40 pts: Active member with valid license.',
+            '• 20 pts: Active member but license recently expired.',
+            '• 0 pts: Pending, Suspended, or Inactive status.',
+          ],
+        ),
+
+        _breakdownTile(
           icon: Icons.payments_outlined,
           color: const Color(0xFF10B981),
-          title: 'Payment Compliance',
-          scoreText: '$paymentScore / 40 pts',
+          title: 'Financial Compliance',
+          scoreText: '$financialScore / 30 pts',
           details: [
-            '• Punctual payment (no outstanding overdue): $paymentPunctual / 25 pts',
-            '• On-time payment history ratio ($onTimePaid / $totalPaid paid on time): $paymentHistory / 15 pts',
-            if (overdueCount > 0) '• WARNING: $overdueCount overdue payments detected.'
+            '• Evaluates the ratio of paid invoices vs total issued invoices.',
+            '• Members without any invoices start with full points automatically.',
           ],
         ),
         
         _breakdownTile(
-          icon: Icons.task_alt_outlined,
-          color: const Color(0xFF3B82F6),
-          title: 'Task & Document Compliance',
-          scoreText: '$taskScore / 30 pts',
-          details: [
-            '• License renewal status: $licenseScore / 15 pts',
-            '• Required tasks compliance ($completedTasks / $totalTasks completed): $taskCompletionScore / 15 pts',
-          ],
-        ),
-
-        _breakdownTile(
-          icon: Icons.campaign_outlined,
+          icon: Icons.event_available_outlined,
           color: const Color(0xFF8B5CF6),
-          title: 'Engagement & Activities',
-          scoreText: '$engagementScore / 20 pts',
+          title: 'Event Attendance',
+          scoreText: '$eventScore / 20 pts',
           details: [
-            '• Survey response rate ($respondedSurveys / $totalSurveys completed): $surveyScore / 10 pts',
-            '• Annual General Meeting (AGM) attendance: $agmScore / 10 pts',
+            '• Evaluates ratio of attended events vs total events held since joining.',
+            '• If no events have been held since joining, member gets full points.',
           ],
         ),
 
         _breakdownTile(
-          icon: Icons.rate_review_outlined,
+          icon: Icons.admin_panel_settings_outlined,
           color: const Color(0xFFF59E0B),
-          title: 'Admin Manual Review',
+          title: 'Admin Trust Score',
           scoreText: '$adminScore / 10 pts',
           details: [
-            '• Direct administrative compliance modifier: $adminScore / 10 pts',
+            '• Derived directly from the manual review slider above.',
           ],
         ),
       ],

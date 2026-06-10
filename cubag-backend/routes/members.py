@@ -445,6 +445,10 @@ def get_member(member_id):
                 result['manual_review_score']  = rating_data['manual_review_score']
                 result['breakdown']            = rating_data.get('breakdown', {})
                 result['rating_history']       = history
+                
+                # Commit the rating updates made by calculate_and_update_member_rating
+                conn.commit()
+                
                 return jsonify(result), 200
 
             return jsonify(dict(member)), 200
