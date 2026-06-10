@@ -184,6 +184,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           ]),
         ),
       ]),
+      ),
     );
   }
 }
