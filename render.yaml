@@ -1,7 +1,7 @@
 services:
   # 1. Flask Backend Web Service
   - type: web
-    name: cubag-backend
+    name: cubag-api-server
     env: python
     region: frankfurt
     plan: free
@@ -42,7 +42,7 @@ services:
       - key: WHITSUNPAY_WEBHOOK_SECRET
         value: "2c4cf3096f18a079450126b25961aa8388226bd6fe66ed98a57b87c21a7e6f1b"
       - key: x-callback-url
-        value: "https://cubag-backend.onrender.com/api/payments/webhook"
+        value: "https://cubag-api-server.onrender.com/api/payments/webhook"
       - key: SUPABASE_URL
         value: "https://jfypczfjycffsmivjjdn.supabase.co"
       - key: SUPABASE_SERVICE_KEY
@@ -57,7 +57,7 @@ services:
   # 2. Flutter Web Frontend Static Site
   - type: web
     env: static
-    name: cubag-frontend
+    name: cubag-web-app
     region: frankfurt
     rootDirectory: cubag_flutter
     buildCommand: "git clone https://github.com/flutter/flutter.git -b stable && export PATH=\"$PATH:$(pwd)/flutter/bin\" && flutter build web --release"
