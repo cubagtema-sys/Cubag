@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
+import '../components/shimmer_loader.dart';
 import '../services/api_service.dart';
 
 class PaymentHistoryPage extends StatefulWidget {
@@ -31,12 +32,15 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _loading = true);
-    try {
-      final res = await ApiService().get('/payments');
-      if (res.statusCode == 200) setState(() => _payments = ApiService.ensureList(res.data));
-    } catch (_) {}
-    setState(() => _loading = false);
+    if (!_loading) setState(() => _loading = true);
+    await ApiService().fetchDataWithCache('/payments', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          _payments = ApiService.ensureList(data);
+          _loading = false;
+        });
+      }
+    });
   }
 
   String _fmt(double n) => n.toStringAsFixed(2);
@@ -84,8 +88,14 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         const SizedBox(height: 16),
 
         // Transaction List
-        if (_loading)
-          const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+        if (_loading && paginated.isEmpty)
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 4,
+            separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+            itemBuilder: (ctx, i) => const ShimmerListTile(),
+          )
         else if (paginated.isEmpty)
           Container(padding: const EdgeInsets.all(60), alignment: Alignment.center, decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)), child: Column(children: [const Icon(Icons.receipt_long, size: 48, color: Colors.grey), const SizedBox(height: 12), Text(_filter == 'all' ? 'Your payment history is currently empty.' : 'No $_filter payments found.', style: const TextStyle(color: Colors.grey))]))
         else

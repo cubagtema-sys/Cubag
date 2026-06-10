@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../components/shimmer_loader.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kGreen  = Color(0xFF10b981);
@@ -22,27 +23,92 @@ class _State extends State<AdminTicketsPage> {
   String _tab = 'inbox';
   bool _sending = false;
   bool _loading = true;
+  bool _loadingMore = false;
+
+  int _page = 1;
+  int _total = 0;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   final _replyCtrl = TextEditingController();
 
-  @override void initState() { super.initState(); _fetch(); }
+  @override void initState() { 
+    super.initState(); 
+    _fetch(); 
+    _scrollController.addListener(_onScroll);
+  }
 
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
-    try {
-      final data = await _api.fetchData('tickets/admin/all');
-      if (mounted && data is List) {
-        setState(() {
-          _tickets = data;
+  @override void dispose() {
+    _scrollController.dispose();
+    _replyCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_selected != null) return;
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_loading && !_loadingMore && _hasMore) {
+        _fetchMore();
+      }
+    }
+  }
+
+  void _onTabChanged(String newTab) {
+    if (_tab == newTab) return;
+    setState(() {
+      _tab = newTab;
+      _selected = null;
+    });
+    _fetch(refresh: true);
+  }
+
+  Future<void> _fetch({bool refresh = false}) async {
+    if (!mounted) return;
+    if (refresh) {
+      setState(() { _page = 1; _hasMore = true; _loading = true; _tickets = []; });
+    } else {
+      if (!_loading) setState(() => _loading = true);
+    }
+    
+    await _api.fetchDataWithCache('/tickets/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
+      if (mounted && data != null) {
+        final d = data as Map<String, dynamic>;
+        setState(() { 
+          _loading = false;
+          _tickets = ApiService.ensureList(d); 
+          if (d.containsKey('total')) {
+            _total = d['total'];
+            _hasMore = _tickets.length < _total;
+          } else {
+            _hasMore = false;
+          }
           if (_selected != null) {
-            _selected = data.firstWhere((t) => t['id'] == _selected['id'], orElse: () => null);
+            _selected = _tickets.firstWhere((t) => t['id'] == _selected['id'], orElse: () => null);
           }
         });
       }
-    } catch (_) {}
-    if (mounted) {
-      setState(() => _loading = false);
-    }
+    });
+  }
+
+  Future<void> _fetchMore() async {
+    setState(() => _loadingMore = true);
+    _page++;
+    try {
+      final res = await _api.get('/tickets/admin/all?page=$_page&per_page=20&status=$_tab');
+      if (res.statusCode == 200) {
+        final d = res.data as Map<String, dynamic>;
+        final newItems = ApiService.ensureList(d);
+        setState(() {
+          _tickets.addAll(newItems);
+          if (d.containsKey('total')) {
+            _hasMore = _tickets.length < d['total'];
+          } else {
+            _hasMore = newItems.isNotEmpty;
+          }
+        });
+      }
+    } catch (_) { _page--; }
+    if (mounted) setState(() => _loadingMore = false);
   }
 
   Future<void> _updateStatus(String status) async {
@@ -72,46 +138,54 @@ class _State extends State<AdminTicketsPage> {
 
   String _statusLabel(String s) => s[0].toUpperCase() + s.substring(1);
 
-  List<dynamic> get _inbox    => _tickets.where((t) => t['status'] != 'archived').toList();
-  List<dynamic> get _archived => _tickets.where((t) => t['status'] == 'archived').toList();
-  List<dynamic> get _displayed => _tab == 'inbox' ? _inbox : _archived;
+  List<dynamic> get _displayed => _tickets;
 
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      {'id': 'inbox',    'label': 'Inbox (${_inbox.length})'},
-      {'id': 'archived', 'label': 'Archived (${_archived.length})'},
+      {'id': 'inbox',    'label': 'Inbox'},
+      {'id': 'archived', 'label': 'Archived'},
     ];
     return AppLayout(
       title: 'Support Tickets',
-      child: _selected != null ? _buildReplyPanel() : Column(children: [
-        // Tab bar
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-          child: Row(children: tabs.map((t) {
-            final active = _tab == t['id'];
-            return Expanded(child: GestureDetector(
-              onTap: () => setState(() { _tab = t['id']!; _selected = null; }),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-                alignment: Alignment.center,
-                child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
-              ),
-            ));
-          }).toList()),
-        ),
-        const SizedBox(height: 12),
-        _buildTicketList(),
-      ]),
+      scrollable: _selected != null, // Make unscrollable when showing list to allow listview to scroll
+      child: _selected != null ? _buildReplyPanel() : SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(children: [
+          // Tab bar
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+            child: Row(children: tabs.map((t) {
+              final active = _tab == t['id'];
+              return Expanded(child: GestureDetector(
+                onTap: () => _onTabChanged(t['id']!),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                  alignment: Alignment.center,
+                  child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
+                ),
+              ));
+            }).toList()),
+          ),
+          const SizedBox(height: 12),
+          _buildTicketList(),
+        ]),
+      ),
     );
   }
 
   Widget _buildTicketList() {
     if (_loading) {
-      return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: _kOrange)));
+      return ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 8,
+        separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+        itemBuilder: (ctx, i) => const ShimmerListTile(),
+      );
     }
     if (_displayed.isEmpty) {
       return Container(
@@ -120,42 +194,46 @@ class _State extends State<AdminTicketsPage> {
       child: Center(child: Text(_tab == 'inbox' ? 'No open tickets.' : 'No archived tickets.', style: const TextStyle(color: Colors.grey))),
     );
     }
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(children: List.generate(_displayed.length, (i) {
-        final ticket = _displayed[i];
-        final color  = _statusColor(ticket['status'] ?? 'open');
-        return InkWell(
-          onTap: () => setState(() => _selected = ticket),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(color: color, width: 3),
-                bottom: BorderSide(color: Colors.grey.shade100),
+    return Column(children: [
+      Container(
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(children: List.generate(_displayed.length, (i) {
+          final ticket = _displayed[i];
+          final color  = _statusColor(ticket['status'] ?? 'open');
+          return InkWell(
+            onTap: () => setState(() => _selected = ticket),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: color, width: 3),
+                  bottom: BorderSide(color: Colors.grey.shade100),
+                ),
               ),
+              child: Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Text('#${ticket['id'].toString().length > 6 ? ticket['id'].toString().substring(ticket['id'].toString().length - 6) : ticket['id']}', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Text(_statusLabel(ticket['status'] ?? 'open'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color))),
+                  ]),
+                  const SizedBox(height: 4),
+                  Text(ticket['member_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, color: _kOrange, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text(ticket['subject'] ?? '', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text('Opened: ${ticket['date'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                ])),
+                const Icon(Icons.chevron_right, color: Colors.grey),
+              ]),
             ),
-            child: Row(children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Text('#${ticket['id'].toString().length > 6 ? ticket['id'].toString().substring(ticket['id'].toString().length - 6) : ticket['id']}', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w700)),
-                  const Spacer(),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Text(_statusLabel(ticket['status'] ?? 'open'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color))),
-                ]),
-                const SizedBox(height: 4),
-                Text(ticket['member_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, color: _kOrange, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(ticket['subject'] ?? '', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text('Opened: ${ticket['date'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              ])),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ]),
-          ),
-        );
-      })),
-    );
+          );
+        })),
+      ),
+      if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+      if (!_loading && _total > 0) Center(child: Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Text('${_tickets.length} tickets shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+    ]);
   }
 
   Widget _buildReplyPanel() {

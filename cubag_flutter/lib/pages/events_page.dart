@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
+import '../components/shimmer_loader.dart';
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -10,18 +11,75 @@ class EventsPage extends StatefulWidget {
 
 class _EventsPageState extends State<EventsPage> {
   bool _loading = true;
+  bool _loadingMore = false;
+  int _page = 1;
+  int _total = 0;
+  bool _hasMore = true;
   List<dynamic> _events = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
-  void initState() { super.initState(); _fetch(); }
+  void initState() { 
+    super.initState(); 
+    _fetch(); 
+    _scrollController.addListener(_onScroll);
+  }
 
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_loading && !_loadingMore && _hasMore) {
+        _fetchMore();
+      }
+    }
+  }
+
+  Future<void> _fetch({bool refresh = false}) async {
+    if (refresh) {
+      setState(() { _page = 1; _hasMore = true; _loading = true; _events = []; });
+    } else {
+      if (!_loading) setState(() => _loading = true);
+    }
+    
+    await ApiService().fetchDataWithCache('/events?page=$_page&limit=20', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          _loading = false;
+          _events = ApiService.ensureList(data);
+          if (data is Map && data.containsKey('total')) {
+            _total = data['total'];
+            _hasMore = _events.length < _total;
+          } else {
+            _hasMore = false;
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _fetchMore() async {
+    setState(() => _loadingMore = true);
+    _page++;
     try {
-      final res = await ApiService().get('/events');
-      if (res.statusCode == 200) setState(() => _events = ApiService.ensureList(res.data));
-    } catch (_) {}
-    setState(() => _loading = false);
+      final data = await ApiService().fetchData('/events?page=$_page&limit=20');
+      if (mounted) {
+        final newItems = ApiService.ensureList(data);
+        setState(() {
+          _events.addAll(newItems);
+          if (data is Map && data.containsKey('total')) {
+            _hasMore = _events.length < data['total'];
+          } else {
+            _hasMore = newItems.isNotEmpty;
+          }
+        });
+      }
+    } catch (_) { _page--; }
+    if (mounted) setState(() => _loadingMore = false);
   }
 
   @override
@@ -29,9 +87,18 @@ class _EventsPageState extends State<EventsPage> {
     final primary = Theme.of(context).primaryColor;
     return AppLayout(
       title: 'Events & Workshops',
-      child: Column(children: [
+      scrollable: false,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(children: [
         if (_loading)
-          const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 8,
+            separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+            itemBuilder: (ctx, i) => const ShimmerListTile(),
+          )
         else if (_events.isEmpty)
           Container(padding: const EdgeInsets.all(60), alignment: Alignment.center, child: Column(children: [Icon(Icons.calendar_month, size: 48, color: Colors.grey.shade300), const SizedBox(height: 12), const Text('No Upcoming Events', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 6), const Text('Check back later for meetings and seminars.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))]))
         else
@@ -137,7 +204,9 @@ class _EventsPageState extends State<EventsPage> {
               ),
             );
           }),
+        if (_loadingMore) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
       ]),
+      ),
     );
   }
 }

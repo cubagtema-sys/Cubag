@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
-import '../services/cache_service.dart';
+import '../components/shimmer_loader.dart';
 
 class AnnouncementsPage extends StatefulWidget {
   const AnnouncementsPage({super.key});
@@ -12,24 +12,76 @@ class AnnouncementsPage extends StatefulWidget {
 
 class _AnnouncementsPageState extends State<AnnouncementsPage> {
   bool _loading = true;
+  bool _loadingMore = false;
+  int _page = 1;
+  int _total = 0;
+  bool _hasMore = true;
   List<dynamic> _alerts = [];
   final Set<dynamic> _expanded = {};
   String _filter = 'All';
-  final CacheService _cache = CacheService();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetch();
+    _scrollController.addListener(_onScroll);
   }
 
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_loading && !_loadingMore && _hasMore) {
+        _fetchMore();
+      }
+    }
+  }
+
+  Future<void> _fetch({bool refresh = false}) async {
+    if (refresh) {
+      setState(() { _page = 1; _hasMore = true; _loading = true; _alerts = []; });
+    } else {
+      if (!_loading) setState(() => _loading = true);
+    }
+    await ApiService().fetchDataWithCache('/announcements?page=$_page&limit=20', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          _loading = false;
+          _alerts = ApiService.ensureList(data);
+          if (data is Map && data.containsKey('total')) {
+            _total = data['total'];
+            _hasMore = _alerts.length < _total;
+          } else {
+            _hasMore = false;
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _fetchMore() async {
+    setState(() => _loadingMore = true);
+    _page++;
     try {
-      final data = await _cache.fetchCached('/announcements');
-      if (mounted) setState(() => _alerts = ApiService.ensureList(data));
-    } catch (_) {}
-    setState(() => _loading = false);
+      final data = await ApiService().fetchData('/announcements?page=$_page&limit=20');
+      if (mounted) {
+        final newItems = ApiService.ensureList(data);
+        setState(() {
+          _alerts.addAll(newItems);
+          if (data is Map && data.containsKey('total')) {
+            _hasMore = _alerts.length < data['total'];
+          } else {
+            _hasMore = newItems.isNotEmpty;
+          }
+        });
+      }
+    } catch (_) { _page--; }
+    if (mounted) setState(() => _loadingMore = false);
   }
 
   Future<void> _markAllRead() async {
@@ -58,7 +110,10 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
     return AppLayout(
       title: 'Announcements',
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      scrollable: false,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         CustomDropdown<String>(
           value: _filter,
           items: categories.map((c) => DropdownItem<String>(value: c, label: c == 'All' ? 'All Updates' : c)).toList(),
@@ -79,7 +134,13 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
             ),
             const Divider(height: 1),
             if (_loading)
-              const Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 8,
+                separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+                itemBuilder: (ctx, i) => const ShimmerListTile(),
+              )
             else if (filtered.isEmpty)
               const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('No circulars found.', style: TextStyle(color: Colors.grey))))
             else
@@ -119,6 +180,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                   );
                 },
               ),
+            if (_loadingMore) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
           ]),
         ),
       ]),

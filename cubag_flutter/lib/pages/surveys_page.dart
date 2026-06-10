@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
+import '../components/shimmer_loader.dart';
 import '../services/api_service.dart';
 
 const _kOrange = Color(0xFFf08232);
@@ -33,12 +34,15 @@ class _SurveysPageState extends State<SurveysPage> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _loading = true);
-    try {
-      final res = await ApiService().get('/surveys');
-      if (res.statusCode == 200) setState(() => _surveys = ApiService.ensureList(res.data));
-    } catch (_) {}
-    setState(() => _loading = false);
+    if (!_loading) setState(() => _loading = true);
+    await ApiService().fetchDataWithCache('/surveys', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          _surveys = ApiService.ensureList(data);
+          _loading = false;
+        });
+      }
+    });
   }
 
   void _showToast(String msg, bool success) {
@@ -157,8 +161,14 @@ class _SurveysPageState extends State<SurveysPage> {
             ),
             const SizedBox(height: 16),
 
-            if (_loading)
-              const Center(child: Padding(padding: EdgeInsets.all(48), child: CircularProgressIndicator(color: _kOrange)))
+            if (_loading && shown.isEmpty)
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 3,
+                separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+                itemBuilder: (ctx, i) => const ShimmerListTile(),
+              )
             else if (shown.isEmpty)
               _emptyState()
             else

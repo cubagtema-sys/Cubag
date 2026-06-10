@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../components/shimmer_loader.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kGreen  = Color(0xFF10b981);
@@ -23,6 +24,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   final _api = ApiService();
   List<dynamic> _surveys = [];
   bool _loading = true, _submitting = false;
+  bool _loadingMore = false;
   String _tab = 'active';
   dynamic _viewingResults;
   Map<String, dynamic>? _resultsData;
@@ -30,9 +32,11 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   Timer? _refreshTimer;
   int _countdown = 15;
   
-  int _activePage = 1;
-  int _pastPage = 1;
-  static const int _perPage = 20;
+  int _page = 1;
+  int _total = 0;
+  bool _hasMore = true;
+
+  final ScrollController _scrollController = ScrollController();
 
   // Create form
   final _titleCtrl = TextEditingController();
@@ -49,26 +53,83 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   Set<int> _uploadingOptionIdx = {};
 
   @override
-  void initState() { super.initState(); _fetch(); }
+  void initState() { 
+    super.initState(); 
+    _fetch(); 
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _refreshTimer?.cancel();
     _titleCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
   }
 
+  void _onScroll() {
+    if (_viewingResults != null) return;
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_loading && !_loadingMore && _hasMore && _tab != 'create') {
+        _fetchMore();
+      }
+    }
+  }
+
+  void _onTabChanged(String newTab) {
+    if (_tab == newTab) return;
+    setState(() => _tab = newTab);
+    if (newTab != 'create') {
+      _fetch(refresh: true);
+    }
+  }
+
   // ── Data ──────────────────────────────────────────────────────
 
-  Future<void> _fetch() async {
-    if (!_loading) setState(() => _loading = true);
-    final data = await _api.fetchData('surveys/admin/all');
-    if (mounted) setState(() {
-      final raw = data is Map ? (data['items'] ?? data) : data;
-      _surveys = raw is List ? raw : [];
-      _loading = false;
+  Future<void> _fetch({bool refresh = false}) async {
+    if (!mounted) return;
+    if (refresh) {
+      setState(() { _page = 1; _hasMore = true; _loading = true; _surveys = []; });
+    } else {
+      if (!_loading) setState(() => _loading = true);
+    }
+    await _api.fetchDataWithCache('surveys/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
+          _surveys = raw is List ? raw : [];
+          if (data is Map && data.containsKey('total')) {
+            _total = data['total'];
+            _hasMore = _surveys.length < _total;
+          } else {
+            _hasMore = false;
+          }
+          _loading = false;
+        });
+      }
     });
+  }
+
+  Future<void> _fetchMore() async {
+    setState(() => _loadingMore = true);
+    _page++;
+    try {
+      final data = await _api.fetchData('surveys/admin/all?page=$_page&per_page=20&status=$_tab');
+      if (mounted) {
+        final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
+        final newItems = raw is List ? raw : [];
+        setState(() {
+          _surveys.addAll(newItems);
+          if (data is Map && data.containsKey('total')) {
+            _hasMore = _surveys.length < data['total'];
+          } else {
+            _hasMore = newItems.isNotEmpty;
+          }
+        });
+      }
+    } catch (_) { _page--; }
+    if (mounted) setState(() => _loadingMore = false);
   }
 
   Future<void> _loadResults(dynamic survey) async {
@@ -177,7 +238,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         _tab = 'active';
       });
       _showSnack('Poll published successfully!');
-      await _fetch();
+      await _fetch(refresh: true);
     } else {
       setState(() => _submitting = false);
       _showSnack('Failed to create poll.', isError: true);
@@ -187,14 +248,14 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   Future<void> _delete(int id) async {
     await _api.deleteData('surveys/$id');
     if (_viewingResults != null && _viewingResults['id'] == id) _closeResults();
-    await _fetch();
+    await _fetch(refresh: true);
   }
 
   Future<void> _toggleActive(dynamic survey) async {
     final res = await _api.put('/surveys/${survey['id']}/toggle-active');
     if (res.statusCode == 200) {
       _showSnack(res.data['message'] ?? 'Status updated');
-      await _fetch();
+      await _fetch(refresh: true);
     }
   }
 
@@ -215,26 +276,6 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
     return '${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}';
   }
 
-  List<dynamic> get _active => _surveys.where((s) {
-    if (s['active'] == false) return false;
-    if (s['deadline'] == null) return true;
-    final d = DateTime.tryParse(s['deadline'].toString());
-    if (d == null) return true;
-    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final deadlineDate = DateTime(d.year, d.month, d.day);
-    return !deadlineDate.isBefore(today);
-  }).toList();
-
-  List<dynamic> get _past => _surveys.where((s) {
-    if (s['active'] == false) return true;
-    if (s['deadline'] == null) return false;
-    final d = DateTime.tryParse(s['deadline'].toString());
-    if (d == null) return false;
-    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final deadlineDate = DateTime(d.year, d.month, d.day);
-    return deadlineDate.isBefore(today);
-  }).toList();
-
   Color _typeColor(String? t) { switch (t?.toLowerCase()) { case 'election': return _kPurple; case 'poll': return _kBlue; default: return _kOrange; } }
   IconData _typeIcon(String? t) { switch (t?.toLowerCase()) { case 'election': return Icons.how_to_vote_outlined; case 'poll': return Icons.bar_chart_outlined; default: return Icons.assignment_outlined; } }
 
@@ -244,53 +285,48 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     if (_viewingResults != null) return AppLayout(title: 'Live Results', child: _buildResultsView());
     final tabs = [
-      {'id': 'active',  'label': 'Active (${_active.length})'},
-      {'id': 'history', 'label': 'History (${_past.length})'},
+      {'id': 'active',  'label': 'Active'},
+      {'id': 'history', 'label': 'History'},
       {'id': 'create',  'label': 'New Poll'},
     ];
     return AppLayout(
       title: 'Surveys & Elections',
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(color: const Color(0xFFf1f5f9), borderRadius: BorderRadius.circular(14)),
-          child: Row(children: tabs.map((t) {
-            final isActive = _tab == t['id'];
-            return Expanded(child: GestureDetector(
-              onTap: () => setState(() => _tab = t['id']!),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: isActive ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: isActive ? [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 8, offset: const Offset(0, 2))] : [],
+      scrollable: false,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(color: const Color(0xFFf1f5f9), borderRadius: BorderRadius.circular(14)),
+            child: Row(children: tabs.map((t) {
+              final isActive = _tab == t['id'];
+              return Expanded(child: GestureDetector(
+                onTap: () => _onTabChanged(t['id']!),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isActive ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: isActive ? [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 8, offset: const Offset(0, 2))] : [],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(t['label']!, style: TextStyle(color: isActive ? _kOrange : const Color(0xFF64748b), fontWeight: FontWeight.w700, fontSize: 12)),
                 ),
-                alignment: Alignment.center,
-                child: Text(t['label']!, style: TextStyle(color: isActive ? _kOrange : const Color(0xFF64748b), fontWeight: FontWeight.w700, fontSize: 12)),
-              ),
-            ));
-          }).toList()),
-        ),
-        const SizedBox(height: 20),
-        if (_tab == 'create')  _buildCreateForm(),
-        if (_tab == 'active')  _buildSurveyList(_active, isPast: false),
-        if (_tab == 'history') _buildSurveyList(_past, isPast: true),
-      ]),
+              ));
+            }).toList()),
+          ),
+          const SizedBox(height: 20),
+          if (_tab == 'create')  _buildCreateForm(),
+          if (_tab != 'create')  _buildSurveyList(),
+        ]),
+      ),
     );
   }
 
   // ── Survey Card List ─────────────────────────────────────────
 
-  Widget _buildSurveyList(List surveys, {required bool isPast}) {
-    if (_loading) return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: _kOrange)));
-    if (surveys.isEmpty) return _emptyState();
-
-    final currentPage = isPast ? _pastPage : _activePage;
-    final totalPages = (surveys.length / _perPage).ceil();
-    final start = (currentPage - 1) * _perPage;
-    final displayed = surveys.skip(start).take(_perPage).toList();
-
+  Widget _buildSurveyList() {
     return LayoutBuilder(builder: (context, constraints) {
       double cardWidth = constraints.maxWidth;
       if (constraints.maxWidth > 1200) {
@@ -301,41 +337,31 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         cardWidth = (constraints.maxWidth - 16) / 2;
       }
 
+      if (_loading) {
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: List.generate(8, (_) => SizedBox(
+            width: cardWidth,
+            height: 240,
+            child: const ShimmerGridCard(),
+          )),
+        );
+      }
+
+      if (_surveys.isEmpty) return _emptyState();
+
       return Column(children: [
         Wrap(
           spacing: 16,
           runSpacing: 16,
-          children: displayed.map((s) => SizedBox(
+          children: _surveys.map((s) => SizedBox(
             width: cardWidth,
             child: _surveyCard(s),
           )).toList(),
         ),
-        if (totalPages > 1)
-          Padding(
-            padding: const EdgeInsets.only(top: 24, bottom: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: currentPage > 1 ? () {
-                    setState(() {
-                      if (isPast) _pastPage--; else _activePage--;
-                    });
-                  } : null,
-                ),
-                Text('Page $currentPage of $totalPages', style: const TextStyle(fontWeight: FontWeight.w600)),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: currentPage < totalPages ? () {
-                    setState(() {
-                      if (isPast) _pastPage++; else _activePage++;
-                    });
-                  } : null,
-                ),
-              ],
-            ),
-          )
+        if (_loadingMore) const Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: _kOrange)),
+        if (!_loading && _total > 0) Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Text('${_surveys.length} of $_total polls shown', style: const TextStyle(fontSize: 12, color: Colors.grey))),
       ]);
     });
   }

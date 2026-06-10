@@ -47,9 +47,25 @@ def get_members():
 def get_all_members_admin():
     conn = get_db()
     try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
+        status_filter = request.args.get('status', 'all').lower()
+        offset = (page - 1) * limit
+
+        where_clause = ""
+        if status_filter == 'pending':
+            where_clause = "WHERE m.status = 'pending'"
+        elif status_filter == 'active':
+            where_clause = "WHERE m.status IN ('active', 'suspended')"
+
         with conn.cursor() as cursor:
+            # We must use m.status but in the count query we don't have alias m unless we specify it
+            count_query = f"SELECT COUNT(*) as total FROM members m {where_clause}"
+            cursor.execute(count_query)
+            total = cursor.fetchone()['total']
+
             # Use a LATERAL join to efficiently fetch the latest renewal payment reference for each member
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT m.id, m.name, m.email, m.phone, m.company, m.member_type,
                        m.port_of_operation, m.license_number, m.status, m.created_at,
                        COALESCE(m.payment_ref, p.payment_ref) as payment_ref,
@@ -63,8 +79,10 @@ def get_all_members_admin():
                     ORDER BY created_at DESC
                     LIMIT 1
                 ) p ON TRUE
+                {where_clause}
                 ORDER BY m.created_at DESC
-            """)
+                LIMIT %s OFFSET %s
+            """, (limit, offset))
             members = cursor.fetchall()
 
             result = []
@@ -81,7 +99,12 @@ def get_all_members_admin():
                     elif not isinstance(value, (str, int, float, bool, list, dict)):
                         d[key] = str(value)
                 result.append(d)
-        return jsonify(result), 200
+        return jsonify({
+            "data": result,
+            "total": total,
+            "page": page,
+            "limit": limit
+        }), 200
     except Exception as e:
         logger.exception("[Admin Members Error] %s", e)
         return jsonify({'message': f"Server error fetching members: {str(e)}"}), 500

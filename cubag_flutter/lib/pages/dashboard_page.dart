@@ -55,21 +55,19 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _fetchTasks() async {
-    try {
-      final res = await ApiService().get('/tasks');
-      if (res.statusCode == 200 && mounted) {
-        setState(() => _tasks = ApiService.ensureList(res.data));
+    await ApiService().fetchDataWithCache('/tasks', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() => _tasks = ApiService.ensureList(data));
       }
-    } catch (_) {}
+    });
   }
 
   Future<void> _fetchAnnouncements() async {
-    try {
-      final res = await ApiService().get('/announcements');
-      if (res.statusCode == 200 && mounted) {
-        setState(() => _announcements = ApiService.ensureList(res.data).take(3).toList());
+    await ApiService().fetchDataWithCache('/announcements', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() => _announcements = ApiService.ensureList(data).take(3).toList());
       }
-    } catch (_) {}
+    });
   }
 
   Future<void> _fetchForex() async {

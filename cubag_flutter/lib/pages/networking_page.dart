@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
+import '../components/shimmer_loader.dart';
 import '../services/api_service.dart';
 
 class NetworkingPage extends StatefulWidget {
@@ -31,13 +32,15 @@ class _NetworkingPageState extends State<NetworkingPage> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _loading = true);
-    try {
-      final res = await ApiService().get('/members');
-      if (!mounted) return;
-      if (res.statusCode == 200) setState(() => _members = ApiService.ensureList(res.data));
-    } catch (_) {}
-    if (mounted) setState(() => _loading = false);  // BUG-F15 fix
+    if (!_loading) setState(() => _loading = true);
+    await ApiService().fetchDataWithCache('/members', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          _members = ApiService.ensureList(data);
+          _loading = false;
+        });
+      }
+    });
   }
 
   String _initials(String name) => name.trim().isEmpty ? '?' : name.split(' ').where((n) => n.isNotEmpty).map((n) => n[0]).take(2).join().toUpperCase();
@@ -91,8 +94,14 @@ class _NetworkingPageState extends State<NetworkingPage> {
           const SizedBox(height: 12),
 
           // Grid
-          if (_loading)
-            const Center(child: Padding(padding: EdgeInsets.all(40), child: Column(children: [CircularProgressIndicator(), SizedBox(height: 12), Text('SYNCING DIRECTORY', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 12))])))
+          if (_loading && filtered.isEmpty)
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 5,
+              separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+              itemBuilder: (ctx, i) => const ShimmerListTile(),
+            )
           else if (filtered.isEmpty)
             Container(padding: const EdgeInsets.all(60), alignment: Alignment.center, decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)), child: const Column(children: [Icon(Icons.search_off, size: 48, color: Colors.grey), SizedBox(height: 12), Text('No members match your search.', style: TextStyle(color: Colors.grey))]))
           else

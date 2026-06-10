@@ -115,22 +115,23 @@ def delete_event(event_id):
 @sub_admin_required('events')
 def get_all_events_admin():
     try:
-        try:
-            page = max(1, int(request.args.get('page', 1)))
-        except Exception:
-            page = 1
-        try:
-            per_page = int(request.args.get('per_page', 50))
-        except Exception:
-            per_page = 50
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = int(request.args.get('per_page', 20))
         per_page = max(1, min(per_page, 200))
         offset = (page - 1) * per_page
+        event_status = request.args.get('status', 'all').lower()
+
+        where_clause = ""
+        if event_status == 'upcoming':
+            where_clause = "WHERE date >= CURRENT_DATE"
+        elif event_status == 'history':
+            where_clause = "WHERE date < CURRENT_DATE"
 
         conn = get_db()
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM events ORDER BY date DESC LIMIT %s OFFSET %s", (per_page, offset))
+            cursor.execute(f"SELECT * FROM events {where_clause} ORDER BY date DESC LIMIT %s OFFSET %s", (per_page, offset))
             data = cursor.fetchall()
-            cursor.execute("SELECT COUNT(*) as total FROM events")
+            cursor.execute(f"SELECT COUNT(*) as total FROM events {where_clause}")
             total = cursor.fetchone().get('total', 0)
 
             # Ensure dates are stringified
@@ -140,7 +141,7 @@ def get_all_events_admin():
                 if hasattr(ev.get('created_at'), 'isoformat'):
                     ev['created_at'] = ev['created_at'].isoformat()
 
-        return jsonify({'items': data, 'page': page, 'per_page': per_page, 'total': total}), 200
+        return jsonify({'data': data, 'page': page, 'per_page': per_page, 'total': total}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:
@@ -259,22 +260,23 @@ def toggle_survey_active(survey_id):
 @sub_admin_required('events')
 def get_all_surveys_admin():
     try:
-        try:
-            page = max(1, int(request.args.get('page', 1)))
-        except Exception:
-            page = 1
-        try:
-            per_page = int(request.args.get('per_page', 50))
-        except Exception:
-            per_page = 50
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = int(request.args.get('per_page', 20))
         per_page = max(1, min(per_page, 200))
         offset = (page - 1) * per_page
+        survey_status = request.args.get('status', 'all').lower()
+
+        where_clause = ""
+        if survey_status == 'active':
+            where_clause = "WHERE active = TRUE AND (deadline IS NULL OR deadline >= CURRENT_DATE)"
+        elif survey_status == 'history':
+            where_clause = "WHERE active = FALSE OR (deadline IS NOT NULL AND deadline < CURRENT_DATE)"
 
         conn = get_db()
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM surveys ORDER BY created_at DESC LIMIT %s OFFSET %s", (per_page, offset))
+            cursor.execute(f"SELECT * FROM surveys {where_clause} ORDER BY created_at DESC LIMIT %s OFFSET %s", (per_page, offset))
             data = cursor.fetchall()
-            cursor.execute("SELECT COUNT(*) as total FROM surveys")
+            cursor.execute(f"SELECT COUNT(*) as total FROM surveys {where_clause}")
             total = cursor.fetchone().get('total', 0)
 
             # Parse options JSON string into object and ensure date serialization
@@ -290,7 +292,7 @@ def get_all_surveys_admin():
                 if hasattr(s.get('deadline'), 'isoformat'):
                     s['deadline'] = s['deadline'].isoformat()
 
-        return jsonify({'items': data, 'page': page, 'per_page': per_page, 'total': total}), 200
+        return jsonify({'data': data, 'page': page, 'per_page': per_page, 'total': total}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:

@@ -16,15 +16,34 @@ def get_schedules_by_path(schedule_type):
     return _fetch_schedules(schedule_type)
 
 def _fetch_schedules(schedule_type):
-    conn = get_db()
     try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = int(request.args.get('per_page', 50))
+        per_page = max(1, min(per_page, 200))
+        offset = (page - 1) * per_page
+        
+        status_filter = request.args.get('status', 'All')
+
+        conn = get_db()
         with conn.cursor() as cursor:
+            where_clauses = []
+            params = []
+            
             if schedule_type:
-                # Use LOWER to ensure case-insensitive matching between saved data and request
-                cursor.execute("SELECT * FROM schedules WHERE LOWER(type) = LOWER(%s) ORDER BY created_at DESC", (schedule_type,))
-            else:
-                cursor.execute("SELECT * FROM schedules ORDER BY created_at DESC")
+                where_clauses.append("LOWER(type) = LOWER(%s)")
+                params.append(schedule_type)
+                
+            if status_filter != 'All':
+                where_clauses.append("status = %s")
+                params.append(status_filter)
+                
+            where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+            
+            cursor.execute(f"SELECT * FROM schedules {where_sql} ORDER BY created_at DESC LIMIT %s OFFSET %s", (*params, per_page, offset))
             data = cursor.fetchall()
+            
+            cursor.execute(f"SELECT COUNT(*) as total FROM schedules {where_sql}", params)
+            total = cursor.fetchone().get('total', 0)
 
             # Ensure dates and numbers are JSON serializable
             for item in data:
@@ -34,15 +53,15 @@ def _fetch_schedules(schedule_type):
                     elif hasattr(value, 'strftime'):
                         item[key] = str(value)
 
-        # Return in 'items' wrapper to match Flutter data service expectations
-        return jsonify({'items': data, 'total': len(data)}), 200
+        return jsonify({'data': data, 'total': total, 'page': page, 'per_page': per_page}), 200
     except Exception as e:
         import traceback
         print(f"[Schedules Error] {e}")
         print(traceback.format_exc())
         return jsonify({'message': str(e)}), 500
     finally:
-        conn.close()
+        if 'conn' in locals():
+            conn.close()
 
 @schedules_bp.route('/', methods=['POST'])
 @sub_admin_required('schedules')

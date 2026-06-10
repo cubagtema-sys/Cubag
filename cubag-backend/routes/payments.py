@@ -649,19 +649,51 @@ def payments_summary():
 def get_all_payments_admin():
     conn = get_db()
     try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        offset = (page - 1) * limit
+        search = request.args.get('search', '').lower()
+        status = request.args.get('status', 'all').lower()
+
+        where_clauses = []
+        params = []
+        if search:
+            where_clauses.append("(LOWER(m.name) LIKE %s OR LOWER(p.description) LIKE %s)")
+            params.extend([f"%{search}%", f"%{search}%"])
+        if status != 'all':
+            where_clauses.append("LOWER(p.status) = %s")
+            params.append(status)
+
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
+
         with conn.cursor() as cursor:
-            cursor.execute("""
+            # Get total count with filters
+            count_query = f"""
+                SELECT COUNT(*) as total 
+                FROM payments p
+                LEFT JOIN members m ON p.member_id = m.id
+                {where_sql}
+            """
+            cursor.execute(count_query, tuple(params))
+            total = cursor.fetchone()['total']
+
+            # Get paginated data
+            data_query = f"""
                 SELECT p.id as tx_id, p.amount, p.description, p.status,
                        p.payment_ref, p.created_at, m.name as member_name
                 FROM payments p
                 LEFT JOIN members m ON p.member_id = m.id
+                {where_sql}
                 ORDER BY p.created_at DESC
-            """)
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(data_query, tuple(params) + (limit, offset))
             payments = cursor.fetchall()
 
             # Manually serialize dates and decimals
             for p in payments:
-                # Add a 'date' alias for components expecting it (like Dashboard charts)
                 if 'created_at' in p and p['created_at']:
                     p['date'] = p['created_at'].isoformat() if hasattr(p['created_at'], 'isoformat') else str(p['created_at'])
 
@@ -685,7 +717,10 @@ def get_all_payments_admin():
             failed = cursor.fetchone()
 
         return jsonify({
-            'transactions': payments,
+            'data': payments,
+            'total': total,
+            'page': page,
+            'limit': limit,
             'kpis': {
                 'revenue': float(revenue['revenue'] or 0),
                 'pending': float(pending['pending'] or 0),

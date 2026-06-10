@@ -3,6 +3,7 @@ import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../components/trend_line.dart';
 import '../services/api_service.dart';
+import '../components/shimmer_loader.dart';
 
 class StandingTier {
   final String label;
@@ -58,6 +59,10 @@ class AdminMembersPage extends StatefulWidget {
 
 class _AdminMembersPageState extends State<AdminMembersPage> {
   bool _loading = true;
+  bool _loadingMore = false;
+  int _page = 1;
+  int _total = 0;
+  bool _hasMore = true;
   List<dynamic> _members = [];
   String _search = '';
   String _filterStatus = 'all';
@@ -65,6 +70,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
   Map<String, dynamic>? _selected;
   double _editReviewScore = 10.0;
   bool _updating = false;
+  final ScrollController _scrollController = ScrollController();
 
   final _statusStyle = {
     'active':    {'bg': const Color(0x1910b981), 'color': const Color(0xFF10b981), 'label': 'Active'},
@@ -81,15 +87,70 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
   };
 
   @override
-  void initState() { super.initState(); _fetch(); }
+  void initState() { 
+    super.initState(); 
+    _fetch(); 
+    _scrollController.addListener(_onScroll);
+  }
 
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_loading && !_loadingMore && _hasMore) {
+        _fetchMore();
+      }
+    }
+  }
+
+  Future<void> _fetch({bool refresh = false}) async {
+    if (refresh) {
+      setState(() { _page = 1; _hasMore = true; _loading = true; _members = []; });
+    } else {
+      if (!_loading) setState(() => _loading = true);
+    }
+    
+    await ApiService().fetchDataWithCache('/members/admin/all?page=$_page&limit=20', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          _loading = false;
+          _members = ApiService.ensureList(data);
+          if (data is Map && data.containsKey('total')) {
+            _total = data['total'];
+            _hasMore = _members.length < _total;
+          } else {
+            _hasMore = false;
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _fetchMore() async {
+    setState(() => _loadingMore = true);
+    _page++;
     try {
-      final res = await ApiService().get('/members/admin/all');
-      if (res.statusCode == 200) setState(() => _members = ApiService.ensureList(res.data));
-    } catch (_) {}
-    setState(() => _loading = false);
+      final res = await ApiService().get('/members/admin/all?page=$_page&limit=20');
+      if (res.statusCode == 200) {
+        final data = res.data;
+        final newItems = ApiService.ensureList(data);
+        setState(() {
+          _members.addAll(newItems);
+          if (data is Map && data.containsKey('total')) {
+            _hasMore = _members.length < data['total'];
+          } else {
+            _hasMore = newItems.isEmpty ? false : true;
+          }
+        });
+      }
+    } catch (_) {
+      _page--;
+    }
+    setState(() => _loadingMore = false);
   }
 
   Future<void> _selectMember(Map<String, dynamic> m) async {
@@ -205,6 +266,7 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
       scrollable: false,
       child: Stack(children: [
         SingleChildScrollView(
+          controller: _scrollController,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Expanded(child: _kpiCard(Icons.group, const Color(0xFF3b82f6), 'Total', '$total')),
@@ -263,7 +325,31 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
           ]),
           const SizedBox(height: 14),
           if (_loading)
-            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth > 800) {
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: 12,
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400,
+                      childAspectRatio: 1.8,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemBuilder: (ctx, i) => const ShimmerGridCard(),
+                  );
+                }
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: 8,
+                  separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+                  itemBuilder: (ctx, i) => const ShimmerListTile(),
+                );
+              }
+            )
           else if (filtered.isEmpty)
             const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No members found.', style: TextStyle(color: Colors.grey))))
           else
@@ -295,7 +381,8 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
               }
             ),
           const SizedBox(height: 12),
-          if (!_loading) Center(child: Text('${filtered.length} of ${_members.length} members shown', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+          if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+          if (!_loading) Center(child: Text('${filtered.length} members shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
         ])),
 
         if (_selected != null)

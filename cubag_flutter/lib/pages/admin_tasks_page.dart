@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../components/shimmer_loader.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kGreen  = Color(0xFF10b981);
@@ -15,10 +16,15 @@ class _State extends State<AdminTasksPage> {
   final _api = ApiService();
   List<dynamic> _tasks = [];
   List<dynamic> _members = [];
-  bool _loading = false;
-  String _tab = 'create';
+  bool _loading = true;
+  bool _loadingMore = false;
+  String _tab = 'submissions';
   String _message = '';
-  dynamic _selectedAssignment;
+
+  int _page = 1;
+  int _total = 0;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   // Create form
   String _memberId = '';
@@ -31,18 +37,86 @@ class _State extends State<AdminTasksPage> {
   final Map<int, String> _verifyNotes = {};
   final Map<int, TextEditingController> _verifyCtrl = {};
 
-  @override void initState() { super.initState(); _fetchData(); }
+  @override void initState() { 
+    super.initState(); 
+    _fetchMembers();
+    _fetchTasks(); 
+    _scrollController.addListener(_onScroll);
+  }
 
-  Future<void> _fetchData() async {
-    setState(() => _loading = true);
-    final memData  = await _api.fetchData('members');
-    final taskData = await _api.fetchData('tasks/admin/all');
-    if (mounted) {
-      setState(() {
-      _members = memData is List ? memData : [];
-      _tasks   = taskData is List ? taskData : [];
-      _loading = false;
+  @override void dispose() {
+    _scrollController.dispose();
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_loading && !_loadingMore && _hasMore && _tab != 'create') {
+        _fetchMore();
+      }
+    }
+  }
+
+  Future<void> _fetchMembers() async {
+    try {
+      final res = await _api.fetchData('members');
+      if (mounted && res is List) setState(() => _members = res);
+    } catch (_) {}
+  }
+
+  Future<void> _fetchTasks({bool refresh = false}) async {
+    if (!mounted) return;
+    if (refresh) {
+      setState(() { _page = 1; _hasMore = true; _loading = true; _tasks = []; });
+    } else {
+      if (!_loading) setState(() => _loading = true);
+    }
+    
+    await _api.fetchDataWithCache('/tasks/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached) {
+      if (mounted && data != null) {
+        final d = data as Map<String, dynamic>;
+        setState(() { 
+          _loading = false;
+          _tasks = ApiService.ensureList(d); 
+          if (d.containsKey('total')) {
+            _total = d['total'];
+            _hasMore = _tasks.length < _total;
+          } else {
+            _hasMore = false;
+          }
+        });
+      }
     });
+  }
+
+  Future<void> _fetchMore() async {
+    setState(() => _loadingMore = true);
+    _page++;
+    try {
+      final res = await _api.get('/tasks/admin/all?page=$_page&per_page=20&status=$_tab');
+      if (res.statusCode == 200) {
+        final d = res.data as Map<String, dynamic>;
+        final newItems = ApiService.ensureList(d);
+        setState(() {
+          _tasks.addAll(newItems);
+          if (d.containsKey('total')) {
+            _hasMore = _tasks.length < d['total'];
+          } else {
+            _hasMore = newItems.isNotEmpty;
+          }
+        });
+      }
+    } catch (_) { _page--; }
+    if (mounted) setState(() => _loadingMore = false);
+  }
+
+  void _onTabChanged(String newTab) {
+    if (_tab == newTab) return;
+    setState(() => _tab = newTab);
+    if (newTab != 'create') {
+      _fetchTasks(refresh: true);
     }
   }
 
@@ -52,77 +126,62 @@ class _State extends State<AdminTasksPage> {
     await _api.postData('tasks/admin/create', {'title': _titleCtrl.text, 'description': _descCtrl.text, 'due_date': _dueDate, 'member_id': _memberId});
     _titleCtrl.clear(); _descCtrl.clear();
     setState(() { _dueDate = ''; _memberId = ''; _loading = false; _message = 'Task successfully assigned.'; });
-    await _fetchData();
+    if (_tab != 'create') {
+      await _fetchTasks(refresh: true);
+    }
     Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _message = ''); });
   }
 
   Future<void> _verify(int submissionId) async {
     await _api.patchData('tasks/admin/$submissionId/verify', {'admin_notes': _verifyNotes[submissionId] ?? ''});
     setState(() => _verifyingId = null);
-    await _fetchData();
-  }
-
-  List<dynamic> get _submissions => _tasks.where((t) => t['submission_id'] != null).toList();
-  int get _pendingVerify => _submissions.where((t) => t['admin_verified'] != true).length;
-
-  Map<String, Map<String, dynamic>> get _groupedTasks {
-    final groups = <String, Map<String, dynamic>>{};
-    for (final task in _tasks) {
-      final key = '${task['title']}|${task['due_date']}';
-      if (!groups.containsKey(key)) {
-        groups[key] = {'title': task['title'], 'description': task['description'], 'due_date': task['due_date'], 'total': 0, 'completed': 0, 'members': []};
-      }
-      groups[key]!['total'] = (groups[key]!['total'] as int) + 1;
-      if (task['done'] == true) groups[key]!['completed'] = (groups[key]!['completed'] as int) + 1;
-      (groups[key]!['members'] as List).add(task);
-    }
-    return groups;
+    await _fetchTasks(refresh: true);
   }
 
   @override
   Widget build(BuildContext context) {
     final tabs = [
       {'id': 'create',      'label': 'Assign'},
-      {'id': 'history',     'label': 'History'},
-      {'id': 'submissions', 'label': 'Submissions${_pendingVerify > 0 ? ' ($_pendingVerify)' : ''}'},
+      {'id': 'pending',     'label': 'Pending'},
+      {'id': 'submissions', 'label': 'Submissions'},
+      {'id': 'verified',    'label': 'Verified'},
     ];
     return AppLayout(
       title: 'Compliance Control',
-      child: Column(children: [
-        // Tab bar
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-          child: Row(children: tabs.map((t) {
-            final active = _tab == t['id'];
-            return Expanded(child: GestureDetector(
-              onTap: () => setState(() { _tab = t['id']!; _selectedAssignment = null; }),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(12)),
-                alignment: Alignment.center,
-                child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.center),
-              ),
-            ));
-          }).toList()),
-        ),
-        const SizedBox(height: 16),
+      scrollable: false,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(children: [
+          // Tab bar
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+            child: Row(children: tabs.map((t) {
+              final active = _tab == t['id'];
+              return Expanded(child: GestureDetector(
+                onTap: () => _onTabChanged(t['id']!),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(12)),
+                  alignment: Alignment.center,
+                  child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.center),
+                ),
+              ));
+            }).toList()),
+          ),
+          const SizedBox(height: 16),
 
-        if (_message.isNotEmpty) Container(
-          margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12)),
-          child: Text(_message, style: const TextStyle(color: _kGreen, fontWeight: FontWeight.w700)),
-        ),
+          if (_message.isNotEmpty) Container(
+            margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12)),
+            child: Text(_message, style: const TextStyle(color: _kGreen, fontWeight: FontWeight.w700)),
+          ),
 
-        if (_loading)
-          const Center(child: Padding(padding: EdgeInsets.all(48), child: CircularProgressIndicator(color: _kOrange)))
-        else ...[
           if (_tab == 'create')      _buildCreate(),
-          if (_tab == 'history')     _buildHistory(),
-          if (_tab == 'submissions') _buildSubmissions(),
-        ],
-      ]),
+          if (_tab != 'create')      _buildTaskList(),
+        ]),
+      ),
     );
   }
 
@@ -189,125 +248,99 @@ class _State extends State<AdminTasksPage> {
     ]),
   );
 
-  Widget _buildHistory() {
-    final groups = _groupedTasks.values.toList();
-    if (_selectedAssignment != null) {
-      final grp = _selectedAssignment as Map<String, dynamic>;
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        TextButton.icon(icon: const Icon(Icons.arrow_back, size: 16), label: const Text('Back to Assignments'), onPressed: () => setState(() => _selectedAssignment = null)),
-        const SizedBox(height: 12),
-        Text(grp['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-        Text('Due: ${grp['due_date'] ?? ''}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
-        const SizedBox(height: 12),
-        Text('${grp['completed']}/${grp['total']} Completed', style: const TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
-        ...(grp['members'] as List).map((m) => Container(
-          margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-          child: Row(children: [
-            Expanded(child: Text(m['member_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: (m['done'] == true ? _kGreen : Colors.orange).withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Text(m['done'] == true ? 'Submitted' : 'Pending', style: TextStyle(color: m['done'] == true ? _kGreen : Colors.orange, fontSize: 11, fontWeight: FontWeight.w700))),
-            const SizedBox(width: 8),
-            Text(m['admin_verified'] == true ? '✅ Verified' : m['submission_id'] != null ? '⏳ Awaiting' : '—', style: const TextStyle(fontSize: 12)),
-          ]),
-        )),
-      ]);
+  Widget _buildTaskList() {
+    if (_loading) {
+      return ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 8,
+        separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+        itemBuilder: (ctx, i) => const ShimmerListTile(),
+      );
     }
-    if (groups.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No assignments found.', style: TextStyle(color: Colors.grey))));
-    return Column(children: groups.map((g) {
-      final total = g['total'] as int, done = g['completed'] as int;
-      return Container(
-        margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(g['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-          const SizedBox(height: 4),
-          Text('Due: ${g['due_date'] ?? ''}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: LinearProgressIndicator(value: total > 0 ? done / total : 0, color: _kOrange, backgroundColor: Colors.grey.shade200, minHeight: 6)),
-                const SizedBox(width: 8),
-                Text('$done/$total', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-              ]),
+    if (_tasks.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No tasks found.', style: TextStyle(color: Colors.grey))));
+    
+    return Column(children: [
+      ..._tasks.map((task) {
+        final sid = task['submission_id'] as int?;
+        if (sid != null) _verifyCtrl.putIfAbsent(sid, () => TextEditingController());
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+          clipBehavior: Clip.antiAlias,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              padding: const EdgeInsets.all(14), 
+              color: task['admin_verified'] == true ? _kGreen.withAlpha(12) : (sid != null ? _kOrange.withAlpha(8) : Colors.grey.shade50), 
+              child: Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(task['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Row(children: [const Icon(Icons.person_outline, size: 14, color: _kOrange), const SizedBox(width: 4), Text(task['member_name'] ?? 'Unknown', style: const TextStyle(color: _kOrange, fontSize: 12, fontWeight: FontWeight.w600))]),
+                  const SizedBox(height: 4),
+                  Row(children: [const Icon(Icons.calendar_today, size: 12, color: Colors.grey), const SizedBox(width: 4), Text('Due: ${task['due_date'] ?? ''}', style: const TextStyle(color: Colors.grey, fontSize: 11))]),
+                ])),
+                if (task['admin_verified'] == true)
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: const Text('Verified', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w800, fontSize: 12)))
+                else if (sid != null)
+                  ElevatedButton(
+                    onPressed: () => setState(() => _verifyingId = _verifyingId == sid ? null : sid),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _kOrange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: const Text('Verify', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  )
+                else
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)), child: const Text('Pending', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w800, fontSize: 12))),
             ])),
-            const SizedBox(width: 12),
-            TextButton(onPressed: () => setState(() => _selectedAssignment = g), child: const Text('View', style: TextStyle(color: _kOrange))),
+            if (task['completion_note'] != null && task['completion_note'].toString().isNotEmpty) 
+              Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('MEMBER NOTE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey)), const SizedBox(height: 6), Text(task['completion_note'], style: const TextStyle(fontSize: 14, height: 1.5))])),
+            if (_verifyingId == sid && sid != null) Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Admin Notes (optional)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                TextField(
+                  controller: _verifyCtrl[sid],
+                  maxLines: 2,
+                  onChanged: (v) => _verifyNotes[sid] = v,
+                  decoration: _deco(hint: 'Any notes for the member...'),
+                ),
+                const SizedBox(height: 10),
+                Row(children: [
+                  ElevatedButton(
+                    onPressed: () => _verify(sid),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _kGreen,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(140, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: const Text('Confirm Verified', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 10),
+                  TextButton(
+                    onPressed: () => setState(() => _verifyingId = null),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ]),
+              ]),
+            ),
           ]),
-        ]),
-      );
-    }).toList());
-  }
-
-  Widget _buildSubmissions() {
-    if (_submissions.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No submissions yet.', style: TextStyle(color: Colors.grey))));
-    return Column(children: _submissions.map((task) {
-      final sid = task['submission_id'] as int?;
-      _verifyCtrl.putIfAbsent(sid ?? 0, () => TextEditingController());
-      return Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-        clipBehavior: Clip.antiAlias,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(padding: const EdgeInsets.all(14), color: task['admin_verified'] == true ? _kGreen.withAlpha(12) : _kOrange.withAlpha(8), child: Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(task['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              Row(children: [const Icon(Icons.person_outline, size: 14, color: _kOrange), const SizedBox(width: 4), Text(task['member_name'] ?? '', style: const TextStyle(color: _kOrange, fontSize: 12, fontWeight: FontWeight.w600))]),
-            ])),
-            task['admin_verified'] == true
-              ? Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: const Text('Verified', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w800, fontSize: 12)))
-              : ElevatedButton(
-                  onPressed: () => setState(() => _verifyingId = _verifyingId == sid ? null : sid),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _kOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Mark Verified', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-          ])),
-          if (task['completion_note'] != null) Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('MEMBER NOTE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey)), const SizedBox(height: 6), Text(task['completion_note'], style: const TextStyle(fontSize: 14, height: 1.5))])),
-          if (_verifyingId == sid) Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Admin Notes (optional)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              TextField(
-                controller: _verifyCtrl[sid ?? 0],
-                maxLines: 2,
-                onChanged: (v) => _verifyNotes[sid ?? 0] = v,
-                decoration: _deco(hint: 'Any notes for the member...'),
-              ),
-              const SizedBox(height: 10),
-              Row(children: [
-                ElevatedButton(
-                  onPressed: () => _verify(sid!),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _kGreen,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(140, 52),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Confirm Verified', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 10),
-                TextButton(
-                  onPressed: () => setState(() => _verifyingId = null),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ]),
-            ]),
-          ),
-        ]),
-      );
-    }).toList());
+        );
+      }),
+      if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+      if (!_loading && _total > 0) Center(child: Padding(padding: const EdgeInsets.only(bottom: 20), child: Text('${_tasks.length} tasks shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+    ]);
   }
 
   InputDecoration _deco({String? hint}) => InputDecoration(

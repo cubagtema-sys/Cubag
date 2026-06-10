@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
+import '../components/shimmer_loader.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kGreen  = Color(0xFF10b981);
@@ -47,16 +48,86 @@ class _State extends State<AdminLicenseRenewalPage> {
   final Map<int, List<dynamic>> _histories = {};
   final Map<int, bool> _showHistory = {};
 
-  @override void initState() { super.initState(); _fetch(); }
+  int _page = 1;
+  int _total = 0;
+  bool _hasMore = true;
+  bool _loadingMore = false;
+  final ScrollController _scrollController = ScrollController();
 
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
-    final data = await _api.fetchData('members/admin/all');
-    if (mounted && data is List) {
+  @override void initState() { 
+    super.initState(); 
+    _fetch(); 
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_loading && !_loadingMore && _hasMore) {
+        _fetchMore();
+      }
+    }
+  }
+
+  Future<void> _fetch({bool refresh = false}) async {
+    if (!mounted) return;
+    if (refresh) {
+      setState(() { _page = 1; _hasMore = true; _loading = true; _members = []; });
+    } else {
+      if (!_loading) setState(() => _loading = true);
+    }
+    
+    await _api.fetchDataWithCache('members/admin/all?page=$_page&limit=20&status=$_tab', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          _loading = false;
+          if (data is Map) {
+            _members = ApiService.ensureList(data);
+            if (data.containsKey('total')) {
+              _total = data['total'];
+              _hasMore = _members.length < _total;
+            } else {
+              _hasMore = false;
+            }
+          } else if (data is List) {
+            _members = data;
+            _hasMore = false;
+          }
+
+          for (final m in _members) {
+            final id = m['id'] as int;
+            if (!_editors.containsKey(id)) {
+              final exp = m['license_expiry_date']?.toString().split('T')[0] ?? '';
+              _editors[id] = {'preset': null, 'customDate': exp, 'saving': false};
+            }
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _fetchMore() async {
+    setState(() => _loadingMore = true);
+    _page++;
+    final data = await _api.fetchData('members/admin/all?page=$_page&limit=20&status=$_tab');
+    if (mounted) {
       setState(() {
-        _members = data;
-        _loading = false;
-        for (final m in data) {
+        _loadingMore = false;
+        if (data is Map) {
+          final newItems = ApiService.ensureList(data);
+          _members.addAll(newItems);
+          if (data.containsKey('total')) {
+            _hasMore = _members.length < data['total'];
+          } else {
+            _hasMore = newItems.isNotEmpty;
+          }
+        }
+        
+        for (final m in _members) {
           final id = m['id'] as int;
           if (!_editors.containsKey(id)) {
             final exp = m['license_expiry_date']?.toString().split('T')[0] ?? '';
@@ -110,8 +181,8 @@ class _State extends State<AdminLicenseRenewalPage> {
     Future.delayed(const Duration(seconds: 5), () { if (mounted) setState(() => _msg = {'text': '', 'ok': true}); });
   }
 
-  List<dynamic> get _pendingList => _members.where((m) => m['status'] == 'pending').toList();
-  List<dynamic> get _activeList  => _members.where((m) => m['status'] == 'active' || m['status'] == 'suspended').toList();
+  List<dynamic> get _pendingList => _members;
+  List<dynamic> get _activeList  => _members;
 
   @override
   Widget build(BuildContext context) => AppLayout(
@@ -123,8 +194,8 @@ class _State extends State<AdminLicenseRenewalPage> {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
           child: Row(children: [
-            _tabBtn('pending', 'Pending (${_pendingList.length})'),
-            _tabBtn('active', 'Active (${_activeList.length})'),
+            _tabBtn('pending', 'Pending'),
+            _tabBtn('active', 'Active'),
           ]),
         ),
         const SizedBox(height: 12),
@@ -133,9 +204,23 @@ class _State extends State<AdminLicenseRenewalPage> {
           decoration: BoxDecoration(color: (_msg['ok'] == true ? _kGreen : _kRed).withAlpha(25), borderRadius: BorderRadius.circular(10)),
           child: Text(_msg['text'] as String, style: TextStyle(color: _msg['ok'] == true ? _kGreen : _kRed, fontWeight: FontWeight.w700)),
         ),
-        if (_loading) const Center(child: Padding(padding: EdgeInsets.all(48), child: CircularProgressIndicator(color: _kOrange))),
-        if (!_loading && _tab == 'pending') _buildPendingTab(),
-        if (!_loading && _tab == 'active')  _buildActiveTab(),
+        Expanded(
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Column(children: [
+              if (_loading) 
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: 8,
+                  separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+                  itemBuilder: (ctx, i) => const ShimmerListTile(),
+                ),
+              if (!_loading && _tab == 'pending') _buildPendingTab(),
+              if (!_loading && _tab == 'active')  _buildActiveTab(),
+            ]),
+          ),
+        ),
       ]),
       // Payment sheet
       if (_selectedPayment != null) _buildPaymentSheet(),
@@ -143,7 +228,12 @@ class _State extends State<AdminLicenseRenewalPage> {
   );
 
   Widget _tabBtn(String id, String label) => Expanded(child: GestureDetector(
-    onTap: () => setState(() => _tab = id),
+    onTap: () {
+      if (_tab != id) {
+        setState(() => _tab = id);
+        _fetch(refresh: true);
+      }
+    },
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -155,159 +245,167 @@ class _State extends State<AdminLicenseRenewalPage> {
 
   Widget _buildPendingTab() {
     if (_pendingList.isEmpty) return Container(padding: const EdgeInsets.all(40), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No pending renewals.', style: TextStyle(color: Colors.grey))));
-    return Column(children: _pendingList.map((m) => Container(
-      margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(m['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-            Text('${m['company'] ?? 'Independent'} · ${m['port_of_operation'] ?? '—'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ])),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: _kAmber.withAlpha(30), borderRadius: BorderRadius.circular(20)), child: const Text('PENDING', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _kAmber))),
+    return Column(children: [
+      ..._pendingList.map((m) => Container(
+        margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(m['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              Text('${m['company'] ?? 'Independent'} · ${m['port_of_operation'] ?? '—'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ])),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: _kAmber.withAlpha(30), borderRadius: BorderRadius.circular(20)), child: const Text('PENDING', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _kAmber))),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: _infoTile('License', m['license_number'] ?? 'TBD')),
+            const SizedBox(width: 8),
+            Expanded(child: _infoTile('Ref', m['payment_ref'] ?? 'N/A', mono: true)),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: OutlinedButton(onPressed: () => setState(() => _selectedPayment = m), style: OutlinedButton.styleFrom(foregroundColor: _kOrange, side: const BorderSide(color: _kOrange)), child: const Text('Verify Pay', style: TextStyle(fontSize: 12)))),
+            const SizedBox(width: 8),
+            Expanded(child: ElevatedButton(onPressed: () => _updateStatus(m['id'], 'active'), style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white), child: const Text('Approve', style: TextStyle(fontSize: 12)))),
+          ]),
         ]),
-        const SizedBox(height: 10),
-        Row(children: [
-          Expanded(child: _infoTile('License', m['license_number'] ?? 'TBD')),
-          const SizedBox(width: 8),
-          Expanded(child: _infoTile('Ref', m['payment_ref'] ?? 'N/A', mono: true)),
-        ]),
-        const SizedBox(height: 10),
-        Row(children: [
-          Expanded(child: OutlinedButton(onPressed: () => setState(() => _selectedPayment = m), style: OutlinedButton.styleFrom(foregroundColor: _kOrange, side: const BorderSide(color: _kOrange)), child: const Text('Verify Pay', style: TextStyle(fontSize: 12)))),
-          const SizedBox(width: 8),
-          Expanded(child: ElevatedButton(onPressed: () => _updateStatus(m['id'], 'active'), style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white), child: const Text('Approve', style: TextStyle(fontSize: 12)))),
-        ]),
-      ]),
-    )).toList());
+      )),
+      if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: _kOrange))),
+      if (!_loading && _total > 0) Center(child: Padding(padding: const EdgeInsets.only(bottom: 20), child: Text('${_members.length} members shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+    ]);
   }
 
   Widget _buildActiveTab() {
     if (_activeList.isEmpty) return Container(padding: const EdgeInsets.all(40), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No active members yet.', style: TextStyle(color: Colors.grey))));
-    return Column(children: _activeList.map((m) {
-      final id   = m['id'] as int;
-      final ed   = _editors[id] ?? {'preset': null, 'customDate': '', 'saving': false};
-      final exp  = m['license_expiry_date']?.toString().split('T')[0];
-      final now  = DateTime.now();
-      final expDt = exp != null ? DateTime.tryParse(exp) : null;
-      final isExpired = expDt != null && expDt.isBefore(now);
-      final isSoon    = expDt != null && !isExpired && expDt.difference(now).inDays < 30;
+    return Column(children: [
+      ..._activeList.map((m) {
+        final id   = m['id'] as int;
+        final ed   = _editors[id] ?? {'preset': null, 'customDate': '', 'saving': false};
+        final exp  = m['license_expiry_date']?.toString().split('T')[0];
+        final now  = DateTime.now();
+        final expDt = exp != null ? DateTime.tryParse(exp) : null;
+        final isExpired = expDt != null && expDt.isBefore(now);
+        final isSoon    = expDt != null && !isExpired && expDt.difference(now).inDays < 30;
 
-      String? previewDate;
-      if (ed['preset'] != null) {
-        previewDate = _addMonths(ed['preset'] as int);
-      } else if ((ed['customDate'] as String).isNotEmpty) {
-        previewDate = ed['customDate'] as String;
-      }
+        String? previewDate;
+        if (ed['preset'] != null) {
+          previewDate = _addMonths(ed['preset'] as int);
+        } else if ((ed['customDate'] as String).isNotEmpty) {
+          previewDate = ed['customDate'] as String;
+        }
 
-      return Container(
-        margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(m['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15), overflow: TextOverflow.ellipsis),
-              Text(m['license_number'] ?? 'No license #', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            ])),
-            Wrap(spacing: 4, children: [
-              if (isExpired) _badge('EXPIRED', _kRed),
-              if (isSoon)    _badge('EXPIRING SOON', _kAmber),
-              _badge(m['status']?.toString().toUpperCase() ?? '', m['status'] == 'active' ? _kGreen : _kRed),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(m['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15), overflow: TextOverflow.ellipsis),
+                Text(m['license_number'] ?? 'No license #', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              ])),
+              Wrap(spacing: 4, children: [
+                if (isExpired) _badge('EXPIRED', _kRed),
+                if (isSoon)    _badge('EXPIRING SOON', _kAmber),
+                _badge(m['status']?.toString().toUpperCase() ?? '', m['status'] == 'active' ? _kGreen : _kRed),
+              ]),
             ]),
-          ]),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
-            child: Row(children: [
-              const Text('Current Expiry', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey)),
-              const Spacer(),
-              Text(exp != null ? _fmt(exp) : 'Not set', style: TextStyle(fontWeight: FontWeight.w800, color: isExpired ? _kRed : isSoon ? _kAmber : Colors.black87)),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          const Text('SET DURATION — starts from today', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey)),
-          const SizedBox(height: 8),
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            ..._durationPresets.map((p) {
-              final selected = ed['preset'] == p['months'];
-              return GestureDetector(
-                onTap: () => setState(() => _editors[id]!['preset'] = p['months']),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
+              child: Row(children: [
+                const Text('Current Expiry', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey)),
+                const Spacer(),
+                Text(exp != null ? _fmt(exp) : 'Not set', style: TextStyle(fontWeight: FontWeight.w800, color: isExpired ? _kRed : isSoon ? _kAmber : Colors.black87)),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            const Text('SET DURATION — starts from today', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              ..._durationPresets.map((p) {
+                final selected = ed['preset'] == p['months'];
+                return GestureDetector(
+                  onTap: () => setState(() => _editors[id]!['preset'] = p['months']),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: selected ? _kOrange : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: selected ? _kOrange : Colors.grey.shade300),
+                    ),
+                    child: Text(p['label'] as String, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected ? Colors.white : Colors.grey.shade700)),
+                  ),
+                );
+              }),
+              GestureDetector(
+                onTap: () => setState(() => _editors[id]!['preset'] = null),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: selected ? _kOrange : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: selected ? _kOrange : Colors.grey.shade300),
-                  ),
-                  child: Text(p['label'] as String, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected ? Colors.white : Colors.grey.shade700)),
+                  decoration: BoxDecoration(color: ed['preset'] == null ? _kOrange : Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: ed['preset'] == null ? _kOrange : Colors.grey.shade300)),
+                  child: Text('Custom', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ed['preset'] == null ? Colors.white : Colors.grey.shade700)),
                 ),
-              );
-            }),
-            GestureDetector(
-              onTap: () => setState(() => _editors[id]!['preset'] = null),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(color: ed['preset'] == null ? _kOrange : Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: ed['preset'] == null ? _kOrange : Colors.grey.shade300)),
-                child: Text('Custom', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ed['preset'] == null ? Colors.white : Colors.grey.shade700)),
               ),
-            ),
-          ]),
-          if (ed['preset'] == null) ...[
+            ]),
+            if (ed['preset'] == null) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(context: context, initialDate: DateTime.now().add(const Duration(days: 30)), firstDate: DateTime.now(), lastDate: DateTime(2099));
+                  if (picked != null) setState(() => _editors[id]!['customDate'] = '${picked.year}-${picked.month.toString().padLeft(2,'0')}-${picked.day.toString().padLeft(2,'0')}');
+                },
+                child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)), child: Row(children: [const Icon(Icons.calendar_today, size: 16, color: Colors.grey), const SizedBox(width: 8), Text((ed['customDate'] as String).isEmpty ? 'Pick custom date' : _fmt(ed['customDate'] as String), style: TextStyle(color: (ed['customDate'] as String).isEmpty ? Colors.grey : Colors.black))])),
+              ),
+            ],
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () async {
-                final picked = await showDatePicker(context: context, initialDate: DateTime.now().add(const Duration(days: 30)), firstDate: DateTime.now(), lastDate: DateTime(2099));
-                if (picked != null) setState(() => _editors[id]!['customDate'] = '${picked.year}-${picked.month.toString().padLeft(2,'0')}-${picked.day.toString().padLeft(2,'0')}');
-              },
-              child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)), child: Row(children: [const Icon(Icons.calendar_today, size: 16, color: Colors.grey), const SizedBox(width: 8), Text((ed['customDate'] as String).isEmpty ? 'Pick custom date' : _fmt(ed['customDate'] as String), style: TextStyle(color: (ed['customDate'] as String).isEmpty ? Colors.grey : Colors.black))])),
+            Row(children: [
+              if (previewDate != null) Expanded(child: Text('→ Expires: ${_fmt(previewDate)}', style: const TextStyle(fontSize: 12, color: _kGreen, fontWeight: FontWeight.w700))),
+              ElevatedButton(
+                onPressed: ed['saving'] == true || previewDate == null ? null : () => _saveExpiry(m),
+                style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                child: Text(ed['saving'] == true ? 'Saving…' : 'Apply & Save', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              icon: Icon(_showHistory[id] == true ? Icons.expand_less : Icons.history, size: 16),
+              label: Text('${_showHistory[id] == true ? 'Hide' : 'View'} License History', style: const TextStyle(fontSize: 12)),
+              onPressed: () => _toggleHistory(id),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.grey, side: BorderSide(color: Colors.grey.shade300), minimumSize: const Size(double.infinity, 36)),
             ),
-          ],
-          const SizedBox(height: 12),
-          Row(children: [
-            if (previewDate != null) Expanded(child: Text('→ Expires: ${_fmt(previewDate)}', style: const TextStyle(fontSize: 12, color: _kGreen, fontWeight: FontWeight.w700))),
-            ElevatedButton(
-              onPressed: ed['saving'] == true || previewDate == null ? null : () => _saveExpiry(m),
-              style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              child: Text(ed['saving'] == true ? 'Saving…' : 'Apply & Save', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-            ),
-          ]),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: Icon(_showHistory[id] == true ? Icons.expand_less : Icons.history, size: 16),
-            label: Text('${_showHistory[id] == true ? 'Hide' : 'View'} License History', style: const TextStyle(fontSize: 12)),
-            onPressed: () => _toggleHistory(id),
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.grey, side: BorderSide(color: Colors.grey.shade300), minimumSize: const Size(double.infinity, 36)),
-          ),
-          if (_showHistory[id] == true) ...[
-            const SizedBox(height: 10),
-            ...(_histories[id] ?? []).asMap().entries.map((e) {
-              final h = e.value;
-              final isCurrent = e.key == 0;
-              final hExpired = h['expiry_date'] != null && DateTime.tryParse(h['expiry_date'])?.isBefore(DateTime.now()) == true;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isCurrent ? _kGreen.withAlpha(12) : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: isCurrent ? _kGreen.withAlpha(60) : Colors.grey.shade200),
+            if (_showHistory[id] == true) ...[
+              const SizedBox(height: 10),
+              ...(_histories[id] ?? []).asMap().entries.map((e) {
+                final h = e.value;
+                final isCurrent = e.key == 0;
+                final hExpired = h['expiry_date'] != null && DateTime.tryParse(h['expiry_date'])?.isBefore(DateTime.now()) == true;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isCurrent ? _kGreen.withAlpha(12) : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: isCurrent ? _kGreen.withAlpha(60) : Colors.grey.shade200),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('${isCurrent ? "Current" : "Archived"} · ${h['duration_label'] ?? '—'}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: isCurrent ? _kGreen : Colors.grey)),
+                      const SizedBox(height: 4),
+                      Text(h['license_number'] ?? '—', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700, fontSize: 13)),
+                      const SizedBox(height: 2),
+                      Text('${_fmt(h['start_date'])} → ${_fmt(h['expiry_date'])}', style: TextStyle(fontSize: 11, color: hExpired && !isCurrent ? _kRed : Colors.grey)),
+                    ]),
                   ),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${isCurrent ? "Current" : "Archived"} · ${h['duration_label'] ?? '—'}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: isCurrent ? _kGreen : Colors.grey)),
-                    const SizedBox(height: 4),
-                    Text(h['license_number'] ?? '—', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700, fontSize: 13)),
-                    const SizedBox(height: 2),
-                    Text('${_fmt(h['start_date'])} → ${_fmt(h['expiry_date'])}', style: TextStyle(fontSize: 11, color: hExpired && !isCurrent ? _kRed : Colors.grey)),
-                  ]),
-                ),
-              );
-            }),
-          ],
-        ]),
-      );
-    }).toList());
+                );
+              }),
+            ],
+          ]),
+        );
+      }),
+      if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: _kOrange))),
+      if (!_loading && _total > 0) Center(child: Padding(padding: const EdgeInsets.only(bottom: 20), child: Text('${_members.length} members shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+    ]);
   }
 
   Widget _buildPaymentSheet() => Container(

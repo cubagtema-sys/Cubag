@@ -95,10 +95,9 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
   }
 
   Future<void> _fetchLiveVessels() async {
-    try {
-      final res = await ApiService().get('/vessels');
-      if (res.statusCode == 200) {
-        final list = ApiService.ensureList(res.data);
+    await ApiService().fetchDataWithCache('/vessels', (data, isCached) {
+      if (mounted && data != null) {
+        final list = ApiService.ensureList(data);
         setState(() {
           for (var item in list) {
             final mmsi = item['mmsi']?.toString();
@@ -108,32 +107,36 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
           }
         });
       }
-    } catch (_) {}
+    });
   }
 
   Future<void> _fetchSchedules() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+    if (!_isLoading) setState(() => _isLoading = true);
+    
     try {
       if (_activeTab == 'live tracking') {
         await _fetchLiveVessels();
-        // Also fetch static movement schedules from admin
-        final res = await ApiService().get('/schedules?type=movement');
-        if (res.statusCode == 200) {
-          setState(() => _schedules = ApiService.ensureList(res.data));
-        }
+        await ApiService().fetchDataWithCache('/schedules?type=movement', (data, isCached) {
+          if (mounted && data != null) {
+            setState(() {
+              _schedules = ApiService.ensureList(data);
+              _isLoading = false;
+            });
+          }
+        });
       } else {
-        final apiService = ApiService();
-        final res = await apiService.get('/schedules?type=$_activeTab');
-        if (res.statusCode == 200) {
-          setState(() => _schedules = ApiService.ensureList(res.data));
-        } else {
-          setState(() => _schedules = []);
-        }
+        await ApiService().fetchDataWithCache('/schedules?type=$_activeTab', (data, isCached) {
+          if (mounted && data != null) {
+            setState(() {
+              _schedules = ApiService.ensureList(data);
+              _isLoading = false;
+            });
+          }
+        });
       }
     } catch (e) {
-      setState(() => _schedules = []);
-    } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() { _schedules = []; _isLoading = false; });
     }
   }
 

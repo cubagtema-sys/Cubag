@@ -8,6 +8,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import '../components/app_layout.dart';
+import '../components/shimmer_loader.dart';
 import '../services/api_service.dart';
 
 class TasksPage extends StatefulWidget {
@@ -42,25 +43,15 @@ class _TasksPageState extends State<TasksPage> {
   }
 
   Future<void> _fetchTasks() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-    try {
-      final apiService = ApiService();
-      final response = await apiService.get('/tasks');
-      if (!mounted) return;
-      if (response.statusCode == 200) {
-        setState(() { _tasks = ApiService.ensureList(response.data); });
-      } else {
-        setState(() => _error = 'Failed to fetch tasks');
+    if (!_isLoading) setState(() { _isLoading = true; _error = null; });
+    await ApiService().fetchDataWithCache('/tasks', (data, isCached) {
+      if (mounted && data != null) {
+        setState(() {
+          _tasks = ApiService.ensureList(data);
+          _isLoading = false;
+        });
       }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = 'Connection failed. Please check your network.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);  // BUG-F11 fix
-    }
+    });
   }
 
   void _openSubmitModal(Map<String, dynamic> task) {
@@ -280,8 +271,14 @@ class _TasksPageState extends State<TasksPage> {
           ),
           const SizedBox(height: 24),
 
-          if (_isLoading)
-            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          if (_isLoading && _tasks.isEmpty)
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 4,
+              separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+              itemBuilder: (ctx, i) => const ShimmerListTile(),
+            )
           else if (_error != null)
             Container(
               width: double.infinity,

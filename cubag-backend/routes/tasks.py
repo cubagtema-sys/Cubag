@@ -181,19 +181,44 @@ def serve_file(filename):
 @tasks_bp.route('/admin/all', methods=['GET'])
 @sub_admin_required('members')
 def get_all_tasks_admin():
-    conn = get_db()
     try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = int(request.args.get('per_page', 20))
+        per_page = max(1, min(per_page, 200))
+        offset = (page - 1) * per_page
+        task_status = request.args.get('status', 'all').lower()
+
+        where_clause = ""
+        if task_status == 'pending':
+            where_clause = "WHERE t.done = FALSE AND (s.id IS NULL OR s.admin_verified = FALSE)" # pending or submitted without submission? Wait, pending is NOT done.
+            where_clause = "WHERE t.done = FALSE AND s.id IS NULL"
+        elif task_status == 'submitted':
+            where_clause = "WHERE t.done = TRUE AND (s.admin_verified IS NULL OR s.admin_verified = FALSE)"
+        elif task_status == 'verified':
+            where_clause = "WHERE s.admin_verified = TRUE"
+
+        conn = get_db()
         with conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT t.*, m.name as member_name,
                        s.id as submission_id, s.completion_note, s.admin_verified,
                        s.admin_verified_at, s.admin_notes, s.submitted_at
                 FROM tasks t
                 LEFT JOIN members m ON t.member_id = m.id
                 LEFT JOIN task_submissions s ON t.id = s.task_id
+                {where_clause}
                 ORDER BY t.created_at DESC
-            """)
+                LIMIT %s OFFSET %s
+            """, (per_page, offset))
             tasks = cursor.fetchall()
+
+            cursor.execute(f"""
+                SELECT COUNT(*) as total
+                FROM tasks t
+                LEFT JOIN task_submissions s ON t.id = s.task_id
+                {where_clause}
+            """)
+            total = cursor.fetchone().get('total', 0)
 
             # Attach files for each submission using one bulk query
             submission_ids = [t['submission_id'] for t in tasks if t.get('submission_id')]
@@ -223,9 +248,12 @@ def get_all_tasks_admin():
                     if hasattr(task.get(date_field), 'isoformat'):
                         task[date_field] = task[date_field].isoformat()
 
-        return jsonify(tasks), 200
+        return jsonify({'data': tasks, 'page': page, 'per_page': per_page, 'total': total}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
     finally:
-        conn.close()
+        if 'conn' in locals():
+            conn.close()
 
 
 # ─── POST /tasks/admin/create ─────────────────────────────────────────────

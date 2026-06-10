@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+import '../components/shimmer_loader.dart';
 
 class AdminPaymentsPage extends StatefulWidget {
   const AdminPaymentsPage({super.key});
@@ -11,31 +13,96 @@ class AdminPaymentsPage extends StatefulWidget {
 
 class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
   bool _loading = true;
+  bool _loadingMore = false;
   Map<String, dynamic> _kpis = {'revenue': 0, 'pending': 0, 'failed': 0};
   List<dynamic> _transactions = [];
   String _search = '';
   String _filterStatus = 'all';
   int _page = 1;
+  int _total = 0;
+  bool _hasMore = true;
   bool _actionLoading = false;
 
-  static const int _pageSize = 10;
+  Timer? _debounce;
+  final ScrollController _scrollController = ScrollController();
 
   @override
-  void initState() { super.initState(); _fetch(); }
+  void initState() { 
+    super.initState(); 
+    _fetch(); 
+    _scrollController.addListener(_onScroll);
+  }
 
-  Future<void> _fetch() async {
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_loading && !_loadingMore && _hasMore) {
+        _fetchMore();
+      }
+    }
+  }
+
+  Future<void> _fetch({bool refresh = false}) async {
     if (!mounted) return;
-    setState(() => _loading = true);
+    if (refresh) {
+      setState(() { _page = 1; _hasMore = true; _loading = true; _transactions = []; });
+    } else {
+      if (!_loading) setState(() => _loading = true);
+    }
+    
+    await ApiService().fetchDataWithCache('/payments/admin/all?page=$_page&limit=20&search=$_search&status=$_filterStatus', (data, isCached) {
+      if (mounted && data != null) {
+        final d = data as Map<String, dynamic>;
+        setState(() { 
+          _loading = false;
+          _kpis = d['kpis'] ?? _kpis; 
+          _transactions = ApiService.ensureList(d);
+          if (d.containsKey('total')) {
+            _total = d['total'];
+            _hasMore = _transactions.length < _total;
+          } else {
+            _hasMore = false;
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _fetchMore() async {
+    setState(() => _loadingMore = true);
+    _page++;
     try {
-      final res = await ApiService().get('/payments/admin/all');
-      if (!mounted) return;
+      final res = await ApiService().get('/payments/admin/all?page=$_page&limit=20&search=$_search&status=$_filterStatus');
       if (res.statusCode == 200) {
         final d = res.data as Map<String, dynamic>;
-        setState(() { _kpis = d['kpis'] ?? {}; _transactions = d['transactions'] ?? []; });
+        final newItems = ApiService.ensureList(d);
+        setState(() {
+          _transactions.addAll(newItems);
+          if (d.containsKey('total')) {
+            _hasMore = _transactions.length < d['total'];
+          } else {
+            _hasMore = newItems.isNotEmpty;
+          }
+        });
       }
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() => _loading = false);
+    } catch (_) { _page--; }
+    if (mounted) setState(() => _loadingMore = false);
+  }
+
+  void _onSearchChanged(String v) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() => _search = v);
+        _fetch(refresh: true);
+      }
+    });
   }
 
   void _showToast(String msg) {
@@ -53,13 +120,23 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
 
   Future<void> _markPaid(dynamic id) async {
     setState(() => _actionLoading = true);
+    // Optimistic Update
+    final index = _transactions.indexWhere((t) => t['tx_id'] == id);
+    if (index != -1) {
+      setState(() {
+        _transactions[index]['status'] = 'paid';
+      });
+    }
+
     try {
       final res = await ApiService().post('/payments/admin/mark-paid/$id');
       if (res.statusCode == 200) {
-        await _fetch();
         _showToast('Payment confirmed successfully.');
+        _fetch(refresh: true); // fetch again to update KPIs
       }
     } catch (_) {
+      // Revert Optimistic
+      if (index != -1) setState(() => _transactions[index]['status'] = 'pending');
       _showToast('Network error. Try again.');
     }
     if (mounted) setState(() => _actionLoading = false);
@@ -186,7 +263,7 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
             ['Member Name',    tx['member_name']?.toString() ?? '—'],
             ['Reference',      tx['payment_ref']?.toString() ?? 'N/A'],
             ['Description',    tx['description']?.toString() ?? '—'],
-            ['Date',           tx['created_at']?.toString() ?? '—'],
+            ['Date',           tx['date']?.toString() ?? '—'],
           ].map((row) => _DetailRow(label: row[0], value: row[1])),
 
           const SizedBox(height: 16),
@@ -220,187 +297,172 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).primaryColor;
-    final filtered = _transactions.where((tx) {
-      final q = _search.toLowerCase();
-      return ((tx['member_name'] ?? '').toString().toLowerCase().contains(q) ||
-              (tx['description'] ?? '').toString().toLowerCase().contains(q)) &&
-             (_filterStatus == 'all' || tx['status'] == _filterStatus);
-    }).toList();
-    final totalPages = (filtered.length / _pageSize).ceil().clamp(1, 999);
-    final paginated  = filtered.skip((_page - 1) * _pageSize).take(_pageSize).toList();
-    final revenue    = double.tryParse(_kpis['revenue']?.toString() ?? '0') ?? 0;
+    final revenue = double.tryParse(_kpis['revenue']?.toString() ?? '0') ?? 0;
 
     return AppLayout(
       title: 'Financial Center',
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Revenue Banner
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [primary, primary.withValues(alpha: 0.7)]),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('TOTAL REVENUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1)),
-            const SizedBox(height: 4),
-            Text('₵${revenue.toStringAsFixed(2)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'monospace')),
-            const SizedBox(height: 6),
-            Row(children: [
-              _KpiChip(label: 'Pending', value: _kpis['pending']?.toString() ?? '0', color: const Color(0xFFf59e0b)),
-              const SizedBox(width: 10),
-              _KpiChip(label: 'Failed', value: _kpis['failed']?.toString() ?? '0', color: const Color(0xFFef4444)),
-            ]),
-          ]),
-        ),
-        const SizedBox(height: 16),
-
-        // Search + Filter row
-        Row(children: [
-          Expanded(
-            flex: 3,
-            child: TextField(
-              onChanged: (v) => setState(() { _search = v; _page = 1; }),
-              style: const TextStyle(fontSize: 13),
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
-                hintText: 'Search by name or description...',
-                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            flex: 2,
-            child: CustomDropdown<String>(
-              value: _filterStatus,
-              prefixIcon: const Icon(Icons.payments_outlined, size: 16, color: Color(0xFF64748b)),
-              items: const [
-                DropdownItem(value: 'all',     label: 'All Statuses'),
-                DropdownItem(value: 'paid',    label: 'Paid'),
-                DropdownItem(value: 'pending', label: 'Pending'),
-                DropdownItem(value: 'overdue', label: 'Overdue'),
-              ],
-              onChanged: (v) => setState(() { _filterStatus = v; _page = 1; }),
-            ),
-          ),
-        ]),
-        const SizedBox(height: 16),
-
-        // Transaction Cards
-        if (_loading)
-          const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
-        else if (paginated.isEmpty)
+      scrollable: false,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Revenue Banner
           Container(
-            padding: const EdgeInsets.all(40),
-            alignment: Alignment.center,
-            child: Column(children: [
-              Icon(Icons.payments_outlined, size: 48, color: Colors.grey.shade300),
-              const SizedBox(height: 12),
-              const Text('No payment records found.', style: TextStyle(color: Colors.grey)),
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [primary, primary.withValues(alpha: 0.7)]),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('TOTAL REVENUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1)),
+              const SizedBox(height: 4),
+              Text('₵${revenue.toStringAsFixed(2)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'monospace')),
+              const SizedBox(height: 6),
+              Row(children: [
+                _KpiChip(label: 'Pending', value: _kpis['pending']?.toString() ?? '0', color: const Color(0xFFf59e0b)),
+                const SizedBox(width: 10),
+                _KpiChip(label: 'Failed', value: _kpis['failed']?.toString() ?? '0', color: const Color(0xFFef4444)),
+              ]),
             ]),
-          )
-        else
-          ...paginated.map((tx) {
-            final sm     = _statusMeta(tx['status']?.toString() ?? '');
-            final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+          ),
+          const SizedBox(height: 16),
+
+          // Search + Filter row
+          Row(children: [
+            Expanded(
+              flex: 3,
+              child: TextField(
+                onChanged: _onSearchChanged,
+                style: const TextStyle(fontSize: 13),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                  hintText: 'Search by name or description...',
+                  hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
+                ),
               ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  // Avatar initials
-                  Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(color: primary.withAlpha(20), shape: BoxShape.circle),
-                    child: Center(child: Text(
-                      (tx['member_name']?.toString() ?? '?').substring(0, 1).toUpperCase(),
-                      style: TextStyle(fontWeight: FontWeight.bold, color: primary, fontSize: 16),
-                    )),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(tx['member_name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
-                    Text('ID: ${tx['tx_id']?.toString() ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                  ])),
-                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text('₵${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: sm['bg'] as Color, borderRadius: BorderRadius.circular(4)),
-                      child: Text((tx['status']?.toString() ?? '').toUpperCase(), style: TextStyle(fontSize: 9, color: sm['color'] as Color, fontWeight: FontWeight.bold)),
-                    ),
-                  ]),
-                ]),
-                if ((tx['description']?.toString() ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(8)),
-                    child: Text(tx['description'].toString(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 2,
+              child: CustomDropdown<String>(
+                value: _filterStatus,
+                prefixIcon: const Icon(Icons.payments_outlined, size: 16, color: Color(0xFF64748b)),
+                items: const [
+                  DropdownItem(value: 'all',     label: 'All Statuses'),
+                  DropdownItem(value: 'paid',    label: 'Paid'),
+                  DropdownItem(value: 'pending', label: 'Pending'),
+                  DropdownItem(value: 'overdue', label: 'Overdue'),
                 ],
-                const SizedBox(height: 10),
-                Row(children: [
-                  if (tx['status'] == 'pending')
+                onChanged: (v) => setState(() { _filterStatus = v; _fetch(refresh: true); }),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+
+          // Transaction Cards
+          if (_loading)
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 8,
+              separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+              itemBuilder: (ctx, i) => const ShimmerListTile(),
+            )
+          else if (_transactions.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(40),
+              alignment: Alignment.center,
+              child: Column(children: [
+                Icon(Icons.payments_outlined, size: 48, color: Colors.grey.shade300),
+                const SizedBox(height: 12),
+                const Text('No payment records found.', style: TextStyle(color: Colors.grey)),
+              ]),
+            )
+          else
+            ..._transactions.map((tx) {
+              final sm     = _statusMeta(tx['status']?.toString() ?? '');
+              final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    // Avatar initials
+                    Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(color: primary.withAlpha(20), shape: BoxShape.circle),
+                      child: Center(child: Text(
+                        (tx['member_name']?.toString() ?? '?').substring(0, 1).toUpperCase(),
+                        style: TextStyle(fontWeight: FontWeight.bold, color: primary, fontSize: 16),
+                      )),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(tx['member_name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
+                      Text('ID: ${tx['tx_id']?.toString() ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    ])),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('₵${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: sm['bg'] as Color, borderRadius: BorderRadius.circular(4)),
+                        child: Text((tx['status']?.toString() ?? '').toUpperCase(), style: TextStyle(fontSize: 9, color: sm['color'] as Color, fontWeight: FontWeight.bold)),
+                      ),
+                    ]),
+                  ]),
+                  if ((tx['description']?.toString() ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(8)),
+                      child: Text(tx['description'].toString(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    if (tx['status'] == 'pending')
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _actionLoading ? null : () => _showConfirmDialog(tx['tx_id'], amount, tx['member_name']?.toString() ?? ''),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primary,
+                            elevation: 0,
+                            minimumSize: const Size(0, 40),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
+                          label: const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    if (tx['status'] == 'pending') const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _actionLoading ? null : () => _showConfirmDialog(tx['tx_id'], amount, tx['member_name']?.toString() ?? ''),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primary,
-                          elevation: 0,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showDetailSheet(Map<String, dynamic>.from(tx)),
+                        style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 40),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
-                        label: const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.open_in_new, size: 15),
+                        label: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
-                  if (tx['status'] == 'pending') const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showDetailSheet(Map<String, dynamic>.from(tx)),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 40),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      icon: const Icon(Icons.open_in_new, size: 15),
-                      label: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ),
+                  ]),
                 ]),
-              ]),
-            );
-          }),
-
-        // Pagination
-        if (!_loading && totalPages > 1)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              IconButton(icon: const Icon(Icons.arrow_back), onPressed: _page > 1 ? () => setState(() => _page--) : null),
-              ...List.generate(totalPages, (i) => i + 1).map((n) => GestureDetector(
-                onTap: () => setState(() => _page = n),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3), width: 34, height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: _page == n ? primary : Theme.of(context).cardColor, borderRadius: BorderRadius.circular(8)),
-                  child: Text('$n', style: TextStyle(color: _page == n ? Colors.white : null, fontWeight: FontWeight.bold)),
-                ),
-              )),
-              IconButton(icon: const Icon(Icons.arrow_forward), onPressed: _page < totalPages ? () => setState(() => _page++) : null),
-            ]),
-          ),
-      ]),
+              );
+            }),
+            if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+            if (!_loading) Center(child: Text('${_transactions.length} payments shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+        ]),
+      )
     );
   }
 }
@@ -460,6 +522,14 @@ class _KpiChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: Colors.white.withAlpha(30), borderRadius: BorderRadius.circular(20)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 5),
+        Text('$value $label', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+}pha(30), borderRadius: BorderRadius.circular(20)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 5),

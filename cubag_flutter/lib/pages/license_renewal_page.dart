@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';  // F-39 fix
 import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
-import '../services/cache_service.dart';
-import '../services/api_service.dart';  // F-39 fix
+import '../components/shimmer_loader.dart';
+import '../services/api_service.dart';
 
 class LicenseRenewalPage extends StatefulWidget {
   const LicenseRenewalPage({super.key});
@@ -16,23 +16,21 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
   bool _loading = true;
   List<dynamic> _history = [];
   Map<String, dynamic>? _memberInfo;
-  final CacheService _cache = CacheService();
 
   @override
   void initState() { super.initState(); _fetch(); }
 
   Future<void> _fetch() async {
-    setState(() => _loading = true);
-    try {
-      final res = await ApiService().get('/members/license-history');
-      if (mounted && res.statusCode == 200 && res.data is Map) {
+    if (!_loading) setState(() => _loading = true);
+    await ApiService().fetchDataWithCache('/members/license-history', (data, isCached) {
+      if (mounted && data != null && data is Map) {
         setState(() {
-          _history = res.data['history'] ?? [];
-          _memberInfo = res.data['member'] as Map<String, dynamic>?;
+          _loading = false;
+          _history = data['history'] ?? [];
+          _memberInfo = data['member'] as Map<String, dynamic>?;
         });
       }
-    } catch (_) {}
-    if (mounted) setState(() => _loading = false);
+    });
   }
 
   @override
@@ -54,7 +52,13 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
             ],
 
             if (_loading)
-              const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 3,
+                separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+                itemBuilder: (ctx, i) => const ShimmerListTile(),
+              )
             else if (_history.isEmpty)
               _buildEmptyState(primary)
             else

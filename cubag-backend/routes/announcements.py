@@ -116,14 +116,41 @@ def create_announcement():
 def get_all_announcements_admin():
     conn = get_db()
     try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        archived = request.args.get('archived', 'false').lower() == 'true'
+        offset = (page - 1) * limit
+
         with conn.cursor() as cursor:
-            cursor.execute("""
+            if archived:
+                where_clause = "WHERE deleted_at IS NOT NULL"
+            else:
+                where_clause = "WHERE deleted_at IS NULL"
+                
+            cursor.execute(f"SELECT COUNT(*) as total FROM announcements {where_clause}")
+            total = cursor.fetchone()['total']
+
+            cursor.execute(f"""
                 SELECT *, deleted_at IS NOT NULL AS is_deleted
                 FROM announcements
+                {where_clause}
                 ORDER BY created_at DESC
-            """)
+                LIMIT %s OFFSET %s
+            """, (limit, offset))
             data = cursor.fetchall()
-        return jsonify(data), 200
+            
+            for item in data:
+                if hasattr(item.get('created_at'), 'isoformat'):
+                    item['created_at'] = item['created_at'].isoformat()
+                if hasattr(item.get('deleted_at'), 'isoformat'):
+                    item['deleted_at'] = item['deleted_at'].isoformat()
+
+        return jsonify({
+            "data": data,
+            "total": total,
+            "page": page,
+            "limit": limit
+        }), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     finally:

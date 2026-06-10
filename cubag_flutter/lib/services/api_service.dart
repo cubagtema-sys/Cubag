@@ -1,8 +1,18 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/router.dart';
 import 'auth_service.dart';
+
+// Must be top-level function
+_parseAndDecode(String response) {
+  return jsonDecode(response);
+}
+
+parseJsonInBackground(String text) {
+  return compute(_parseAndDecode, text);
+}
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -60,6 +70,9 @@ class ApiService {
         return handler.next(error);
       },
     ));
+
+    // Optimize JSON parsing by pushing it to a background isolate
+    _dio.transformer = BackgroundTransformer()..jsonDecodeCallback = parseJsonInBackground;
   }
 
   String _path(String p) => p.startsWith('/') ? p.substring(1) : p;
@@ -85,6 +98,43 @@ class ApiService {
 
   Future<dynamic> fetchData(String path) async {
     try { return (await _dio.get(_path(path))).data; } catch (_) { return null; }
+  }
+
+  /// Instantly fires [onData] with cached local data (if any), 
+  /// then fetches fresh data from the API in the background, updates the cache, 
+  /// and fires [onData] again with the fresh data.
+  Future<void> fetchDataWithCache(String path, Function(dynamic data, bool isCached) onData) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = 'cache_v1_${_path(path)}';
+
+    // 1. Immediately return cached data if available
+    final cachedStr = prefs.getString(cacheKey);
+    if (cachedStr != null) {
+      try {
+        final cachedJson = await compute(jsonDecode, cachedStr);
+        onData(cachedJson, true);
+      } catch (e) {
+        debugPrint('[Cache Error] Failed to decode cache for $path: $e');
+      }
+    }
+
+    // 2. Fetch fresh data in the background
+    try {
+      final res = await _dio.get(_path(path));
+      final freshData = res.data;
+      
+      // Update cache asynchronously
+      if (freshData != null) {
+        compute(jsonEncode, freshData).then((str) {
+          prefs.setString(cacheKey, str);
+        });
+      }
+      
+      // Return fresh data
+      onData(freshData, false);
+    } catch (e) {
+      debugPrint('[API Error] Background fetch failed for $path: $e');
+    }
   }
 
   Future<dynamic> getPublic(String path) async {
@@ -122,8 +172,13 @@ class ApiService {
   static List<dynamic> ensureList(dynamic data) {
     if (data == null) return [];
     if (data is List) return data;
-    if (data is Map && data.containsKey('items') && data['items'] is List) {
-      return data['items'] as List<dynamic>;
+    if (data is Map) {
+      if (data.containsKey('data') && data['data'] is List) {
+        return data['data'] as List<dynamic>;
+      }
+      if (data.containsKey('items') && data['items'] is List) {
+        return data['items'] as List<dynamic>;
+      }
     }
     return [];
   }

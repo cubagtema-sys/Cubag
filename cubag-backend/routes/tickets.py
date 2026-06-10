@@ -94,15 +94,35 @@ def create_ticket():
 def get_all_tickets_admin():
     conn = get_db()
     try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = int(request.args.get('per_page', 20))
+        per_page = max(1, min(per_page, 200))
+        offset = (page - 1) * per_page
+        status_filter = request.args.get('status', 'inbox').lower()
+
+        where_clause = "WHERE t.deleted_at IS NULL"
+        if status_filter == 'inbox':
+            where_clause += " AND t.status != 'archived'"
+        elif status_filter == 'archived':
+            where_clause += " AND t.status = 'archived'"
+
         with conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT t.id, t.subject, t.message, t.status, t.created_at, t.updated_at, m.name as member_name
                 FROM support_tickets t
                 JOIN members m ON t.member_id = m.id
-                WHERE t.deleted_at IS NULL
+                {where_clause}
                 ORDER BY t.updated_at DESC
-            """)
+                LIMIT %s OFFSET %s
+            """, (per_page, offset))
             tickets = cursor.fetchall()
+
+            cursor.execute(f"""
+                SELECT COUNT(*) as total
+                FROM support_tickets t
+                {where_clause}
+            """)
+            total = cursor.fetchone().get('total', 0)
             
             # Helper to safely format dates
             def format_date(dt, fmt):
@@ -125,7 +145,7 @@ def get_all_tickets_admin():
                 t['date'] = format_date(t['created_at'], '%Y-%m-%d')
                 t['lastUpdate'] = format_date(t['updated_at'], '%Y-%m-%d %H:%M')
                 
-            return jsonify(tickets), 200
+            return jsonify({'data': tickets, 'page': page, 'per_page': per_page, 'total': total}), 200
     except Exception as e:
         import traceback
         print(f"[Admin Tickets Error] {str(e)}")
