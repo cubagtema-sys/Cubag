@@ -650,10 +650,12 @@ class _AttendeesSheetState extends State<_AttendeesSheet> {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (ctx, i) {
               final a = _attendees[i];
+              final nameStr = a['name']?.toString() ?? '';
+              final initial = nameStr.trim().isNotEmpty ? nameStr.trim()[0].toUpperCase() : '?';
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: const Color(0xFFf08232).withAlpha(30),
-                  child: Text((a['name']?.toString() ?? '?')[0].toUpperCase(), style: const TextStyle(color: Color(0xFFf08232), fontWeight: FontWeight.bold)),
+                  child: Text(initial, style: const TextStyle(color: Color(0xFFf08232), fontWeight: FontWeight.bold)),
                 ),
                 title: Text(a['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 subtitle: Text('${a['email'] ?? ''}\n${a['company'] ?? ''}', style: const TextStyle(fontSize: 12)),
