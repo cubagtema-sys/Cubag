@@ -399,10 +399,19 @@ def get_member(member_id):
             if is_owner or is_admin:
                 # Full profile for self or admins
                 cursor.execute("""
-                    SELECT id, name, email, phone, company, member_type, port_of_operation,
-                           status, compliance_score, star_rating, manual_review_score,
-                           license_number, profile_photo
-                    FROM members WHERE id = %s
+                    SELECT m.id, m.name, m.email, m.phone, m.company, m.member_type, m.port_of_operation,
+                           m.status, m.compliance_score, m.star_rating, m.manual_review_score,
+                           m.license_number, m.profile_photo,
+                           COALESCE(m.payment_ref, p.payment_ref) as payment_ref
+                    FROM members m
+                    LEFT JOIN LATERAL (
+                        SELECT payment_ref
+                        FROM payments
+                        WHERE member_id = m.id AND description ILIKE '%%License Renewal%%'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    ) p ON TRUE
+                    WHERE m.id = %s
                 """, (member_id,))
             else:
                 # Other members see only safe public fields — no PII

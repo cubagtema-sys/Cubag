@@ -570,7 +570,8 @@ class _AdminMembersPageState extends State<AdminMembersPage> {
       
       ...([
         ['Organisation', m['company']], ['Type', m['member_type']], ['Port', m['port_of_operation']],
-        ['License', m['license_number'] ?? 'N/A'], ['Payment Ref', m['payment_ref'] ?? 'None'],
+        ['License', (m['license_number']?.toString().trim().isEmpty ?? true) ? 'N/A' : m['license_number']], 
+        ['Payment Ref', (m['payment_ref']?.toString().trim().isEmpty ?? true) ? 'None' : m['payment_ref']],
       ].where((r) => r[1] != null)).map((r) => Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
