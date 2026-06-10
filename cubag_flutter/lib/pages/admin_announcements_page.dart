@@ -65,7 +65,7 @@ class _State extends State<AdminAnnouncementsPage> {
 
   Future<void> _fetchActive({bool refresh = false}) async {
     if (refresh) setState(() { _pageActive = 1; _loadingActive = true; _hasMoreActive = true; });
-    await _api.fetchDataWithCache('/announcements/admin/all?archived=false&page=$_pageActive&limit=20', (data, isCached) {
+    await _api.fetchDataWithCache('/announcements/admin/all?archived=false&page=$_pageActive&limit=20', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() {
           _active = ApiService.ensureList(data);
@@ -104,7 +104,7 @@ class _State extends State<AdminAnnouncementsPage> {
 
   Future<void> _fetchArchived({bool refresh = false}) async {
     if (refresh) setState(() { _pageArchived = 1; _loadingArchived = true; _hasMoreArchived = true; });
-    await _api.fetchDataWithCache('/announcements/admin/all?archived=true&page=$_pageArchived&limit=20', (data, isCached) {
+    await _api.fetchDataWithCache('/announcements/admin/all?archived=true&page=$_pageArchived&limit=20', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() {
           _archived = ApiService.ensureList(data);
