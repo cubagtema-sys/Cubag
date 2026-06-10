@@ -17,31 +17,65 @@ logger = logging.getLogger(__name__)
 # Initialize Resend
 resend.api_key = os.getenv('RESEND_API_KEY')
 
-# ─── Shared Resend API sender ────────────────────────────────────────────────
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# ─── Shared Email Sender (Resend + SMTP Fallback) ───────────────────────────
 def _send_email(to_email: str, subject: str, body_text: str, body_html: str = None):
-    """Send an email via Resend HTTP API. Returns True on success."""
-    if not resend.api_key:
-        logger.error('[Resend] RESEND_API_KEY not configured — email not sent.')
-        return False
-
+    """Send an email using Resend API or fallback to standard SMTP. Returns True on success."""
     sender_email = os.getenv('SMTP_USER', 'support@winningedgeinvestment.com')
+    sender_name = os.getenv('SMTP_SENDER_NAME', 'CUBAG Support')
 
-    try:
-        params = {
-            "from": f"CUBAG Support <{sender_email}>",
-            "to": [to_email],
-            "subject": subject,
-            "text": body_text,
-        }
-        if body_html:
-            params["html"] = body_html
+    # 1. Try Resend API
+    if resend.api_key:
+        try:
+            params = {
+                "from": f"{sender_name} <{sender_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "text": body_text,
+            }
+            if body_html:
+                params["html"] = body_html
 
-        resend.Emails.send(params)
-        logger.info(f'[Resend] Email sent to {to_email} — {subject}')
-        return True
-    except Exception as e:
-        logger.error(f'[Resend] Failed to send email to {to_email}: {e}')
-        return False
+            resend.Emails.send(params)
+            logger.info(f'[Resend] Email sent to {to_email} — {subject}')
+            return True
+        except Exception as e:
+            logger.error(f'[Resend] Failed to send email: {e}. Falling back to SMTP if available.')
+
+    # 2. Try Standard SMTP Fallback
+    smtp_host = os.getenv('SMTP_HOST')
+    if smtp_host:
+        try:
+            smtp_port = int(os.getenv('SMTP_PORT', '587'))
+            smtp_pass = os.getenv('SMTP_PASSWORD')
+            
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = f"{sender_name} <{sender_email}>"
+            msg['To'] = to_email
+            
+            msg.attach(MIMEText(body_text, 'plain'))
+            if body_html:
+                msg.attach(MIMEText(body_html, 'html'))
+                
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+            if smtp_pass:
+                server.login(sender_email, smtp_pass)
+            server.sendmail(sender_email, to_email, msg.as_string())
+            server.quit()
+                
+            logger.info(f'[SMTP] Email sent to {to_email} — {subject}')
+            return True
+        except Exception as e:
+            logger.error(f'[SMTP] Failed to send email to {to_email}: {e}')
+            return False
+
+    logger.error('[Email] No valid email configuration found or all methods failed.')
+    return False
 
 
 @auth_bp.route('/debug-smtp', methods=['GET'])
@@ -139,10 +173,7 @@ def send_otp():
 
         # Send email synchronously (threads are unreliable under eventlet/gevent)
         if not send_verification_email(email, token):
-            return jsonify({
-                'message': f'Failed to send email. DEV MODE BYPASS OTP: {token}',
-                'dev_otp': token
-            }), 200
+            return jsonify({'message': 'Failed to send verification email. Please check your SMTP/Resend configuration, or ensure your SMTP_USER is verified.'}), 500
 
         return jsonify({'message': 'OTP sent to email.'}), 200
 
@@ -209,10 +240,7 @@ def resend_otp():
             conn.commit()
         # Send email synchronously (threads are unreliable under eventlet/gevent)
         if not send_verification_email(email, token):
-            return jsonify({
-                'message': f'Failed to send email. DEV MODE BYPASS OTP: {token}',
-                'dev_otp': token
-            }), 200
+            return jsonify({'message': 'Failed to send verification email. Please check your SMTP/Resend configuration, or ensure your SMTP_USER is verified.'}), 500
 
         return jsonify({'message': 'New OTP sent to email.'}), 200
     except Exception as e:
