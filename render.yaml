@@ -57,7 +57,6 @@ services:
   - type: web
     env: static
     name: cubag-web-app
-    region: frankfurt
     buildCommand: "cd cubag_flutter && git clone https://github.com/flutter/flutter.git -b stable && export PATH=\"$PATH:$(pwd)/flutter/bin\" && flutter build web --release"
     staticPublishPath: cubag_flutter/build/web
     routes:
