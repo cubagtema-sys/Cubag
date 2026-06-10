@@ -5,14 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/router.dart';
 import 'auth_service.dart';
 
-// Must be top-level function
-_parseAndDecode(String response) {
-  return jsonDecode(response);
-}
 
-parseJsonInBackground(String text) {
-  return compute(_parseAndDecode, text);
-}
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -71,8 +64,8 @@ class ApiService {
       },
     ));
 
-    // Optimize JSON parsing by pushing it to a background isolate
-    _dio.transformer = BackgroundTransformer()..jsonDecodeCallback = parseJsonInBackground;
+    // Optimize JSON parsing
+    _dio.transformer = BackgroundTransformer();
   }
 
   String _path(String p) => p.startsWith('/') ? p.substring(1) : p;
@@ -121,7 +114,10 @@ class ApiService {
     // 2. Fetch fresh data in the background
     try {
       final res = await _dio.get(_path(path));
-      final freshData = res.data;
+      dynamic freshData = res.data;
+      if (freshData is String) {
+        try { freshData = await compute(jsonDecode, freshData); } catch (_) {}
+      }
       
       // Update cache asynchronously
       if (freshData != null) {
@@ -171,6 +167,9 @@ class ApiService {
 
   static List<dynamic> ensureList(dynamic data) {
     if (data == null) return [];
+    if (data is String) {
+      try { data = jsonDecode(data); } catch (_) { return []; }
+    }
     if (data is List) return data;
     if (data is Map) {
       if (data.containsKey('data') && data['data'] is List) {
@@ -178,6 +177,9 @@ class ApiService {
       }
       if (data.containsKey('items') && data['items'] is List) {
         return data['items'] as List<dynamic>;
+      }
+      for (var value in data.values) {
+        if (value is List) return value as List<dynamic>;
       }
     }
     return [];
