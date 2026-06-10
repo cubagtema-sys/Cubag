@@ -7,18 +7,52 @@ services:
     plan: free
     rootDirectory: cubag-backend
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn --worker-class gthread --threads 50 -w 1 server:app"
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT --worker-class gthread --threads 50 -w 1 server:app"
     envVars:
-      - key: DATABASE_URL
-        sync: false # You will paste your Supabase connection string here!
+      - key: FLASK_ENV
+        value: "production"
+      - key: FLASK_APP
+        value: "server.py"
       - key: SECRET_KEY
-        generateValue: true
+        value: "26706942c79c68dea826ca91f1bb12f609d4cd87547c5c266561b999730fcc6a"
+      - key: DATABASE_URL
+        value: "postgresql://postgres.jfypczfjycffsmivjjdn:lJuxR3csHVB9EGZ7@aws-1-eu-central-2.pooler.supabase.com:6543/postgres"
       - key: JWT_SECRET_KEY
-        generateValue: true
+        value: "54b5469e1d716229f722bf127939520a3e15b5b757bc296d746edc248a6964bb"
+      - key: JWT_ACCESS_TOKEN_EXPIRES
+        value: "604800"
       - key: CORS_ALLOWED_ORIGINS
-        value: "*" # Temporarily allow all origins to ensure the frontend can connect
+        value: "*"
+      - key: SMTP_HOST
+        value: "smtp.hostinger.com"
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        value: "support@winningedgeinvestment.com"
+      - key: SMTP_PASS
+        value: "Brutality@54"
+      - key: WHITSUNPAY_BASE_URL
+        value: "https://developer.whitsun.dev"
+      - key: x-client-id
+        value: "019e8ba678a27f00bc19c3757989ed0b"
+      - key: x-api-key
+        value: "wp_live_h7Q8bld7YqtjvTVF2wwfBrUjxl6LShWexviNLfy5lQU"
+      - key: WHITSUNPAY_WEBHOOK_SECRET
+        value: "2c4cf3096f18a079450126b25961aa8388226bd6fe66ed98a57b87c21a7e6f1b"
+      - key: x-callback-url
+        value: "https://cubag-backend.onrender.com/api/payments/webhook"
+      - key: SUPABASE_URL
+        value: "https://jfypczfjycffsmivjjdn.supabase.co"
+      - key: SUPABASE_SERVICE_KEY
+        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmeXBjemZqeWNmZnNtaXZqamRuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU4Mzk0NywiZXhwIjoyMDk2MTU5OTQ3fQ.NRt6yhuGBQ814zdN62OXUu2PKQ155OviyRDeUMenIao"
+      - key: SUPABASE_BUCKET
+        value: "uploads"
+      - key: AIS_API_KEY
+        value: "696f6dc5d032b72c39b22b757ebc35c4445c570a"
       - key: FIREBASE_CREDENTIALS_JSON
-        sync: false # You will manually paste your firebase-key.json in the Render Dashboard
+        sync: false # GITHUB BLOCKED THIS SECRET FROM BEING UPLOADED FOR YOUR SAFETY! Please paste it manually in Render.
 
   # 2. Flutter Web Frontend Static Site
   - type: static
