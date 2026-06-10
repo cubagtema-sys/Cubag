@@ -166,11 +166,15 @@ def check_in_member(event_id):
             if not event:
                 return jsonify({'message': 'Event not found'}), 404
             
-            # Upsert into event_attendance
+            # Duplicate check
+            cursor.execute("SELECT checked_in_at FROM event_attendance WHERE event_id = %s AND member_id = %s", (event_id, member_id))
+            if cursor.fetchone():
+                return jsonify({'message': 'Error: This QR code has already been scanned for this event!'}), 400
+
+            # Insert into event_attendance
             cursor.execute("""
                 INSERT INTO event_attendance (event_id, member_id)
                 VALUES (%s, %s)
-                ON CONFLICT (event_id, member_id) DO NOTHING
             """, (event_id, member_id))
             conn.commit()
             
