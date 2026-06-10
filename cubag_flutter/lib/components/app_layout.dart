@@ -416,7 +416,7 @@ class _AppLayoutState extends State<AppLayout> {
         child: ListTile(
           onTap: () {
             context.go(route);
-            if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
+            if (Scaffold.maybeOf(context)?.isDrawerOpen == true) Navigator.pop(context);
           },
           dense: true,
           minLeadingWidth: 20,

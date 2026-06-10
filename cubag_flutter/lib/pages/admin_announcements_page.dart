@@ -57,6 +57,8 @@ class _State extends State<AdminAnnouncementsPage> {
           }
         });
       }
+    } catch (e) {
+      debugPrint('Error fetching active announcements: $e');
     } finally {
       if (mounted) setState(() => _loadingActive = false);
     }
@@ -77,6 +79,8 @@ class _State extends State<AdminAnnouncementsPage> {
           }
         });
       }
+    } catch (e) {
+      debugPrint('Error fetching archived announcements: $e');
     } finally {
       if (mounted) setState(() => _loadingArchived = false);
     }

@@ -260,7 +260,21 @@ def get_global_news():
         return jsonify(_MOCK_ARTICLES), 200
     return jsonify(articles), 200
 
-@news_bp.route('/refresh', methods=['POST'])
+@news_bp.route('/proxy-image', methods=['GET'])
+def proxy_image():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({'message': 'URL required'}), 400
+    try:
+        r = requests.get(url, stream=True, timeout=10)
+        if r.status_code == 200:
+            from flask import Response
+            return Response(r.iter_content(chunk_size=10*1024), content_type=r.headers.get('content-type'))
+        return jsonify({'message': 'Failed to fetch image'}), r.status_code
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@news_bp.route('/test/refresh', methods=['POST'])
 @sub_admin_required('announcements')
 def trigger_refresh():
     """Admin endpoint to manually trigger a news refresh."""

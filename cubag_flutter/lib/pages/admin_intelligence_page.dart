@@ -243,7 +243,7 @@ class _State extends State<AdminIntelligencePage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                a.thumbnail,
+                '${ApiService.baseUrl}/news/proxy-image?url=${Uri.encodeComponent(a.thumbnail)}',
                 width: 64, height: 64,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stack) => const SizedBox.shrink(),
