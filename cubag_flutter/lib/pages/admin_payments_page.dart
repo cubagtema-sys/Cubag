@@ -15,7 +15,6 @@ class AdminPaymentsPage extends StatefulWidget {
 class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
   bool _loading = true;
   bool _hasError = false;
-  bool _loadingMore = false;
   Map<String, dynamic> _kpis = {'revenue': 0, 'pending': 0, 'failed': 0};
   List<dynamic> _transactions = [];
   String _search = '';
@@ -32,7 +31,6 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
   void initState() { 
     super.initState(); 
     _fetch(); 
-    _scrollController.addListener(_onScroll);
   }
 
   @override
@@ -42,21 +40,12 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      if (!_loading && !_loadingMore && _hasMore) {
-        _fetchMore();
-      }
-    }
-  }
-
-  Future<void> _fetch({bool refresh = false}) async {
+  Future<void> _fetch({bool refresh = false, int? page}) async {
     if (!mounted) return;
-    if (refresh) {
-      setState(() { _page = 1; _hasMore = true; _loading = true; _transactions = []; });
-    } else {
-      if (!_loading) setState(() => _loading = true);
-    }
+    if (page != null) _page = page;
+    else if (refresh) _page = 1;
+
+    setState(() { _loading = true; _hasError = false; if (refresh || page != null) _transactions = []; });
     
     await ApiService().fetchDataWithCache('/payments/admin/all?page=$_page&limit=20&search=$_search&status=$_filterStatus', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
@@ -72,33 +61,12 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
         _transactions = ApiService.ensureList(d);
         if (d.containsKey('total')) {
           _total = d['total'];
-          _hasMore = _transactions.length < _total;
+          _hasMore = (_page * 20) < _total;
         } else {
           _hasMore = false;
         }
       });
     });
-  }
-
-  Future<void> _fetchMore() async {
-    setState(() => _loadingMore = true);
-    _page++;
-    try {
-      final res = await ApiService().get('/payments/admin/all?page=$_page&limit=20&search=$_search&status=$_filterStatus');
-      if (res.statusCode == 200) {
-        final d = res.data as Map<String, dynamic>;
-        final newItems = ApiService.ensureList(d);
-        setState(() {
-          _transactions.addAll(newItems);
-          if (d.containsKey('total')) {
-            _hasMore = _transactions.length < d['total'];
-          } else {
-            _hasMore = newItems.isNotEmpty;
-          }
-        });
-      }
-    } catch (_) { _page--; }
-    if (mounted) setState(() => _loadingMore = false);
   }
 
   void _onSearchChanged(String v) {
@@ -467,8 +435,36 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
                 ]),
               );
             }),
-            if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
-            if (!_loading) Center(child: Text('${_transactions.length} payments shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+            
+            // Pagination Controls
+            if (!_loading && (_page > 1 || _hasMore))
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      onPressed: _page > 1 ? () => _fetch(page: _page - 1) : null,
+                      color: primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Page $_page', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: _hasMore ? () => _fetch(page: _page + 1) : null,
+                      color: primary,
+                    ),
+                  ],
+                ),
+              ),
+              
+            if (!_loading && _transactions.isNotEmpty) 
+              Center(child: Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Text('Showing ${_transactions.length} payments${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              )),
         ]),
       )
     );
