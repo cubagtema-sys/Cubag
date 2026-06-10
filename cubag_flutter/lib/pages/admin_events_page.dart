@@ -430,6 +430,29 @@ class _State extends State<AdminEventsPage> {
       }
     } catch (e) {
       if (mounted) {
+        // Dio throws exceptions for non-2xx status codes
+        if (e.toString().contains('DioException') || e.runtimeType.toString() == 'DioException') {
+          try {
+            // Try to extract the response if it's a DioException
+            final dynamic dioErr = e;
+            if (dioErr.response != null && dioErr.response.data != null) {
+              final resData = dioErr.response.data;
+              if (resData is Map && resData['member'] != null) {
+                _showMemberVerification(resData['member'], false, resData['message']);
+                setState(() => _loading = false);
+                return;
+              } else if (resData is Map && resData['message'] != null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(resData['message']),
+                  backgroundColor: _kRed,
+                ));
+                setState(() => _loading = false);
+                return;
+              }
+            }
+          } catch (_) {}
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Failed to check in: $e'),
           backgroundColor: _kRed,
