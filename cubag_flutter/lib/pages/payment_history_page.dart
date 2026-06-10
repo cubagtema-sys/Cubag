@@ -33,7 +33,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
 
   Future<void> _fetch() async {
     if (!_loading) setState(() => _loading = true);
-    await ApiService().fetchDataWithCache('/payments', (data, isCached) {
+    await ApiService().fetchDataWithCache('/payments', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() {
           _payments = ApiService.ensureList(data);

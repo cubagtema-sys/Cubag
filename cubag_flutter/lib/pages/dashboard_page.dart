@@ -55,7 +55,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _fetchTasks() async {
-    await ApiService().fetchDataWithCache('/tasks', (data, isCached) {
+    await ApiService().fetchDataWithCache('/tasks', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() => _tasks = ApiService.ensureList(data));
       }
@@ -63,7 +63,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _fetchAnnouncements() async {
-    await ApiService().fetchDataWithCache('/announcements', (data, isCached) {
+    await ApiService().fetchDataWithCache('/announcements', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() => _announcements = ApiService.ensureList(data).take(3).toList());
       }

@@ -95,7 +95,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
   }
 
   Future<void> _fetchLiveVessels() async {
-    await ApiService().fetchDataWithCache('/vessels', (data, isCached) {
+    await ApiService().fetchDataWithCache('/vessels', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         final list = ApiService.ensureList(data);
         setState(() {
@@ -117,7 +117,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
     try {
       if (_activeTab == 'live tracking') {
         await _fetchLiveVessels();
-        await ApiService().fetchDataWithCache('/schedules?type=movement', (data, isCached) {
+        await ApiService().fetchDataWithCache('/schedules?type=movement', (data, isCached, {bool hasError = false}) {
           if (mounted && data != null) {
             setState(() {
               _schedules = ApiService.ensureList(data);
@@ -126,7 +126,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
           }
         });
       } else {
-        await ApiService().fetchDataWithCache('/schedules?type=$_activeTab', (data, isCached) {
+        await ApiService().fetchDataWithCache('/schedules?type=$_activeTab', (data, isCached, {bool hasError = false}) {
           if (mounted && data != null) {
             setState(() {
               _schedules = ApiService.ensureList(data);

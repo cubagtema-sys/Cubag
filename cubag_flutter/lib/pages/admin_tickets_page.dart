@@ -195,13 +195,12 @@ class _State extends State<AdminTicketsPage> {
       );
     }
     if (_displayed.isEmpty) {
-      return Container(
-      padding: const EdgeInsets.all(48),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
       if (_hasError && _tickets.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
-    return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-      child: Center(child: Text(_tab == 'inbox' ? 'No open tickets.' : 'No archived tickets.', style: const TextStyle(color: Colors.grey))),
-    );
+      return Container(
+        padding: const EdgeInsets.all(48),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+        child: Center(child: Text(_tab == 'inbox' ? 'No open tickets.' : 'No archived tickets.', style: const TextStyle(color: Colors.grey))),
+      );
     }
     return Column(children: [
       Container(

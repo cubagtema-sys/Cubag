@@ -35,7 +35,7 @@ class _SurveysPageState extends State<SurveysPage> {
 
   Future<void> _fetch() async {
     if (!_loading) setState(() => _loading = true);
-    await ApiService().fetchDataWithCache('/surveys', (data, isCached) {
+    await ApiService().fetchDataWithCache('/surveys', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() {
           _surveys = ApiService.ensureList(data);

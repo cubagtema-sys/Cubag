@@ -44,7 +44,7 @@ class _TasksPageState extends State<TasksPage> {
 
   Future<void> _fetchTasks() async {
     if (!_isLoading) setState(() { _isLoading = true; _error = null; });
-    await ApiService().fetchDataWithCache('/tasks', (data, isCached) {
+    await ApiService().fetchDataWithCache('/tasks', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() {
           _tasks = ApiService.ensureList(data);

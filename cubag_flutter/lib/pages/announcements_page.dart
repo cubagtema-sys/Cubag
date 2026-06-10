@@ -48,7 +48,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     } else {
       if (!_loading) setState(() => _loading = true);
     }
-    await ApiService().fetchDataWithCache('/announcements?page=$_page&limit=20', (data, isCached) {
+    await ApiService().fetchDataWithCache('/announcements?page=$_page&limit=20', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() {
           _loading = false;

@@ -33,7 +33,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
 
   Future<void> _fetch() async {
     if (!_loading) setState(() => _loading = true);
-    await ApiService().fetchDataWithCache('/members', (data, isCached) {
+    await ApiService().fetchDataWithCache('/members', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() {
           _members = ApiService.ensureList(data);

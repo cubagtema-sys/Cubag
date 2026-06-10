@@ -22,7 +22,7 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
 
   Future<void> _fetch() async {
     if (!_loading) setState(() => _loading = true);
-    await ApiService().fetchDataWithCache('/members/license-history', (data, isCached) {
+    await ApiService().fetchDataWithCache('/members/license-history', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null && data is Map) {
         setState(() {
           _loading = false;

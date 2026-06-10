@@ -46,7 +46,7 @@ class _EventsPageState extends State<EventsPage> {
       if (!_loading) setState(() => _loading = true);
     }
     
-    await ApiService().fetchDataWithCache('/events?page=$_page&limit=20', (data, isCached) {
+    await ApiService().fetchDataWithCache('/events?page=$_page&limit=20', (data, isCached, {bool hasError = false}) {
       if (mounted && data != null) {
         setState(() {
           _loading = false;
