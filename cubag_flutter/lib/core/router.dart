@@ -20,6 +20,7 @@ import '../pages/admin_surveys_page.dart';
 import '../pages/admin_tasks_page.dart';
 import '../pages/admin_tickets_page.dart';
 import '../pages/admin_sub_admins_page.dart';
+import '../pages/admin_event_attendees_page.dart';
 import '../pages/announcements_page.dart';
 import '../pages/cargo_schedules_page.dart';
 import '../pages/dashboard_page.dart';
@@ -162,6 +163,21 @@ final GoRouter appRouter = GoRouter(
         _adminRoute('/admin/cargo-schedules',  const AdminCargoSchedulesPage()),
         _adminRoute('/admin/dashboard',        const AdminDashboardPage()),
         _adminRoute('/admin/events',           const AdminEventsPage()),
+        GoRoute(
+          path: '/admin/events/:id/attendees',
+          pageBuilder: (context, state) => CustomTransitionPage<void>(
+            key: state.pageKey,
+            child: AdminEventAttendeesPage(
+              eventId: int.parse(state.pathParameters['id'] ?? '0'),
+              title: state.uri.queryParameters['title'] ?? 'Event',
+            ),
+            transitionDuration: const Duration(milliseconds: 200),
+            reverseTransitionDuration: const Duration(milliseconds: 150),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut), child: child);
+            },
+          ),
+        ),
         _adminRoute('/admin/fees',             const AdminFeesPage()),
         _adminRoute('/admin/intelligence',     const AdminIntelligencePage()),
         _adminRoute('/admin/license-renewal',  const AdminLicenseRenewalPage()),

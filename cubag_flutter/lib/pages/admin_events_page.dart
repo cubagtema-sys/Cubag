@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
 import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
 import 'admin_qr_scanner_page.dart';
-import 'admin_event_attendees_page.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kRed    = Color(0xFFef4444);
@@ -399,12 +399,7 @@ class _State extends State<AdminEventsPage> {
   }
 
   void _viewAttendees(int eventId, String title) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminEventAttendeesPage(eventId: eventId, title: title),
-      ),
-    );
+    context.push('/admin/events/$eventId/attendees?title=${Uri.encodeComponent(title)}');
   }
 
   Future<void> _handleCheckIn(int eventId, String memberId) async {
