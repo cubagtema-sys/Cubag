@@ -169,17 +169,34 @@ def check_in_member(event_id):
             # Duplicate check
             cursor.execute("SELECT checked_in_at FROM event_attendance WHERE event_id = %s AND member_id = %s", (event_id, member_id))
             if cursor.fetchone():
-                return jsonify({'message': 'Error: This QR code has already been scanned for this event!'}), 400
+                cursor.execute("SELECT name, company, profile_photo, license_number FROM members WHERE id = %s", (member_id,))
+                member = cursor.fetchone()
+                return jsonify({
+                    'message': 'Error: This QR code has already been scanned for this event!',
+                    'member': member
+                }), 400
 
             # Insert into event_attendance
             cursor.execute("""
                 INSERT INTO event_attendance (event_id, member_id)
                 VALUES (%s, %s)
             """, (event_id, member_id))
+            
+            # Fetch member details to return to scanner for visual verification
+            cursor.execute("""
+                SELECT name, company, profile_photo, license_number
+                FROM members WHERE id = %s
+            """, (member_id,))
+            member = cursor.fetchone()
+
             conn.commit()
             
             log_admin_action(admin_id, 'Checked in member', 'event', event_id, event['title'], f"Member ID: {member_id}")
-        return jsonify({'message': f'Member #{member_id} checked in successfully'}), 200
+            
+        return jsonify({
+            'message': f'Member #{member_id} checked in successfully',
+            'member': member
+        }), 200
     except Exception as e:
         conn.rollback()
         return jsonify({'message': str(e)}), 500

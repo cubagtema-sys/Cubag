@@ -411,16 +411,21 @@ class _State extends State<AdminEventsPage> {
     try {
       final res = await _api.post('/events/$eventId/check-in', data: {'member_id': memberId});
       if (mounted) {
-        if (res.statusCode == 200 || res.statusCode == 201) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(res.data['message'] ?? 'Member checked in successfully!'),
-            backgroundColor: const Color(0xFF10b981),
-          ));
+        final member = res.data['member'];
+        if (member != null) {
+          _showMemberVerification(member, res.statusCode == 200 || res.statusCode == 201, res.data['message']);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(res.data['message'] ?? 'Failed to check in member'),
-            backgroundColor: _kRed,
-          ));
+          if (res.statusCode == 200 || res.statusCode == 201) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(res.data['message'] ?? 'Member checked in successfully!'),
+              backgroundColor: const Color(0xFF10b981),
+            ));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(res.data['message'] ?? 'Failed to check in member'),
+              backgroundColor: _kRed,
+            ));
+          }
         }
       }
     } catch (e) {
@@ -432,6 +437,85 @@ class _State extends State<AdminEventsPage> {
       }
     }
     setState(() => _loading = false);
+  }
+
+  void _showMemberVerification(Map<String, dynamic> member, bool isSuccess, String? message) {
+    bool isDismissed = false;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        Future.delayed(const Duration(seconds: 4), () {
+          if (!isDismissed && ctx.mounted) {
+            Navigator.of(ctx).pop();
+          }
+        });
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Photo
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.grey.shade200,
+                backgroundImage: member['profile_photo'] != null && member['profile_photo'].toString().isNotEmpty
+                    ? NetworkImage(member['profile_photo'])
+                    : null,
+                child: member['profile_photo'] == null || member['profile_photo'].toString().isEmpty
+                    ? Text((member['name'] ?? '?')[0].toUpperCase(), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.grey))
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              
+              // Name & Company
+              Text(member['name'] ?? 'Unknown Member', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+              const SizedBox(height: 4),
+              Text(member['company'] ?? 'No Company', style: const TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
+              if (member['license_number'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(member['license_number'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _kOrange)),
+                ),
+              
+              const SizedBox(height: 24),
+              
+              // Status Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSuccess ? const Color(0xFF10b981).withAlpha(20) : _kRed.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isSuccess ? const Color(0xFF10b981) : _kRed, width: 2),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(isSuccess ? Icons.check_circle : Icons.cancel, color: isSuccess ? const Color(0xFF10b981) : _kRed),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isSuccess ? 'ACCESS GRANTED' : (message ?? 'ACCESS DENIED'),
+                        style: TextStyle(
+                          color: isSuccess ? const Color(0xFF10b981) : _kRed,
+                          fontWeight: FontWeight.bold,
+                          fontSize: isSuccess ? 16 : 13,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    ).then((_) {
+      isDismissed = true;
+    });
   }
 
   Widget _buildEditModal() => Positioned.fill(
