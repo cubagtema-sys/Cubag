@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../components/app_layout.dart';
 
 class AdminEventAttendeesPage extends StatefulWidget {
   final int eventId;
@@ -79,21 +80,10 @@ class _AdminEventAttendeesPageState extends State<AdminEventAttendeesPage> {
     int attendedCount = _allMembers.where((m) => m['checked_in_at'] != null).length;
     int absentCount = _allMembers.length - attendedCount;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Event Attendance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text(widget.title, style: const TextStyle(fontSize: 12, color: Colors.white70)),
-          ],
-        ),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Column(
+    return AppLayout(
+      title: 'Attendees: ${widget.title}',
+      scrollable: false,
+      child: Column(
         children: [
           // Filter Tabs
           Container(
