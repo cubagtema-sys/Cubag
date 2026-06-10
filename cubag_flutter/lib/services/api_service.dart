@@ -32,6 +32,7 @@ class ApiService {
   }
 
   static String get baseUrl => _normalizedBase;
+  String get instanceBaseUrl => _normalizedBase;
 
   ApiService._internal() {
     _dio = Dio(BaseOptions(
@@ -65,6 +66,8 @@ class ApiService {
   Future<Response<dynamic>> get(String path, {Options? options}) =>
       _dio.get(_path(path), options: options);
 
+  static Options rawResponseOptions() => Options(responseType: ResponseType.plain);
+
   Future<Response<dynamic>> post(String path, {dynamic data}) =>
       _dio.post(_path(path), data: data);
 
@@ -75,6 +78,9 @@ class ApiService {
       _dio.patch(_path(path), data: data);
 
   Future<Response<dynamic>> delete(String path) => _dio.delete(_path(path));
+
+  Future<Response<dynamic>> upload(String path, FormData data) =>
+      _dio.post(_path(path), data: data, options: Options(contentType: 'multipart/form-data'));
 
   Future<dynamic> fetchData(String path) async {
     try {
@@ -110,9 +116,34 @@ class ApiService {
     }
   }
 
+  Future<dynamic> getPublic(String path) async {
+    try {
+      final bare = Dio(BaseOptions(
+        baseUrl: _normalizedBase,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {'Content-Type': 'application/json'},
+      ));
+      final res = await bare.get(_path(path));
+      return res.data;
+    } catch (e) {
+      debugPrint('getPublic error for path $path: $e');
+      return null;
+    }
+  }
+
   Future<dynamic> postData(String path, dynamic data) async {
     try {
       final res = await _dio.post(_path(path), data: data);
+      return res.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<dynamic> putData(String path, dynamic data) async {
+    try {
+      final res = await _dio.put(_path(path), data: data);
       return res.data;
     } catch (_) {
       return null;
