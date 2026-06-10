@@ -25,34 +25,21 @@ class _State extends State<AdminTicketsPage> {
   bool _sending = false;
   bool _loading = true;
   bool _hasError = false;
-  bool _loadingMore = false;
 
   int _page = 1;
   int _total = 0;
   bool _hasMore = true;
-  final ScrollController _scrollController = ScrollController();
 
   final _replyCtrl = TextEditingController();
 
   @override void initState() { 
     super.initState(); 
-    _fetch(); 
-    _scrollController.addListener(_onScroll);
+    _fetch(page: 1); 
   }
 
   @override void dispose() {
-    _scrollController.dispose();
     _replyCtrl.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_selected != null) return;
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      if (!_loading && !_loadingMore && _hasMore) {
-        _fetchMore();
-      }
-    }
   }
 
   void _onTabChanged(String newTab) {
@@ -61,18 +48,14 @@ class _State extends State<AdminTicketsPage> {
       _tab = newTab;
       _selected = null;
     });
-    _fetch(refresh: true);
+    _fetch(page: 1);
   }
 
-  Future<void> _fetch({bool refresh = false}) async {
+  Future<void> _fetch({int page = 1}) async {
     if (!mounted) return;
-    if (refresh) {
-      setState(() { _page = 1; _hasMore = true; _loading = true; _tickets = []; });
-    } else {
-      if (!_loading) setState(() => _loading = true);
-    }
+    setState(() { _page = page; _loading = true; });
     
-    await _api.fetchDataWithCache('/tickets/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached, {bool hasError = false}) {
+    await _api.fetchDataWithCache('/tickets/admin/all?page=$_page&per_page=10&status=$_tab', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
       if (hasError && _tickets.isEmpty) {
         setState(() { _loading = false; _hasError = true; });
@@ -82,11 +65,11 @@ class _State extends State<AdminTicketsPage> {
       final d = data as Map<String, dynamic>;
       setState(() { 
         _loading = false;
-          _hasError = false;
+        _hasError = false;
         _tickets = ApiService.ensureList(d); 
         if (d.containsKey('total')) {
           _total = d['total'];
-          _hasMore = _tickets.length < _total;
+          _hasMore = (_page * 10) < _total;
         } else {
           _hasMore = false;
         }
@@ -97,32 +80,11 @@ class _State extends State<AdminTicketsPage> {
     });
   }
 
-  Future<void> _fetchMore() async {
-    setState(() => _loadingMore = true);
-    _page++;
-    try {
-      final res = await _api.get('/tickets/admin/all?page=$_page&per_page=20&status=$_tab');
-      if (res.statusCode == 200) {
-        final d = res.data as Map<String, dynamic>;
-        final newItems = ApiService.ensureList(d);
-        setState(() {
-          _tickets.addAll(newItems);
-          if (d.containsKey('total')) {
-            _hasMore = _tickets.length < d['total'];
-          } else {
-            _hasMore = newItems.isNotEmpty;
-          }
-        });
-      }
-    } catch (_) { _page--; }
-    if (mounted) setState(() => _loadingMore = false);
-  }
-
   Future<void> _updateStatus(String status) async {
     if (_selected == null) return;
     await _api.putData('tickets/admin/${_selected['id']}/status', {'status': status});
     if (status == 'archived') setState(() => _selected = null);
-    await _fetch();
+    await _fetch(page: _page);
   }
 
   Future<void> _sendReply() async {
@@ -131,7 +93,7 @@ class _State extends State<AdminTicketsPage> {
     await _api.postData('tickets/admin/${_selected['id']}/reply', {'message': _replyCtrl.text.trim()});
     _replyCtrl.clear();
     setState(() { _sending = false; });
-    await _fetch();
+    await _fetch(page: _page);
   }
 
   Color _statusColor(String s) {
@@ -157,7 +119,6 @@ class _State extends State<AdminTicketsPage> {
       title: 'Support Tickets',
       scrollable: _selected != null, // Make unscrollable when showing list to allow listview to scroll
       child: _selected != null ? _buildReplyPanel() : SingleChildScrollView(
-        controller: _scrollController,
         child: Column(children: [
           // Tab bar
           Container(
@@ -195,7 +156,7 @@ class _State extends State<AdminTicketsPage> {
       );
     }
     if (_displayed.isEmpty) {
-      if (_hasError && _tickets.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
+      if (_hasError && _tickets.isEmpty) return FetchErrorView(onRetry: () => _fetch(page: 1));
       return Container(
         padding: const EdgeInsets.all(48),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
@@ -239,8 +200,30 @@ class _State extends State<AdminTicketsPage> {
           );
         })),
       ),
-      if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
-      if (!_loading && _total > 0) Center(child: Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Text('${_tickets.length} tickets shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+      
+      // Pagination Controls
+      const SizedBox(height: 16),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextButton.icon(
+            onPressed: _page > 1 ? () => _fetch(page: _page - 1) : null,
+            icon: const Icon(Icons.chevron_left),
+            label: const Text('Previous'),
+            style: TextButton.styleFrom(foregroundColor: _kOrange),
+          ),
+          const SizedBox(width: 16),
+          Text('Page $_page', style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 16),
+          TextButton.icon(
+            onPressed: _hasMore ? () => _fetch(page: _page + 1) : null,
+            icon: const Icon(Icons.chevron_right),
+            label: const Text('Next'),
+            style: TextButton.styleFrom(foregroundColor: _kOrange),
+          ),
+        ],
+      ),
+      const SizedBox(height: 20),
     ]);
   }
 

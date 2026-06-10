@@ -19,7 +19,6 @@ class _State extends State<AdminCargoSchedulesPage> {
   List<dynamic> _schedules = [];
   bool _loading = false, _success = false;
   bool _fetching = true;
-  bool _loadingMore = false;
   bool _hasError = false;
   String _tab = 'upload';
   String _type = 'vanning', _status = 'Scheduled';
@@ -28,7 +27,6 @@ class _State extends State<AdminCargoSchedulesPage> {
   int _page = 1;
   int _total = 0;
   bool _hasMore = true;
-  final ScrollController _scrollController = ScrollController();
 
   final _containerCtrl    = TextEditingController();
   final _vesselCtrl       = TextEditingController();
@@ -40,12 +38,10 @@ class _State extends State<AdminCargoSchedulesPage> {
 
   @override void initState() { 
     super.initState(); 
-    _fetch(); 
-    _scrollController.addListener(_onScroll);
+    _fetch(page: 1); 
   }
 
   @override void dispose() {
-    _scrollController.dispose();
     _containerCtrl.dispose();
     _vesselCtrl.dispose();
     _cargoCtrl.dispose();
@@ -56,26 +52,14 @@ class _State extends State<AdminCargoSchedulesPage> {
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      if (!_fetching && !_loadingMore && _hasMore && _tab == 'history') {
-        _fetchMore();
-      }
-    }
-  }
-
-  Future<void> _fetch({bool refresh = false}) async {
+  Future<void> _fetch({int page = 1}) async {
     if (!mounted) return;
-    if (refresh) {
-      setState(() { _page = 1; _hasMore = true; _fetching = true; _schedules = []; });
-    } else {
-      if (!_fetching) setState(() => _fetching = true);
-    }
+    setState(() { _fetching = true; _page = page; });
     
     final String typeQuery = _filterType == 'All' ? '' : 'type=$_filterType&';
     final String statusQuery = 'status=$_filterStatus';
     
-    await _api.fetchDataWithCache('schedules?$typeQuery$statusQuery&page=$_page&per_page=20', (data, isCached, {bool hasError = false}) {
+    await _api.fetchDataWithCache('schedules?$typeQuery$statusQuery&page=$_page&per_page=10', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
       if (hasError && _schedules.isEmpty) {
         setState(() { _fetching = false; _hasError = true; });
@@ -92,7 +76,7 @@ class _State extends State<AdminCargoSchedulesPage> {
           _schedules = ApiService.ensureList(data);
           if (data.containsKey('total')) {
             _total = data['total'];
-            _hasMore = _schedules.length < _total;
+            _hasMore = (_page * 10) < _total;
           } else {
             _hasMore = false;
           }
@@ -102,28 +86,6 @@ class _State extends State<AdminCargoSchedulesPage> {
         }
       });
     });
-  }
-
-  Future<void> _fetchMore() async {
-    setState(() => _loadingMore = true);
-    _page++;
-    try {
-      final String typeQuery = _filterType == 'All' ? '' : 'type=$_filterType&';
-      final String statusQuery = 'status=$_filterStatus';
-      final raw = await _api.fetchData('schedules?$typeQuery$statusQuery&page=$_page&per_page=20');
-      if (mounted) setState(() {
-        if (raw is Map) {
-          final newItems = ApiService.ensureList(raw);
-          _schedules.addAll(newItems);
-          if (raw.containsKey('total')) {
-            _hasMore = _schedules.length < raw['total'];
-          } else {
-            _hasMore = newItems.isNotEmpty;
-          }
-        }
-      });
-    } catch (_) { _page--; }
-    if (mounted) setState(() => _loadingMore = false);
   }
 
   Future<void> _upload() async {
@@ -144,7 +106,7 @@ class _State extends State<AdminCargoSchedulesPage> {
     _destinationCtrl.clear();
     setState(() { _type = 'vanning'; _status = 'Scheduled'; });
     // Fetch latest data THEN switch tab
-    await _fetch(refresh: true);
+    await _fetch(page: 1);
     if (mounted) setState(() { _loading = false; _success = true; _tab = 'history'; });
     Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _success = false); });
   }
@@ -183,41 +145,37 @@ class _State extends State<AdminCargoSchedulesPage> {
     final tabs = [{'id': 'upload', 'label': 'New Entry'}, {'id': 'history', 'label': 'History'}];
     return AppLayout(
       title: 'Cargo Schedules',
-      scrollable: false,
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      scrollable: true,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
+        // Tab bar
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+          child: Row(children: tabs.map((t) {
+            final active = _tab == t['id'];
+            return Expanded(child: GestureDetector(
+              onTap: () {
+                if (_tab != t['id']) {
+                  setState(() => _tab = t['id']!);
+                  if (t['id'] == 'history') _fetch(page: 1);
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                alignment: Alignment.center,
+                child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
+              ),
+            ));
+          }).toList()),
+        ),
+        const SizedBox(height: 16),
 
-          // Tab bar
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-            child: Row(children: tabs.map((t) {
-              final active = _tab == t['id'];
-              return Expanded(child: GestureDetector(
-                onTap: () {
-                  if (_tab != t['id']) {
-                    setState(() => _tab = t['id']!);
-                    if (t['id'] == 'history') _fetch(refresh: true);
-                  }
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-                  alignment: Alignment.center,
-                  child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
-                ),
-              ));
-            }).toList()),
-          ),
-          const SizedBox(height: 16),
-
-          if (_tab == 'upload') _buildUploadTab(),
-          if (_tab == 'history') _buildHistoryTab(),
-        ]),
-      ),
+        if (_tab == 'upload') _buildUploadTab(),
+        if (_tab == 'history') _buildHistoryTab(),
+      ]),
     );
   }
 
@@ -290,7 +248,7 @@ class _State extends State<AdminCargoSchedulesPage> {
       );
     }
     if (_hasError) {
-      return FetchErrorView(onRetry: () => _fetch(refresh: true));
+      return FetchErrorView(onRetry: () => _fetch(page: _page));
     }
     return Column(children: [
       Row(children: [
@@ -305,7 +263,7 @@ class _State extends State<AdminCargoSchedulesPage> {
             ],
             onChanged: (v) {
               setState(() => _filterType = v);
-              _fetch(refresh: true);
+              _fetch(page: 1);
             },
           ),
         ),
@@ -322,7 +280,7 @@ class _State extends State<AdminCargoSchedulesPage> {
             ],
             onChanged: (v) {
               setState(() => _filterStatus = v);
-              _fetch(refresh: true);
+              _fetch(page: 1);
             },
           ),
         ),
@@ -382,8 +340,32 @@ class _State extends State<AdminCargoSchedulesPage> {
             ]),
           );
         }).toList(),
-      if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: _kOrange))),
-      if (!_fetching && _total > 0) Center(child: Padding(padding: const EdgeInsets.only(bottom: 20), child: Text('${_schedules.length} schedules shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+      
+      // Pagination Controls
+      if (_displayed.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton.icon(
+              onPressed: _page > 1 ? () => _fetch(page: _page - 1) : null,
+              icon: const Icon(Icons.chevron_left),
+              label: const Text('Previous'),
+              style: TextButton.styleFrom(foregroundColor: _kOrange),
+            ),
+            const SizedBox(width: 16),
+            Text('Page $_page', style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(width: 16),
+            TextButton.icon(
+              onPressed: _hasMore ? () => _fetch(page: _page + 1) : null,
+              icon: const Icon(Icons.chevron_right),
+              label: const Text('Next'),
+              style: TextButton.styleFrom(foregroundColor: _kOrange),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+      ],
     ]);
   }
 
