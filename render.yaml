@@ -5,9 +5,8 @@ services:
     env: python
     region: frankfurt
     plan: free
-    rootDirectory: cubag-backend
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn --bind 0.0.0.0:$PORT --worker-class gthread --threads 50 -w 1 server:app"
+    buildCommand: "cd cubag-backend && pip install -r requirements.txt"
+    startCommand: "cd cubag-backend && gunicorn --bind 0.0.0.0:$PORT --worker-class gthread --threads 50 -w 1 server:app"
     envVars:
       - key: FLASK_ENV
         value: "production"
@@ -59,9 +58,8 @@ services:
     env: static
     name: cubag-web-app
     region: frankfurt
-    rootDirectory: cubag_flutter
-    buildCommand: "git clone https://github.com/flutter/flutter.git -b stable && export PATH=\"$PATH:$(pwd)/flutter/bin\" && flutter build web --release"
-    staticPublishPath: build/web
+    buildCommand: "cd cubag_flutter && git clone https://github.com/flutter/flutter.git -b stable && export PATH=\"$PATH:$(pwd)/flutter/bin\" && flutter build web --release"
+    staticPublishPath: cubag_flutter/build/web
     routes:
       # Redirect all 404s to index.html for Flutter Web's routing to work
       - type: rewrite
