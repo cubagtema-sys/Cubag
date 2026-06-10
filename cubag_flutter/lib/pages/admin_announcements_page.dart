@@ -78,6 +78,7 @@ class _State extends State<AdminAnnouncementsPage> {
         });
       }
     });
+    if (mounted) setState(() => _loadingActive = false);
   }
 
   Future<void> _fetchMoreActive() async {
@@ -116,6 +117,7 @@ class _State extends State<AdminAnnouncementsPage> {
         });
       }
     });
+    if (mounted) setState(() => _loadingArchived = false);
   }
 
   Future<void> _fetchMoreArchived() async {
