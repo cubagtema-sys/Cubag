@@ -29,6 +29,10 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   bool _resultsLoading = false;
   Timer? _refreshTimer;
   int _countdown = 15;
+  
+  int _activePage = 1;
+  int _pastPage = 1;
+  static const int _perPage = 20;
 
   // Create form
   final _titleCtrl = TextEditingController();
@@ -270,18 +274,70 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         ),
         const SizedBox(height: 20),
         if (_tab == 'create')  _buildCreateForm(),
-        if (_tab == 'active')  _buildSurveyList(_active),
-        if (_tab == 'history') _buildSurveyList(_past),
+        if (_tab == 'active')  _buildSurveyList(_active, isPast: false),
+        if (_tab == 'history') _buildSurveyList(_past, isPast: true),
       ]),
     );
   }
 
   // ── Survey Card List ─────────────────────────────────────────
 
-  Widget _buildSurveyList(List surveys) {
+  Widget _buildSurveyList(List surveys, {required bool isPast}) {
     if (_loading) return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: _kOrange)));
     if (surveys.isEmpty) return _emptyState();
-    return Column(children: surveys.map<Widget>((s) => _surveyCard(s)).toList());
+
+    final currentPage = isPast ? _pastPage : _activePage;
+    final totalPages = (surveys.length / _perPage).ceil();
+    final start = (currentPage - 1) * _perPage;
+    final displayed = surveys.skip(start).take(_perPage).toList();
+
+    return LayoutBuilder(builder: (context, constraints) {
+      double cardWidth = constraints.maxWidth;
+      if (constraints.maxWidth > 1200) {
+        cardWidth = (constraints.maxWidth - 48) / 4;
+      } else if (constraints.maxWidth > 800) {
+        cardWidth = (constraints.maxWidth - 32) / 3;
+      } else if (constraints.maxWidth > 600) {
+        cardWidth = (constraints.maxWidth - 16) / 2;
+      }
+
+      return Column(children: [
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: displayed.map((s) => SizedBox(
+            width: cardWidth,
+            child: _surveyCard(s),
+          )).toList(),
+        ),
+        if (totalPages > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 24, bottom: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: currentPage > 1 ? () {
+                    setState(() {
+                      if (isPast) _pastPage--; else _activePage--;
+                    });
+                  } : null,
+                ),
+                Text('Page $currentPage of $totalPages', style: const TextStyle(fontWeight: FontWeight.w600)),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: currentPage < totalPages ? () {
+                    setState(() {
+                      if (isPast) _pastPage++; else _activePage++;
+                    });
+                  } : null,
+                ),
+              ],
+            ),
+          )
+      ]);
+    });
   }
 
   Widget _emptyState() => Container(
@@ -308,7 +364,6 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
     final coverImage = s['cover_image']?.toString();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFe2e8f0)), boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 10, offset: const Offset(0, 2))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Cover image if present
