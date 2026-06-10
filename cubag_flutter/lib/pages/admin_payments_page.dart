@@ -529,12 +529,4 @@ class _KpiChip extends StatelessWidget {
       ]),
     );
   }
-}pha(30), borderRadius: BorderRadius.circular(20)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 5),
-        Text('$value $label', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-      ]),
-    );
-  }
 }
