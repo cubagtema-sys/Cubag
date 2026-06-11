@@ -823,251 +823,334 @@ class _LicenseRenewalPageState extends State<LicenseRenewalPage> {
         'PENDING';
 
     showDialog(
-        context: context,
-        builder: (ctx) => Dialog(
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(maxWidth: 800),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFfafaf9), // Off-white paper color
-                  border: Border.all(color: primary, width: 12),
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+      context: context,
+      builder: (ctx) {
+        final screenWidth = MediaQuery.of(ctx).size.width;
+        final isMobile = screenWidth < 500;
+        final borderWidth = isMobile ? 6.0 : 12.0;
+        final marginVal = isMobile ? 4.0 : 8.0;
+        final paddingVal = isMobile ? 16.0 : 32.0;
+        final innerBorderWidth = isMobile ? 1.5 : 3.0;
+
+        Widget buildSignatureColumn(String name, String role) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name,
+                style: GoogleFonts.dancingScript(
+                  fontSize: 28,
+                  color: const Color(0xFF1e3a8a),
+                  fontWeight: FontWeight.w700,
                 ),
-                child: Container(
-                  margin: const EdgeInsets.all(8),
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: const Color(0xFFd4af37),
-                      width: 3,
-                    ), // Inner gold border
+              ),
+              Container(width: 100, height: 1, color: Colors.black87),
+              const SizedBox(height: 6),
+              Text(
+                role,
+                style: GoogleFonts.montserrat(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          );
+        }
+
+        Widget buildOfficialSeal() {
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(Icons.brightness_7, size: 80, color: Color(0xFFd4af37)),
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'OFFICIAL',
+                    style: GoogleFonts.cinzel(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  child: Stack(
-                    children: [
-                      // Watermark
-                      Positioned.fill(
-                        child: Center(
-                          child: Transform.rotate(
-                            angle: -0.5,
-                            child: Text(
-                              'CUBAG',
-                              style: TextStyle(
-                                fontSize: 120,
-                                fontWeight: FontWeight.w900,
-                                color: primary.withValues(alpha: 0.04),
-                              ),
-                            ),
+                  Text(
+                    'SEAL',
+                    style: GoogleFonts.cinzel(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8.0 : 16.0,
+            vertical: isMobile ? 12.0 : 24.0,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 800),
+            decoration: BoxDecoration(
+              color: const Color(0xFFfafaf9), // Off-white paper color
+              border: Border.all(color: primary, width: borderWidth),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Container(
+              margin: EdgeInsets.all(marginVal),
+              padding: EdgeInsets.all(paddingVal),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: const Color(0xFFd4af37),
+                  width: innerBorderWidth,
+                ), // Inner gold border
+              ),
+              child: Stack(
+                children: [
+                  // Watermark
+                  Positioned.fill(
+                    child: Center(
+                      child: Transform.rotate(
+                        angle: -0.5,
+                        child: Text(
+                          'CUBAG',
+                          style: TextStyle(
+                            fontSize: isMobile ? 60 : 120,
+                            fontWeight: FontWeight.w900,
+                            color: primary.withValues(alpha: 0.04),
                           ),
                         ),
                       ),
-                      // Content
-                      SingleChildScrollView(
-                        child: Column(
+                    ),
+                  ),
+                  // Content
+                  SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(width: 40), // Spacer to balance close button
-                                Expanded(
-                                  child: Column(
-                                    children: [
-                                      Text('CUBAG',
-                                          style: GoogleFonts.cinzel(
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 42,
-                                              color: primary,
-                                              letterSpacing: 4)),
-                                      const SizedBox(height: 4),
-                                      Text('CUSTOMS BROKERS ASSOCIATION OF GHANA',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 10,
-                                              color: const Color(0xFF64748b),
-                                              letterSpacing: 1.5,
-                                              fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  icon: const Icon(Icons.close_rounded, color: Colors.grey),
-                                  onPressed: () => Navigator.pop(ctx),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 40),
-                            Text('CERTIFICATE OF LICENSURE',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.cinzel(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF0f172a),
-                                    letterSpacing: 2)),
-                            const SizedBox(height: 32),
-                            Text('This is to officially certify that',
-                                style: GoogleFonts.lora(
-                                    fontSize: 16,
-                                    fontStyle: FontStyle.italic,
-                                    color: const Color(0xFF475569))),
-                            const SizedBox(height: 16),
-                            Text(user['company']?.toString() ?? rec['company']?.toString() ?? 'Company Name',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.w900, fontSize: 24, color: const Color(0xFF1e293b))),
-                            const SizedBox(height: 8),
-                            Text('represented by ${user['name']?.toString() ?? rec['name']?.toString() ?? 'Member Name'}',
-                                style: GoogleFonts.lora(
-                                    color: const Color(0xFF64748b), fontStyle: FontStyle.italic, fontSize: 16)),
-                            const SizedBox(height: 24),
-                            Text(
-                                'is a registered and active ${user['member_type']?.toString() ?? rec['member_type']?.toString() ?? 'Member'} of CUBAG',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.lora(fontSize: 16, color: const Color(0xFF0f172a))),
-                            const SizedBox(height: 8),
-                            Text(
-                                'Authorized Port of Operation: ${user['port_of_operation']?.toString() ?? rec['port_of_operation']?.toString() ?? 'All Ports'}',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.lora(fontSize: 14, color: const Color(0xFF475569))),
-                            const SizedBox(height: 32),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFf8fafc),
-                                border: Border.all(color: const Color(0xFFe2e8f0)),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                            SizedBox(width: isMobile ? 24 : 40), // Spacer to balance close button
+                            Expanded(
+                              child: Column(
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text('License Number:',
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 10,
-                                              color: const Color(0xFF64748b),
-                                              fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 4),
-                                      Text('Valid Until:',
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 10,
-                                              color: const Color(0xFF64748b),
-                                              fontWeight: FontWeight.bold)),
-                                    ],
+                                  Text(
+                                    'CUBAG',
+                                    style: GoogleFonts.cinzel(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: isMobile ? 28 : 42,
+                                      color: primary,
+                                      letterSpacing: isMobile ? 2 : 4,
+                                    ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(licenseNum,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF0f172a),
-                                              letterSpacing: 1)),
-                                      const SizedBox(height: 4),
-                                      Text('31 Dec $yr',
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF0f172a),
-                                              letterSpacing: 1)),
-                                    ],
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'CUSTOMS BROKERS ASSOCIATION OF GHANA',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: isMobile ? 8 : 10,
+                                      color: const Color(0xFF64748b),
+                                      letterSpacing: isMobile ? 1.0 : 1.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 48),
-                            // Signatures and Seal
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                // President Signature
-                                Column(
-                                  children: [
-                                    Text('A. Mensah',
-                                        style: GoogleFonts.dancingScript(
-                                            fontSize: 28,
-                                            color: const Color(0xFF1e3a8a),
-                                            fontWeight: FontWeight.w700)),
-                                    Container(width: 100, height: 1, color: Colors.black87),
-                                    const SizedBox(height: 6),
-                                    Text('President',
-                                        style: GoogleFonts.montserrat(
-                                            fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                                  ],
-                                ),
-                                // Official Gold Seal
-                                Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    const Icon(Icons.brightness_7, size: 80, color: Color(0xFFd4af37)),
-                                    Container(
-                                      width: 62,
-                                      height: 62,
-                                      decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 1.5)),
-                                    ),
-                                    Container(
-                                      width: 52,
-                                      height: 52,
-                                      decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 1.5)),
-                                    ),
-                                    Column(
-                                      children: [
-                                        Text('OFFICIAL',
-                                            style: GoogleFonts.cinzel(
-                                                color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                                        Text('SEAL',
-                                            style: GoogleFonts.cinzel(
-                                                color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                // Secretary Signature
-                                Column(
-                                  children: [
-                                    Text('K. Osei',
-                                        style: GoogleFonts.dancingScript(
-                                            fontSize: 28,
-                                            color: const Color(0xFF1e3a8a),
-                                            fontWeight: FontWeight.w700)),
-                                    Container(width: 100, height: 1, color: Colors.black87),
-                                    const SizedBox(height: 6),
-                                    Text('Secretary General',
-                                        style: GoogleFonts.montserrat(
-                                            fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                                  ],
-                                ),
-                              ],
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.close_rounded, color: Colors.grey),
+                              onPressed: () => Navigator.pop(ctx),
                             ),
-                            const SizedBox(height: 16),
                           ],
                         ),
-                      ),
-                    ],
+                        SizedBox(height: isMobile ? 24 : 40),
+                        Text(
+                          'CERTIFICATE OF LICENSURE',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.cinzel(
+                            fontSize: isMobile ? 16 : 22,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0f172a),
+                            letterSpacing: isMobile ? 1 : 2,
+                          ),
+                        ),
+                        SizedBox(height: isMobile ? 20 : 32),
+                        Text(
+                          'This is to officially certify that',
+                          style: GoogleFonts.lora(
+                            fontSize: isMobile ? 14 : 16,
+                            fontStyle: FontStyle.italic,
+                            color: const Color(0xFF475569),
+                          ),
+                        ),
+                        SizedBox(height: isMobile ? 10 : 16),
+                        Text(
+                          user['company']?.toString() ?? rec['company']?.toString() ?? 'Company Name',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.montserrat(
+                            fontWeight: FontWeight.w900,
+                            fontSize: isMobile ? 18 : 24,
+                            color: const Color(0xFF1e293b),
+                          ),
+                        ),
+                        SizedBox(height: isMobile ? 6 : 8),
+                        Text(
+                          'represented by ${user['name']?.toString() ?? rec['name']?.toString() ?? 'Member Name'}',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.lora(
+                            color: const Color(0xFF64748b),
+                            fontStyle: FontStyle.italic,
+                            fontSize: isMobile ? 14 : 16,
+                          ),
+                        ),
+                        SizedBox(height: isMobile ? 16 : 24),
+                        Text(
+                          'is a registered and active ${user['member_type']?.toString() ?? rec['member_type']?.toString() ?? 'Member'} of CUBAG',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.lora(
+                            fontSize: isMobile ? 14 : 16,
+                            color: const Color(0xFF0f172a),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Authorized Port of Operation: ${user['port_of_operation']?.toString() ?? rec['port_of_operation']?.toString() ?? 'All Ports'}',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.lora(
+                            fontSize: isMobile ? 12 : 14,
+                            color: const Color(0xFF475569),
+                          ),
+                        ),
+                        SizedBox(height: isMobile ? 24 : 32),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 16 : 24,
+                            vertical: isMobile ? 8 : 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFf8fafc),
+                            border: Border.all(color: const Color(0xFFe2e8f0)),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'License Number:',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: isMobile ? 9 : 10,
+                                      color: const Color(0xFF64748b),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Valid Until:',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: isMobile ? 9 : 10,
+                                      color: const Color(0xFF64748b),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(width: isMobile ? 8 : 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    licenseNum,
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: isMobile ? 11 : 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF0f172a),
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '31 Dec $yr',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: isMobile ? 11 : 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF0f172a),
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: isMobile ? 32 : 48),
+                        // Signatures and Seal
+                        isMobile
+                            ? Column(
+                                children: [
+                                  buildSignatureColumn('A. Mensah', 'President'),
+                                  const SizedBox(height: 24),
+                                  buildOfficialSeal(),
+                                  const SizedBox(height: 24),
+                                  buildSignatureColumn('K. Osei', 'Secretary General'),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  buildSignatureColumn('A. Mensah', 'President'),
+                                  buildOfficialSeal(),
+                                  buildSignatureColumn('K. Osei', 'Secretary General'),
+                                ],
+                              ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ));
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
