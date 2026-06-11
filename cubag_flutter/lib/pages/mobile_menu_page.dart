@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../components/app_layout.dart';
 
@@ -96,55 +97,79 @@ class MobileMenuPage extends StatelessWidget {
     return AppLayout(
       title: 'Menu',
       scrollable: true,
-      child: Container(
-        color: const Color(0xFFf1f5f9),
-        child: Column(
-          children: [
-            ...sections,
-            _buildSection(context, 'ACCOUNT', [
-              _MenuItem('Settings', Icons.settings_rounded, isSubOrAdmin ? '/admin/settings' : '/settings'),
-              _MenuItem('Sign Out', Icons.logout_rounded, '/login', isLogout: true),
-            ]),
-            const SizedBox(height: 40),
-          ],
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...sections,
+              _buildSection(context, 'ACCOUNT', [
+                _MenuItem('Settings', Icons.settings_rounded, isSubOrAdmin ? '/admin/settings' : '/settings'),
+                _MenuItem('Sign Out', Icons.logout_rounded, '/login', isLogout: true),
+              ]),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildSection(BuildContext context, String title, List<_MenuItem> items) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+          padding: const EdgeInsets.fromLTRB(4, 24, 4, 8),
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF64748b),
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: isDark ? const Color(0xFF9ca3af) : const Color(0xFF64748b),
+              letterSpacing: 1.0,
             ),
           ),
         ),
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? const Color(0xFF2e303a) : const Color(0xFFcbd5e1).withValues(alpha: 0.5),
+              width: 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: Column(
-            children: items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return Column(
-                children: [
-                  _navTile(context, item),
-                  if (index != items.length - 1)
-                    const Divider(height: 1, indent: 56, endIndent: 0, color: Color(0xFFf1f5f9)),
-                ],
-              );
-            }).toList(),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              children: items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                return Column(
+                  children: [
+                    _navTile(context, item),
+                    if (index != items.length - 1)
+                      Divider(
+                        height: 1,
+                        indent: 64,
+                        endIndent: 0,
+                        color: isDark ? const Color(0xFF2e303a) : const Color(0xFFf1f5f9),
+                      ),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
         ),
       ],
@@ -153,6 +178,17 @@ class MobileMenuPage extends StatelessWidget {
 
   Widget _navTile(BuildContext context, _MenuItem item) {
     final primary = Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Normal vs Logout styling
+    final Color iconColor = item.isLogout ? const Color(0xFFef4444) : primary;
+    final Color badgeBgColor = item.isLogout 
+        ? const Color(0xFFef4444).withValues(alpha: 0.1) 
+        : primary.withValues(alpha: 0.1);
+    final Color textColor = item.isLogout 
+        ? const Color(0xFFef4444) 
+        : (isDark ? Colors.white : const Color(0xFF1e293b));
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -162,31 +198,40 @@ class MobileMenuPage extends StatelessWidget {
           }
           context.go(item.route);
         },
-        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(
-                item.icon,
-                color: item.isLogout ? Colors.red : primary,
-                size: 22,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: badgeBgColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Icon(
+                    item.icon,
+                    color: iconColor,
+                    size: 18,
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   item.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: item.isLogout ? Colors.red : const Color(0xFF1e293b),
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
                   ),
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: Color(0xFFcbd5e1),
-                size: 22,
+                color: isDark ? const Color(0xFF4b5563) : const Color(0xFFcbd5e1),
+                size: 20,
               ),
             ],
           ),
