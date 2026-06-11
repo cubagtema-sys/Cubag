@@ -50,7 +50,7 @@ def _send_email(to_email: str, subject: str, body_text: str, body_html: str = No
     if smtp_host:
         try:
             smtp_port = int(os.getenv('SMTP_PORT', '587'))
-            smtp_pass = os.getenv('SMTP_PASSWORD')
+            smtp_pass = os.getenv('SMTP_PASS') or os.getenv('SMTP_PASSWORD')
             
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
