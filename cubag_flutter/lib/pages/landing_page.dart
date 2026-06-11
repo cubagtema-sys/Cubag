@@ -107,12 +107,12 @@ class LandingPage extends StatelessWidget {
                     const SizedBox(height: 32),
 
                     // Centered Footer
-                    const Opacity(
+                    Opacity(
                       opacity: 0.5,
                       child: Text(
-                        '© 2024 Customs Brokers Association of Ghana',
+                        '© ${DateTime.now().year} Customs Brokers Association of Ghana',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
