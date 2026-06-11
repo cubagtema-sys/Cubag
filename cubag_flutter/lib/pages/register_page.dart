@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../components/custom_dropdown.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../components/app_logo.dart';
 
 const _kOrange = Color(0xFFf08232);
-const _kOrangeDark = Color(0xFFe06920);
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -40,14 +39,20 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _step1Next() {
     if (_nameCtrl.text.trim().isEmpty || _emailCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty) {
-      _err('Please provide your identity details to continue.'); return;
+      _err('Please provide your identity details to continue.');
+      return;
     }
-    _err(''); setState(() => _step = 2);
+    _err('');
+    setState(() => _step = 2);
   }
 
   Future<void> _step2Next() async {
-    if (_companyCtrl.text.trim().isEmpty) { _err('Please enter your agency or company name.'); return; }
-    _err(''); setState(() => _loading = true);
+    if (_companyCtrl.text.trim().isEmpty) {
+      _err('Please enter your agency or company name.');
+      return;
+    }
+    _err('');
+    setState(() => _loading = true);
     try {
       final res = await ApiService().post('/auth/send-otp', data: {'email': _emailCtrl.text.trim()});
       if (!mounted) return;
@@ -64,8 +69,12 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _verifyOtp() async {
-    if (_otpCtrl.text.length != 6) { _err('Enter the 6-digit code sent to your email.'); return; }
-    _err(''); setState(() => _loading = true);
+    if (_otpCtrl.text.length != 6) {
+      _err('Enter the 6-digit code sent to your email.');
+      return;
+    }
+    _err('');
+    setState(() => _loading = true);
     try {
       final res = await ApiService().post('/auth/verify-email', data: {'email': _emailCtrl.text.trim(), 'token': _otpCtrl.text.trim()});
       if (!mounted) return;
@@ -82,21 +91,34 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _register() async {
-    if (_pwCtrl.text != _cpwCtrl.text) { _err('Passwords do not match.'); return; }
-    if (_pwCtrl.text.length < 8) { _err('Password must be at least 8 characters.'); return; }
-    _err(''); setState(() => _loading = true);
+    if (_pwCtrl.text != _cpwCtrl.text) {
+      _err('Passwords do not match.');
+      return;
+    }
+    if (_pwCtrl.text.length < 8) {
+      _err('Password must be at least 8 characters.');
+      return;
+    }
+    _err('');
+    setState(() => _loading = true);
     try {
       final res = await ApiService().post('/auth/register', data: {
-        'name': _nameCtrl.text.trim(), 'email': _emailCtrl.text.trim(),
-        'phone': _phoneCtrl.text.trim(), 'company': _companyCtrl.text.trim(),
-        'licenseNumber': _licCtrl.text.trim(), 'agencyCode': _agcCtrl.text.trim(),
-        'portOfOperation': _form['portOfOperation'], 'memberType': _form['memberType'],
+        'name': _nameCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'phone': _phoneCtrl.text.trim(),
+        'company': _companyCtrl.text.trim(),
+        'licenseNumber': _licCtrl.text.trim(),
+        'agencyCode': _agcCtrl.text.trim(),
+        'portOfOperation': _form['portOfOperation'],
+        'memberType': _form['memberType'],
         'password': _pwCtrl.text,
       });
       if (!mounted) return;
       if (res.statusCode == 200 || res.statusCode == 201) {
         context.go('/login');
-      } else { _err(res.data['message'] ?? 'Registration failed.'); }
+      } else {
+        _err(res.data['message'] ?? 'Registration failed.');
+      }
     } catch (_) {
       if (!mounted) return;
       _err('Connection error. Please try again.');
@@ -121,94 +143,251 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 700;
+    final isDesktop = size.width > 1050;
+    final isTablet = size.width > 700 && size.width <= 1050;
 
     return Scaffold(
-      body: isWide ? _buildWideLayout() : _buildMobileLayout(),
+      backgroundColor: Colors.white,
+      body: isDesktop
+          ? _buildThreeColumnLayout()
+          : (isTablet ? _buildTwoColumnLayout() : _buildMobileLayout()),
     );
   }
 
-  Widget _buildWideLayout() => Row(children: [
-    Expanded(flex: 4, child: _buildSidebar()),
-    Expanded(flex: 6, child: _buildFormPanel(fullscreen: false)),
-  ]);
+  Widget _buildThreeColumnLayout() => Row(children: [
+        Expanded(flex: 35, child: _buildBrandPanel()),
+        Expanded(flex: 35, child: _buildInfoPanel()),
+        Expanded(flex: 30, child: _buildFormPanel(padding: 40, showLogo: false)),
+      ]);
 
-  Widget _buildMobileLayout() => Scaffold(
-    backgroundColor: Colors.white,
-    body: SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: _buildFormContent(isMobile: true),
+  Widget _buildTwoColumnLayout() => Row(children: [
+        Expanded(flex: 45, child: _buildBrandPanel()),
+        Expanded(flex: 55, child: _buildFormPanel(padding: 50, showLogo: false)),
+      ]);
+
+  Widget _buildMobileLayout() => SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: _buildFormContent(showLogo: true, isMobile: true),
+            ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 
-  Widget _buildSidebar() => Container(
-    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [_kOrange, _kOrangeDark])),
-    child: Stack(children: [
-      Positioned(top: -80, right: -80, child: Container(width: 280, height: 280, decoration: BoxDecoration(color: Colors.white.withAlpha(18), shape: BoxShape.circle))),
-      Positioned(bottom: -60, left: -60, child: Container(width: 200, height: 200, decoration: BoxDecoration(color: Colors.white.withAlpha(12), shape: BoxShape.circle))),
-      Padding(padding: const EdgeInsets.all(40), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Text('CUBAG', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
-        const SizedBox(height: 8),
-        const Text('Join the Official Broker Community', style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 48),
-        _sidebarFeature(Icons.how_to_reg, 'Quick & Secured Sign Up'),
-        const SizedBox(height: 20),
-        _sidebarFeature(Icons.verified_user_outlined, 'Official Registry Listing'),
-        const SizedBox(height: 20),
-        _sidebarFeature(Icons.handshake_outlined, 'Direct Port Operations Access'),
-      ])),
-    ]),
-  );
+  Widget _buildBrandPanel() => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFf08232), Color(0xFFea580c)],
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -50,
+              bottom: -50,
+              child: Icon(
+                Icons.directions_boat,
+                size: 300,
+                color: Colors.white.withAlpha(15),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(48),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const AppLogo(size: 64, borderRadius: 16),
+                  const SizedBox(height: 32),
+                  Text(
+                    'CUBAG',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 60,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Customs Brokers Association of Ghana',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white.withAlpha(220),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'The official mobile gateway for licensed customs clearing and logistics firms in Ghana.',
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(180),
+                      fontSize: 14,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 
-  Widget _sidebarFeature(IconData icon, String label) => Row(children: [
-    Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: Colors.white, size: 20)),
-    const SizedBox(width: 14),
-    Expanded(child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))),
-  ]);
+  Widget _buildInfoPanel() => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFf8fafc),
+          border: Border(right: BorderSide(color: Color(0xFFe2e8f0), width: 1)),
+        ),
+        padding: const EdgeInsets.all(48),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Broker Community',
+              style: GoogleFonts.outfit(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0f172a),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Join the elite network of customs clearing professionals in Ghana.',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 40),
+            _infoCard(
+              icon: Icons.how_to_reg_outlined,
+              title: 'Verified Registration',
+              desc: 'Access official CUBAG digital services by registering your certified credentials securely.',
+            ),
+            const SizedBox(height: 24),
+            _infoCard(
+              icon: Icons.verified_user_outlined,
+              title: 'Direct Port Clearance',
+              desc: 'Seamlessly declare cargo, track vessel arrivals, and settle port clearance dues.',
+            ),
+            const SizedBox(height: 24),
+            _infoCard(
+              icon: Icons.handshake_outlined,
+              title: 'Industry Networking',
+              desc: 'Connect with other licensed brokers, stay updated on trade policies, and grow your agency.',
+            ),
+          ],
+        ),
+      );
 
-  Widget _buildFormPanel({required bool fullscreen}) => Container(
-    color: Colors.white,
-    child: Center(child: SingleChildScrollView(child: Container(
-      padding: const EdgeInsets.all(40),
-      constraints: const BoxConstraints(maxWidth: 520),
-      child: _buildFormContent(isMobile: false),
-    ))),
-  );
+  Widget _infoCard({required IconData icon, required String title, required String desc}) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(8),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(color: const Color(0xFFf1f5f9)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _kOrange.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: _kOrange, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0f172a),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    desc,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 
-  Widget _buildFormContent({bool isMobile = false}) {
-    final isSmall = MediaQuery.of(context).size.width < 360;
+  Widget _buildFormPanel({double padding = 60, required bool showLogo}) => Container(
+        color: Colors.white,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(padding),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: _buildFormContent(showLogo: showLogo),
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildFormContent({required bool showLogo, bool isMobile = false}) {
     final stepLabels = ['Identity', 'Professional', 'Verify', 'Security'];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            AppLogo(size: isSmall ? 44 : 52, borderRadius: 12, showShadow: true),
-            const SizedBox(height: 16),
+            if (showLogo) ...[
+              const AppLogo(size: 60, borderRadius: 14, showShadow: true),
+              const SizedBox(height: 24),
+            ],
             Text(
               ['Join CUBAG', 'Professional Profile', 'Verify Identity', 'Secure Account'][_step - 1],
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: isSmall ? 22 : 26, fontWeight: FontWeight.w900, color: const Color(0xFF0f172a), letterSpacing: -0.5),
+              style: GoogleFonts.outfit(fontSize: 30, fontWeight: FontWeight.w900, color: const Color(0xFF0f172a), letterSpacing: -0.5),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               ['Provide contact information to register.', 'Tell us about your logistics agency.', 'Enter verification code sent to your email.', 'Choose a secure password for your account.'][_step - 1],
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: isSmall ? 13 : 14, height: 1.3),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 15, height: 1.4),
             ),
           ],
         ),
       ),
-      const SizedBox(height: 28),
+      const SizedBox(height: 32),
 
-      // Step progress indicator — optimized for mobile vs desktop
+      // Step Progress Indicator
       if (isMobile) ...[
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -250,16 +429,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       children: [
                         Expanded(child: Divider(thickness: 2, color: i == 0 ? Colors.transparent : (_step > i ? _kOrange : Colors.grey.shade200))),
                         Container(
-                          width: isSmall ? 22 : 26,
-                          height: isSmall ? 22 : 26,
+                          width: 26,
+                          height: 26,
                           decoration: BoxDecoration(
                             color: done || active ? _kOrange : Colors.grey.shade200,
                             shape: BoxShape.circle,
                           ),
                           child: Center(
                             child: done
-                              ? Icon(Icons.check, color: Colors.white, size: isSmall ? 12 : 14)
-                              : Text('$n', style: TextStyle(color: done || active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: isSmall ? 10 : 11)),
+                              ? const Icon(Icons.check, color: Colors.white, size: 14)
+                              : Text('$n', style: TextStyle(color: done || active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: 11)),
                           ),
                         ),
                         Expanded(child: Divider(thickness: 2, color: i == 3 ? Colors.transparent : (_step > n ? _kOrange : Colors.grey.shade200))),
@@ -272,7 +451,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         stepLabels[i],
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: isSmall ? 9 : 10,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: done || active ? _kOrange : Colors.grey,
                         ),
@@ -285,15 +464,30 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ],
-      const SizedBox(height: 28),
+      const SizedBox(height: 32),
 
       if (_error.isNotEmpty)
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 20),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: const Color(0x19ef4444), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x33ef4444))),
-          child: Row(children: [const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18), const SizedBox(width: 10), Expanded(child: Text(_error, style: const TextStyle(color: Color(0xFFef4444), fontSize: 13, fontWeight: FontWeight.w600)))]),
+          margin: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFfef2f2),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFfee2e2)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Color(0xFFef4444), size: 18),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _error,
+                  style: const TextStyle(color: Color(0xFFb91c1c), fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
         ),
 
       if (_step == 1) _buildStep1(),
@@ -302,40 +496,48 @@ class _RegisterPageState extends State<RegisterPage> {
       if (_step == 4) _buildStep4(),
 
       const SizedBox(height: 24),
-      Center(child: TextButton(onPressed: () => context.go('/login'), child: const Text.rich(TextSpan(children: [
-        TextSpan(text: "Already have an account? ", style: TextStyle(color: Colors.grey, fontSize: 14)),
-        TextSpan(text: 'Sign In', style: TextStyle(color: _kOrange, fontWeight: FontWeight.bold, fontSize: 14)),
-      ])))),
+      Center(
+        child: GestureDetector(
+          onTap: () => context.go('/login'),
+          child: const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: "Already have an account? ", style: TextStyle(color: Color(0xFF64748b), fontSize: 15, fontWeight: FontWeight.w500)),
+                TextSpan(text: 'Sign In', style: TextStyle(color: _kOrange, fontWeight: FontWeight.w800, fontSize: 15)),
+              ],
+            ),
+          ),
+        ),
+      ),
     ]);
   }
 
+  Widget _inputLabel(String text) => Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1e293b)));
+
+  InputDecoration _inputDecoration({required String hint, required IconData icon, Widget? suffix}) => InputDecoration(
+    hintText: hint,
+    prefixIcon: Icon(icon, color: const Color(0xFF94a3b8), size: 20),
+    suffixIcon: suffix,
+    filled: true,
+    fillColor: Colors.white,
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFe2e8f0), width: 1.5)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _kOrange, width: 2)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+    hintStyle: const TextStyle(color: Color(0xFF94a3b8)),
+  );
+
   Widget _field(String label, TextEditingController ctrl, {TextInputType type = TextInputType.text, String? hint, IconData? icon}) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+    _inputLabel(label),
     const SizedBox(height: 8),
-    TextField(
+    TextFormField(
       controller: ctrl,
       keyboardType: type,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: icon != null ? Icon(icon, color: Colors.grey.shade400, size: 20) : null,
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: _inputDecoration(
+        hint: hint ?? '',
+        icon: icon ?? Icons.text_fields,
       ),
     ),
-    const SizedBox(height: 16),
-  ]);
-
-  Widget _dropdown(String label, String value, List<String> opts, void Function(String) onChange, {IconData? icon}) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
-    const SizedBox(height: 8),
-    CustomDropdown<String>(
-      value: value,
-      items: opts.map((o) => DropdownItem<String>(value: o, label: o)).toList(),
-      onChanged: onChange,
-      prefixIcon: icon != null ? Icon(icon, color: Colors.grey.shade400, size: 20) : null,
-    ),
-    const SizedBox(height: 16),
+    const SizedBox(height: 18),
   ]);
 
   Widget _buildStep1() => Column(children: [
@@ -343,13 +545,26 @@ class _RegisterPageState extends State<RegisterPage> {
     _field('Email Address', _emailCtrl, type: TextInputType.emailAddress, hint: 'e.g. john@agency.com', icon: Icons.email_outlined),
     _field('Phone Number', _phoneCtrl, type: TextInputType.phone, hint: 'e.g. 024 5678 901', icon: Icons.phone_outlined),
     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Membership Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+      _inputLabel('Membership Type'),
       const SizedBox(height: 10),
       _buildMemberTypeCards(),
-      const SizedBox(height: 16),
+      const SizedBox(height: 18),
     ]),
     const SizedBox(height: 12),
-    SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: _step1Next, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text('Next Step', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
+    SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: _step1Next,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kOrange,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+        ),
+        child: const Text('Next Step', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+      ),
+    ),
   ]);
 
   Widget _buildMemberTypeCards() {
@@ -368,45 +583,48 @@ class _RegisterPageState extends State<RegisterPage> {
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
             width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              color: selected ? _kOrange.withAlpha(15) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: selected ? _kOrange.withAlpha(10) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: selected ? _kOrange : Colors.grey.shade300,
+                color: selected ? _kOrange : const Color(0xFFe2e8f0),
                 width: selected ? 2 : 1.5,
               ),
+              boxShadow: selected
+                  ? [BoxShadow(color: _kOrange.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))]
+                  : null,
             ),
             child: Row(children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: selected ? _kOrange.withAlpha(30) : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
+                  color: selected ? _kOrange.withAlpha(20) : const Color(0xFFf1f5f9),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   t['icon'] as IconData,
-                  color: selected ? _kOrange : Colors.grey.shade500,
-                  size: 20,
+                  color: selected ? _kOrange : const Color(0xFF64748b),
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(
                     t['label'] as String,
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 14,
                       color: selected ? _kOrange : const Color(0xFF0f172a),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     t['desc'] as String,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                 ]),
               ),
@@ -418,7 +636,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   shape: BoxShape.circle,
                   color: selected ? _kOrange : Colors.transparent,
                   border: Border.all(
-                    color: selected ? _kOrange : Colors.grey.shade300,
+                    color: selected ? _kOrange : const Color(0xFFcbd5e1),
                     width: 2,
                   ),
                 ),
@@ -451,45 +669,48 @@ class _RegisterPageState extends State<RegisterPage> {
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
             width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              color: selected ? _kOrange.withAlpha(15) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: selected ? _kOrange.withAlpha(10) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: selected ? _kOrange : Colors.grey.shade300,
+                color: selected ? _kOrange : const Color(0xFFe2e8f0),
                 width: selected ? 2 : 1.5,
               ),
+              boxShadow: selected
+                  ? [BoxShadow(color: _kOrange.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))]
+                  : null,
             ),
             child: Row(children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: selected ? _kOrange.withAlpha(30) : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
+                  color: selected ? _kOrange.withAlpha(20) : const Color(0xFFf1f5f9),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   p['icon'] as IconData,
-                  color: selected ? _kOrange : Colors.grey.shade500,
-                  size: 20,
+                  color: selected ? _kOrange : const Color(0xFF64748b),
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(
                     p['label'] as String,
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 14,
                       color: selected ? _kOrange : const Color(0xFF0f172a),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     p['desc'] as String,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                 ]),
               ),
@@ -501,7 +722,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   shape: BoxShape.circle,
                   color: selected ? _kOrange : Colors.transparent,
                   border: Border.all(
-                    color: selected ? _kOrange : Colors.grey.shade300,
+                    color: selected ? _kOrange : const Color(0xFFcbd5e1),
                     width: 2,
                   ),
                 ),
@@ -519,95 +740,180 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildStep2() => Column(children: [
     _field('Agency or Company Name', _companyCtrl, hint: 'e.g. Global Logistics Ltd', icon: Icons.business_outlined),
     Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: _kOrange.withAlpha(12), border: Border.all(color: _kOrange.withAlpha(40)), borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: _kOrange.withAlpha(10), border: Border.all(color: _kOrange.withAlpha(25)), borderRadius: BorderRadius.circular(14)),
       child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [Icon(Icons.info_outline, color: _kOrange, size: 16), SizedBox(width: 6), Text('Note for New Applicants:', style: TextStyle(fontSize: 12, color: _kOrange, fontWeight: FontWeight.bold))]),
-        SizedBox(height: 6),
-        Text("If you don't have these details yet, leave them blank. CUBAG will assign them upon approval.", style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.3))
+        Row(children: [Icon(Icons.info_outline, color: _kOrange, size: 16), SizedBox(width: 8), Text('Note for New Applicants:', style: TextStyle(fontSize: 13, color: _kOrange, fontWeight: FontWeight.bold))]),
+        SizedBox(height: 8),
+        Text("If you don't have these details yet, leave them blank. CUBAG will assign them upon approval.", style: TextStyle(fontSize: 12, color: Color(0xFF475569), height: 1.4))
       ]),
     ),
     _field('License # (Optional)', _licCtrl, hint: 'LIC/...', icon: Icons.assignment_outlined),
     _field('Member ID (Optional)', _agcCtrl, hint: 'CUB-...', icon: Icons.badge_outlined),
     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Primary Port of Operation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+      _inputLabel('Primary Port of Operation'),
       const SizedBox(height: 10),
       _buildPortCards(),
-      const SizedBox(height: 16),
+      const SizedBox(height: 18),
     ]),
     const SizedBox(height: 12),
     Row(children: [
-      Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.grey.shade300, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(0, 52)), child: Text('Back', style: TextStyle(color: Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.bold)))),
+      Expanded(
+        child: OutlinedButton(
+          onPressed: () => setState(() => _step = 1),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Color(0xFFcbd5e1), width: 1.5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            minimumSize: const Size(0, 56),
+          ),
+          child: const Text('Back', style: TextStyle(color: Color(0xFF475569), fontSize: 15, fontWeight: FontWeight.w800)),
+        ),
+      ),
       const SizedBox(width: 12),
-      Expanded(flex: 2, child: ElevatedButton(onPressed: _loading ? null : _step2Next, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(0, 52), elevation: 0), child: _loading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Verify Email', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
+      Expanded(
+        flex: 2,
+        child: ElevatedButton(
+          onPressed: _loading ? null : _step2Next,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _kOrange,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            minimumSize: const Size(0, 56),
+            elevation: 0,
+          ),
+          child: _loading
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('Verify Email', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        ),
+      ),
     ]),
   ]);
 
   Widget _buildStep3() => Column(children: [
-    Center(child: Container(width: 60, height: 60, decoration: BoxDecoration(color: _kOrange.withAlpha(20), shape: BoxShape.circle), child: const Icon(Icons.mark_email_read, color: _kOrange, size: 30))),
-    const SizedBox(height: 16),
-    const Text('Check your inbox for a 6-digit verification code.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 14)),
+    Center(
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(color: _kOrange.withAlpha(20), shape: BoxShape.circle),
+        child: const Icon(Icons.mark_email_read, color: _kOrange, size: 36),
+      ),
+    ),
     const SizedBox(height: 24),
-    TextField(
+    const Text('Check your inbox for a 6-digit verification code.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 15)),
+    const SizedBox(height: 32),
+    TextFormField(
       controller: _otpCtrl,
       keyboardType: TextInputType.number,
       maxLength: 6,
       textAlign: TextAlign.center,
-      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 12),
+      style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 12),
       decoration: InputDecoration(
         hintText: '000000',
         counterText: '',
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-      )
+        filled: true,
+        fillColor: Colors.white,
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFe2e8f0), width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _kOrange, width: 2)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+      ),
     ),
-    const SizedBox(height: 28),
+    const SizedBox(height: 36),
     Row(children: [
-      Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 2), style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.grey.shade300, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(0, 52)), child: Text('Back', style: TextStyle(color: Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.bold)))),
+      Expanded(
+        child: OutlinedButton(
+          onPressed: () => setState(() => _step = 2),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Color(0xFFcbd5e1), width: 1.5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            minimumSize: const Size(0, 56),
+          ),
+          child: const Text('Back', style: TextStyle(color: Color(0xFF475569), fontSize: 15, fontWeight: FontWeight.w800)),
+        ),
+      ),
       const SizedBox(width: 12),
-      Expanded(flex: 2, child: ElevatedButton(onPressed: _loading ? null : _verifyOtp, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(0, 52), elevation: 0), child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Verify Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
+      Expanded(
+        flex: 2,
+        child: ElevatedButton(
+          onPressed: _loading ? null : _verifyOtp,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _kOrange,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            minimumSize: const Size(0, 56),
+            elevation: 0,
+          ),
+          child: _loading
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('Verify Code', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        ),
+      ),
     ]),
   ]);
 
   Widget _buildStep4() => Column(children: [
     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Create Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+      _inputLabel('Create Password'),
       const SizedBox(height: 8),
-      TextField(
+      TextFormField(
         controller: _pwCtrl,
         obscureText: !_showPw,
-        decoration: InputDecoration(
-          hintText: 'At least 8 characters',
-          prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade400, size: 20),
-          suffixIcon: IconButton(icon: Icon(_showPw ? Icons.visibility_off : Icons.visibility, color: Colors.grey.shade400, size: 20), onPressed: () => setState(() => _showPw = !_showPw)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        )
+        decoration: _inputDecoration(
+          hint: 'At least 8 characters',
+          icon: Icons.lock_outline,
+          suffix: IconButton(
+            icon: Icon(_showPw ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey.shade400, size: 20),
+            onPressed: () => setState(() => _showPw = !_showPw),
+          ),
+        ),
       ),
-      const SizedBox(height: 16),
-      const Text('Confirm Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+      const SizedBox(height: 20),
+      _inputLabel('Confirm Password'),
       const SizedBox(height: 8),
-      TextField(
+      TextFormField(
         controller: _cpwCtrl,
         obscureText: !_showConfirm,
-        decoration: InputDecoration(
-          hintText: 'Repeat password',
-          prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade400, size: 20),
-          suffixIcon: IconButton(icon: Icon(_showConfirm ? Icons.visibility_off : Icons.visibility, color: Colors.grey.shade400, size: 20), onPressed: () => setState(() => _showConfirm = !_showConfirm)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        )
+        decoration: _inputDecoration(
+          hint: 'Repeat password',
+          icon: Icons.lock_outline,
+          suffix: IconButton(
+            icon: Icon(_showConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey.shade400, size: 20),
+            onPressed: () => setState(() => _showConfirm = !_showConfirm),
+          ),
+        ),
       ),
     ]),
-    const SizedBox(height: 24),
+    const SizedBox(height: 32),
     Row(children: [
-      Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 3), style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.grey.shade300, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(0, 52)), child: Text('Back', style: TextStyle(color: Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.bold)))),
+      Expanded(
+        child: OutlinedButton(
+          onPressed: () => setState(() => _step = 3),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Color(0xFFcbd5e1), width: 1.5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            minimumSize: const Size(0, 56),
+          ),
+          child: const Text('Back', style: TextStyle(color: Color(0xFF475569), fontSize: 15, fontWeight: FontWeight.w800)),
+        ),
+      ),
       const SizedBox(width: 12),
-      Expanded(flex: 2, child: ElevatedButton(onPressed: _loading ? null : _register, style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), minimumSize: const Size(0, 52), elevation: 0), child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Complete', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
+      Expanded(
+        flex: 2,
+        child: ElevatedButton(
+          onPressed: _loading ? null : _register,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _kOrange,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            minimumSize: const Size(0, 56),
+            elevation: 0,
+          ),
+          child: _loading
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('Complete Registration', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        ),
+      ),
     ]),
   ]);
 }
+
