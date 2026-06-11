@@ -7,7 +7,10 @@ import xml.etree.ElementTree as ET
 import re
 import threading
 import time as _time
-from utils import admin_required, sub_admin_required
+import feedparser
+from bs4 import BeautifulSoup
+from utils import gcs_upload, log_admin_action, admin_required, sub_admin_required
+from config.cache import cache
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -245,6 +248,7 @@ def start_news_worker():
     logger.info("[NewsCache] Background worker started.")
 
 @news_bp.route('/global', methods=['GET'])
+@cache.cached(timeout=300)
 def get_global_news():
     """Return cached news — refreshed by background thread."""
     # Don't block — if cache isn't ready yet, return mock articles immediately.

@@ -3,15 +3,18 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from config.db import get_db
 from routes.admin import log_admin_action
 from utils import admin_required, sub_admin_required
+from config.cache import cache
 
 schedules_bp = Blueprint('schedules', __name__)
 
 @schedules_bp.route('/', methods=['GET'])
+@cache.cached(timeout=60, query_string=True)
 def get_schedules():
     schedule_type = request.args.get('type')
     return _fetch_schedules(schedule_type)
 
 @schedules_bp.route('/<string:schedule_type>', methods=['GET'])
+@cache.cached(timeout=60, query_string=True)
 def get_schedules_by_path(schedule_type):
     return _fetch_schedules(schedule_type)
 

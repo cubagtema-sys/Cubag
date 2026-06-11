@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/api_service.dart';
 import 'services/push_notification_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   // 1. Basic binding initialization
@@ -18,10 +19,14 @@ void main() async {
     debugPrint = (String? message, {int? wrapWidth}) {};
   }
 
-  // 3. Start services in parallel (Non-blocking)
+  // 3. Initialize Local Caching (Fast, synchronous DB for offline support)
+  await Hive.initFlutter();
+  await Hive.openBox('api_cache');
+
+  // 4. Start other services in parallel (Non-blocking)
   _initAppServices();
 
-  // 4. Launch App immediately
+  // 5. Launch App immediately
   runApp(
     MultiProvider(
       providers: [

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import '../services/push_notification_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -230,12 +227,14 @@ class _AppLayoutState extends State<AppLayout> {
     
     int currentIndex = 0;
     if (isAdmin) {
-      if (currentRoute.startsWith('/admin/members')) currentIndex = 1;
-      else if (currentRoute.startsWith('/admin/payments') || currentRoute.startsWith('/admin/fees')) currentIndex = 2;
+      if (currentRoute.startsWith('/admin/members')) {
+        currentIndex = 1;
+      } else if (currentRoute.startsWith('/admin/payments') || currentRoute.startsWith('/admin/fees')) currentIndex = 2;
       else if (currentRoute == '/menu') currentIndex = 3;
     } else {
-      if (currentRoute.startsWith('/networking')) currentIndex = 1;
-      else if (currentRoute.startsWith('/payments')) currentIndex = 2;
+      if (currentRoute.startsWith('/networking')) {
+        currentIndex = 1;
+      } else if (currentRoute.startsWith('/payments')) currentIndex = 2;
       else if (currentRoute == '/menu') currentIndex = 3;
     }
 

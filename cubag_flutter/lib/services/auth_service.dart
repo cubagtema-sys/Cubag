@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dio/dio.dart';
 import 'api_service.dart';
 import 'socket_service.dart';
 import 'push_notification_service.dart';

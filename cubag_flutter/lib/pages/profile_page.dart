@@ -226,7 +226,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 imageUrl: _user['profile_photo'].toString(),
                                 width: 72, height: 72, fit: BoxFit.cover,
                                 placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
-                                errorWidget: (_, __, ___) => CircleAvatar(
+                                errorWidget: (_, _, _) => CircleAvatar(
                                   radius: 36,
                                   backgroundColor: primary.withValues(alpha: 0.1),
                                   child: Text(_initials, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primary)),
@@ -452,7 +452,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 imageUrl: _user['profile_photo'].toString(),
                                 width: 90, height: 90, fit: BoxFit.cover,
                                 placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                errorWidget: (_, __, ___) => CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))))
+                                errorWidget: (_, _, _) => CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))))
                             : CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))),
                         ),
                       ),
@@ -522,11 +522,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.grey.shade200),
                       ),
-                      child: Image.network(
-                        'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent('https://winningedgeinvestment.com/#/verify-member/${_user['id']}')}',
+                      child: CachedNetworkImage(
+                        imageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent('https://winningedgeinvestment.com/#/verify-member/${_user['id']}')}',
                         width: 120,
                         height: 120,
-                        errorBuilder: (context, error, stackTrace) => Container(
+                        errorWidget: (context, error, stackTrace) => Container(
                           width: 120, height: 120,
                           color: Colors.grey.shade100,
                           child: const Icon(Icons.qr_code_2, size: 40, color: Colors.grey),

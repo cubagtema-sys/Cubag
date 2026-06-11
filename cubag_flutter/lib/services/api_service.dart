@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../core/router.dart';
 import 'auth_service.dart';
 
@@ -52,7 +53,30 @@ class ApiService {
         if (error.response?.statusCode == 401) {
           await AuthService().logout();
           appRouter.go('/login');
+          return handler.next(error);
         }
+
+        // Automatic Retry Logic for Network Drops
+        if (error.type == DioExceptionType.connectionTimeout || 
+            error.type == DioExceptionType.receiveTimeout || 
+            error.type == DioExceptionType.unknown) {
+          final requestOptions = error.requestOptions;
+          int retryCount = requestOptions.extra['retryCount'] ?? 0;
+          
+          if (retryCount < 2) { // Max 2 retries
+            requestOptions.extra['retryCount'] = retryCount + 1;
+            // Short backoff delay
+            await Future.delayed(Duration(seconds: 1 * (retryCount + 1)));
+            try {
+              // Retry the request using the same Dio instance
+              final response = await _dio.fetch(requestOptions);
+              return handler.resolve(response);
+            } catch (e) {
+              // Fall through to the handler.next below
+            }
+          }
+        }
+
         return handler.next(error);
       },
     ));
@@ -89,10 +113,10 @@ class ApiService {
   }
 
   Future<void> fetchDataWithCache(String path, Function(dynamic data, bool isCached, {bool hasError}) onData) async {
-    final prefs = await SharedPreferences.getInstance();
     final cacheKey = 'cache_v1_${_path(path)}';
+    final box = Hive.box('api_cache');
 
-    final cachedStr = prefs.getString(cacheKey);
+    final cachedStr = box.get(cacheKey);
     if (cachedStr != null) {
       try {
         final decoded = jsonDecode(cachedStr);
@@ -104,7 +128,7 @@ class ApiService {
       final res = await _dio.get(_path(path));
       final freshData = res.data;
       if (freshData != null) {
-        prefs.setString(cacheKey, jsonEncode(freshData));
+        box.put(cacheKey, jsonEncode(freshData));
       }
       onData(freshData, false, hasError: false);
     } catch (e) {

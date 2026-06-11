@@ -260,8 +260,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
             if (sc.containsKey(status)) sc[status] = sc[status]! + 1;
             final type = (m['member_type'] ?? '').toString();
             if (type.isNotEmpty) {
-              if (tc.containsKey(type)) tc[type] = tc[type]! + 1;
-              else tc[type] = (tc[type] ?? 0) + 1;
+              if (tc.containsKey(type)) {
+                tc[type] = tc[type]! + 1;
+              } else {
+                tc[type] = (tc[type] ?? 0) + 1;
+              }
             }
           }
           _statusCounts = sc;
@@ -577,7 +580,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
           ],
           onChanged: (newValue) {
             setState(() {
-              _dateFilter = newValue!;
+              _dateFilter = newValue;
             });
           },
         ),
@@ -626,7 +629,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 12),
-          FittedBox(fit: BoxFit.scaleDown, child: Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF0f172a)))),
+          FittedBox(fit: BoxFit.scaleDown, child: Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0f172a)))),
           const SizedBox(height: 4),
           FittedBox(fit: BoxFit.scaleDown, child: Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.w800), textAlign: TextAlign.center)),
         ]),

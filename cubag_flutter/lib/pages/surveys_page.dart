@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../components/app_layout.dart';
 import '../components/shimmer_loader.dart';
 import '../services/api_service.dart';
@@ -241,9 +242,12 @@ class _SurveysPageState extends State<SurveysPage> {
             if (coverImage != null && coverImage.isNotEmpty)
               ClipRRect(
                 borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-                child: Image.network(
-                  coverImage, width: 100, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(width: 100, color: const Color(0xFFf1f5f9), child: const Icon(Icons.image_not_supported, color: Color(0xFFcbd5e1), size: 24)),
+                child: CachedNetworkImage(
+                  imageUrl: coverImage, 
+                  width: 100, 
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) => Container(width: 100, color: const Color(0xFFf1f5f9), child: const Icon(Icons.image_not_supported, color: Color(0xFFcbd5e1), size: 24)),
+                  placeholder: (context, url) => Container(width: 100, color: const Color(0xFFf1f5f9), child: const Center(child: CircularProgressIndicator(strokeWidth: 2))),
                 ),
               ),
             Expanded(
@@ -467,7 +471,7 @@ class _SurveysPageState extends State<SurveysPage> {
                       color: sel ? color.withAlpha(25) : const Color(0xFFf1f5f9),
                       border: sel ? Border.all(color: color, width: 2.5) : null,
                       image: (photoUrl != null && photoUrl.isNotEmpty)
-                        ? DecorationImage(image: NetworkImage(photoUrl), fit: BoxFit.cover)
+                        ? DecorationImage(image: CachedNetworkImageProvider(photoUrl), fit: BoxFit.cover)
                         : null,
                     ),
                     child: (photoUrl == null || photoUrl.isEmpty)

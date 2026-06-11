@@ -30,7 +30,7 @@ class _PaymentsPageState extends State<PaymentsPage>
   bool _loadingData = true;
   // Polling state
   int _pollAttempt = 0;
-  int _pollMax = 60; // 60 × 5s = 5 minutes
+  final int _pollMax = 60; // 60 × 5s = 5 minutes
   bool _manualChecking = false;
   int? _currentPaymentId;
   String _currentTxRef = '';

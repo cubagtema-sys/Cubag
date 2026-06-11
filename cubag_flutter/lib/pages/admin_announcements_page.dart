@@ -48,7 +48,8 @@ class _State extends State<AdminAnnouncementsPage> {
       final res = await _api.get('/announcements/admin/all?archived=false&page=$_pageActive&limit=10');
       if (res.statusCode == 200) {
         final data = res.data;
-        if (mounted) setState(() {
+        if (mounted) {
+          setState(() {
           _active = ApiService.ensureList(data);
           if (data is Map && data.containsKey('total')) {
             _hasMoreActive = (_pageActive * 10) < data['total'];
@@ -56,6 +57,7 @@ class _State extends State<AdminAnnouncementsPage> {
             _hasMoreActive = _active.length == 10;
           }
         });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching active announcements: $e');
@@ -70,7 +72,8 @@ class _State extends State<AdminAnnouncementsPage> {
       final res = await _api.get('/announcements/admin/all?archived=true&page=$_pageArchived&limit=10');
       if (res.statusCode == 200) {
         final data = res.data;
-        if (mounted) setState(() {
+        if (mounted) {
+          setState(() {
           _archived = ApiService.ensureList(data);
           if (data is Map && data.containsKey('total')) {
             _hasMoreArchived = (_pageArchived * 10) < data['total'];
@@ -78,6 +81,7 @@ class _State extends State<AdminAnnouncementsPage> {
             _hasMoreArchived = _archived.length == 10;
           }
         });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching archived announcements: $e');

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -97,7 +96,7 @@ class StepperFormState extends State<StepperForm> with SingleTickerProviderState
       // ── Progress bar ──
       AnimatedBuilder(
         animation: _progressAnim,
-        builder: (_, __) => Column(children: [
+        builder: (_, _) => Column(children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text('Step ${_current + 1} of ${widget.steps.length}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
             Text('${(_progressAnim.value * 100).round()}%', style: TextStyle(fontSize: 11, color: accent, fontWeight: FontWeight.bold)),
@@ -122,7 +121,7 @@ class StepperFormState extends State<StepperForm> with SingleTickerProviderState
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: widget.steps.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
           itemBuilder: (_, i) {
             final s = widget.steps[i];
             final done = i < _current;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/api_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class VerifyMemberPage extends StatefulWidget {
   final String? memberId;
@@ -85,7 +86,7 @@ class _VerifyMemberPageState extends State<VerifyMemberPage> {
             child: Column(children: [
               // Avatar
               Container(width: 100, height: 100, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: badgeColor, width: 4)), child: ClipOval(child: m['profile_photo'] != null
-                ? Image.network(m['profile_photo'].toString(), fit: BoxFit.cover)
+                ? CachedNetworkImage(imageUrl: m['profile_photo'].toString(), fit: BoxFit.cover)
                 : Container(color: const Color(0xFFF1F5F9), child: Center(child: Text(_initials(m['name']?.toString() ?? ''), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF94a3b8))))))),
               const SizedBox(height: 20),
               Text(m['name']?.toString() ?? '', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),

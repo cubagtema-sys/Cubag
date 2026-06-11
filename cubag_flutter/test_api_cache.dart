@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'lib/services/api_service.dart';
 import 'package:flutter/widgets.dart';

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
+import '../components/shimmer_loader.dart';
 
 class MessagingPage extends StatefulWidget {
   final String? initialUserId;
@@ -155,7 +156,12 @@ class _MessagingPageState extends State<MessagingPage> {
       title: 'Messages',
       scrollable: false,
       child: _loading
-        ? const Center(child: Padding(padding: EdgeInsets.all(40), child: Column(children: [CircularProgressIndicator(), SizedBox(height: 12), Text('Loading conversations...', style: TextStyle(color: Colors.grey))])))
+        ? ListView.separated(
+            padding: const EdgeInsets.all(20),
+            itemCount: 8,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (_, _) => const ShimmerListTile(),
+          )
         : _activeChat == null ? _buildList(primary) : _buildChat(primary),
     );
   }

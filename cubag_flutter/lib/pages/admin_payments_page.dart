@@ -42,8 +42,9 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
 
   Future<void> _fetch({bool refresh = false, int? page}) async {
     if (!mounted) return;
-    if (page != null) _page = page;
-    else if (refresh) _page = 1;
+    if (page != null) {
+      _page = page;
+    } else if (refresh) _page = 1;
 
     setState(() { _loading = true; _hasError = false; if (refresh || page != null) _transactions = []; });
     

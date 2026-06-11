@@ -101,7 +101,11 @@ class _AdminAuditLogPageState extends State<AdminAuditLogPage> {
     );
     if (picked != null && mounted) {
       final f = '${picked.year}-${picked.month.toString().padLeft(2,'0')}-${picked.day.toString().padLeft(2,'0')}';
-      setState(() { if (isFrom) _filterDateFrom = f; else _filterDateTo = f; _offset = 0; });
+      setState(() { if (isFrom) {
+        _filterDateFrom = f;
+      } else {
+        _filterDateTo = f;
+      } _offset = 0; });
       _fetchLogs();
     }
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 const _kOrange = Color(0xFFf08232);
 
@@ -242,11 +243,12 @@ class _State extends State<AdminIntelligencePage> {
           if (a.thumbnail.isNotEmpty) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                '${ApiService.baseUrl}/news/proxy-image?url=${Uri.encodeComponent(a.thumbnail)}',
-                width: 64, height: 64,
+              child: CachedNetworkImage(
+                imageUrl: '${ApiService.baseUrl}/news/proxy-image?url=${Uri.encodeComponent(a.thumbnail)}',
+                width: 64, 
+                height: 64,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stack) => const SizedBox.shrink(),
+                errorWidget: (context, error, stack) => const SizedBox.shrink(),
               ),
             ),
             const SizedBox(width: 12),

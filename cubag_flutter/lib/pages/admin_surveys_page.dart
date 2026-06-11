@@ -8,6 +8,7 @@ import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
 import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kGreen  = Color(0xFF10b981);
@@ -146,11 +147,13 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 
   Future<void> _refreshResults(int surveyId) async {
     final data = await _api.fetchData('surveys/$surveyId/participation');
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _resultsData = data is Map ? Map<String, dynamic>.from(data) : null;
       _resultsLoading = false;
       _countdown = 15;
     });
+    }
   }
 
   void _startAutoRefresh(int surveyId) {
@@ -171,7 +174,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   // ── Image Upload ───────────────────────────────────────────────
 
   /// Upload any image to /uploads/image and return its public URL (or null).
-  Future<String?> _uploadImage({String fieldName = 'image'}) async {
+  Future<String?> _uploadImage() async {
     final result = await FilePicker.pickFiles(
       type: FileType.image, allowMultiple: false, withData: true,
     );
@@ -403,8 +406,13 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         if (coverImage != null && coverImage.isNotEmpty)
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Image.network(coverImage, width: double.infinity, height: 120, fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            child: CachedNetworkImage(
+              imageUrl: coverImage, 
+              width: double.infinity, 
+              height: 120, 
+              fit: BoxFit.cover,
+              errorWidget: (_, _, _) => const SizedBox.shrink(),
+            ),
           ),
         // Header strip
         Container(
@@ -688,8 +696,9 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
           onChanged: (v) {
             setState(() {
               _method = v;
-              if (v == 'Yes/No')           _options = [{'name': 'Yes', 'photo': null}, {'name': 'No', 'photo': null}];
-              else if (v == 'Star Rating') _options = [];
+              if (v == 'Yes/No') {
+                _options = [{'name': 'Yes', 'photo': null}, {'name': 'No', 'photo': null}];
+              } else if (v == 'Star Rating') _options = [];
               else                         _options = [{'name': '', 'photo': null}];
             });
           },
@@ -757,7 +766,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: _coverImageUrl != null ? _kGreen.withAlpha(80) : const Color(0xFFe2e8f0), width: 1.5),
           image: _coverImageUrl != null
-            ? DecorationImage(image: NetworkImage(_coverImageUrl!), fit: BoxFit.cover)
+            ? DecorationImage(image: CachedNetworkImageProvider(_coverImageUrl!), fit: BoxFit.cover)
             : null,
         ),
         child: _coverImageUrl != null

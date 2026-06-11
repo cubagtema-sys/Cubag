@@ -3,6 +3,7 @@ import '../components/app_layout.dart';
 import '../components/iframe_widget.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
+import '../components/shimmer_loader.dart';
 
 class VesselMovementsPage extends StatefulWidget {
   const VesselMovementsPage({super.key});
@@ -584,7 +585,12 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
           ],
         ] else ...[
           // Loading / List views
-          if (_loading) const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          if (_loading) ListView.separated(
+            padding: const EdgeInsets.all(20),
+            itemCount: 8,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (_, _) => const ShimmerListTile(),
+          )
           else if (filtered.isEmpty)
             Container(padding: const EdgeInsets.all(60), alignment: Alignment.center, decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)), child: Column(children: [Icon(Icons.sailing, size: 48, color: Colors.grey.shade300), const SizedBox(height: 16), const Text('No vessels in range', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 6), const Text('Waiting for live AIS data from the Gulf of Guinea...', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))]))
           else

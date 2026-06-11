@@ -26,6 +26,7 @@ logger.info(f"SECRET_KEY env = {'SET' if os.getenv('SECRET_KEY') else 'NOT SET'}
 logger.info(f"JWT_SECRET_KEY env = {'SET' if os.getenv('JWT_SECRET_KEY') else 'NOT SET'}")
 
 from config.db import get_db, init_db
+from config.cache import cache
 from routes.auth import auth_bp
 from routes.members import members_bp
 from routes.announcements import announcements_bp
@@ -103,6 +104,7 @@ CORS(
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 )
 JWTManager(app)
+cache.init_app(app)
 
 def _is_admin_api_path(path):
     return path.startswith('/api/admin') or (

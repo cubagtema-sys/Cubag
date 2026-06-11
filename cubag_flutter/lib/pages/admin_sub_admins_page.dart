@@ -660,8 +660,11 @@ class _EditPermissionsSheetState extends State<_EditPermissionsSheet> {
             tristate: true,
             onChanged: (_) {
               setState(() {
-                if (_selected.length == _kAllPermissions.length) _selected.clear();
-                else _selected.addAll(_kAllPermissions);
+                if (_selected.length == _kAllPermissions.length) {
+                  _selected.clear();
+                } else {
+                  _selected.addAll(_kAllPermissions);
+                }
               });
             },
           ),

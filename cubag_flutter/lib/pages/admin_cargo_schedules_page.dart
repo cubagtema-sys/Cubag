@@ -339,7 +339,7 @@ class _State extends State<AdminCargoSchedulesPage> {
               ])),
             ]),
           );
-        }).toList(),
+        }),
       
       // Pagination Controls
       if (_displayed.isNotEmpty) ...[
