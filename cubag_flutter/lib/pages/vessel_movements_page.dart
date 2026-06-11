@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../components/iframe_widget.dart';
 import '../services/api_service.dart';
@@ -69,7 +70,7 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _loading = true);
+    if (!_loading) setState(() => _loading = true);
     try {
       // Fetch live AIS vessels
       final res = await ApiService().get('/vessels');
@@ -93,7 +94,7 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
         if (mounted) setState(() => _registryVessels = regList);
       }
     } catch (_) {}
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
@@ -108,17 +109,28 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
   }
 
   Widget _buildDetailRow(String label, dynamic value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              color: isDark ? Colors.white60 : const Color(0xFF64748b),
+              fontSize: 12,
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               value?.toString() ?? '—',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: isDark ? Colors.white : const Color(0xFF1e293b),
+              ),
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
             ),
@@ -133,6 +145,8 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
     final primary = Theme.of(context).primaryColor;
     final socket = SocketService().socket;
     final isConnected = socket?.connected ?? false;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1f2028) : Colors.white;
 
     // Convert map to list and sort by last_update descending
     final vesselList = _vesselsMap.values.toList();
@@ -187,7 +201,7 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
         activeVessel['atd'] = activeVessel['atd'] ?? common['atd'];
         activeVessel['length'] = activeVessel['length'] ?? common['length'];
         activeVessel['width'] = activeVessel['width'] ?? common['width'];
-        
+
         // Destination/ETA from AIS might be empty string or '—', prefer registry if AIS is missing it.
         if (activeVessel['destination'] == null || activeVessel['destination'] == '—' || activeVessel['destination'].toString().isEmpty) {
           activeVessel['destination'] = common['destination'];
@@ -198,77 +212,88 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
       }
     }
 
-    return AppLayout(
-      title: 'Vessels',
-      child: Column(children: [
-        // Status bar
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isConnected ? primary.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.05),
-            border: Border.all(color: isConnected ? primary.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.15)),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(children: [
-            Icon(Icons.circle, color: isConnected ? primary : Colors.grey, size: 10),
-            const SizedBox(width: 8),
-            Text(
-              isConnected ? 'Live AIS Stream Connected' : 'Connecting to AIS...',
-              style: TextStyle(
-                color: isConnected ? primary : Colors.grey,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 0.5,
-              ),
+    // Connection Status Bar widget
+    final connectionWidget = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isConnected ? primary.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.05),
+        border: Border.all(color: isConnected ? primary.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.15), width: 1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.circle, color: isConnected ? primary : Colors.grey, size: 10),
+          const SizedBox(width: 8),
+          Text(
+            isConnected ? 'Live AIS Stream Connected' : 'Connecting to AIS...',
+            style: GoogleFonts.outfit(
+              color: isConnected ? primary : Colors.grey,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              letterSpacing: 0.5,
             ),
-            const Spacer(),
-            Text(
-              isMmsi ? '1 vessel tracked' : '${filtered.length} vessels',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 12),
-
-        // Search
-        TextField(
-          focusNode: _focusNode,
-          controller: _searchController,
-          onChanged: (v) {
-            setState(() => _search = v);
-            if ((RegExp(r'^\d{9}$').hasMatch(v) || v.length > 6) && socket != null) {
-              socket.emit('track_vessel', {'mmsi': v});
-            }
-          },
-          decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.search, color: Colors.grey),
-            hintText: 'Search by vessel name, MMSI or destination...',
-            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2)),
-            suffixIcon: _search.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      setState(() {
-                        _search = '';
-                        _searchController.text = '';
-                      });
-                    },
-                  )
-                : null,
           ),
-        ),
+          const Spacer(),
+          Text(
+            isMmsi ? '1 vessel tracked' : '${filtered.length} vessels',
+            style: GoogleFonts.inter(color: Colors.grey, fontSize: 12),
+          ),
+        ],
+      ),
+    );
 
-        // Autocomplete suggestions list
-        if (_showSuggestions && _search.length > 1 && suggestions.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Container(
+    // Search Bar TextField
+    final searchWidget = TextField(
+      focusNode: _focusNode,
+      controller: _searchController,
+      onChanged: (v) {
+        setState(() => _search = v);
+        if ((RegExp(r'^\d{9}$').hasMatch(v) || v.length > 6) && socket != null) {
+          socket.emit('track_vessel', {'mmsi': v});
+        }
+      },
+      style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0f172a)),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search_rounded, color: Colors.grey),
+        hintText: 'Search by vessel name, MMSI or destination...',
+        hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94a3b8)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        filled: true,
+        fillColor: isDark ? const Color(0xFF1f2028) : Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Theme.of(context).dividerColor, width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Theme.of(context).dividerColor, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: primary, width: 2),
+        ),
+        suffixIcon: _search.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                onPressed: () {
+                  setState(() {
+                    _search = '';
+                    _searchController.text = '';
+                  });
+                },
+              )
+            : null,
+      ),
+    );
+
+    // Suggestion box widget
+    final suggestionBox = _showSuggestions && _search.length > 1 && suggestions.isNotEmpty
+        ? Container(
+            margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Theme.of(context).dividerColor),
+              color: isDark ? const Color(0xFF1f2028) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.08),
@@ -314,19 +339,19 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
                           children: [
                             Text(
                               v['name']!,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0f172a)),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'MMSI: ${v['mmsi']}',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
                             ),
                           ],
                         ),
                         Icon(
-                          Icons.arrow_forward,
+                          Icons.arrow_forward_rounded,
                           size: 16,
-                          color: Theme.of(context).primaryColor,
+                          color: primary,
                         ),
                       ],
                     ),
@@ -334,304 +359,422 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
                 );
               },
             ),
-          ),
-        ],
-        const SizedBox(height: 16),
+          )
+        : const SizedBox.shrink();
 
-        // Live Details tracking view OR General list
-        if (isMmsi) ...[
-          // Back button
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _search = '';
-                  _searchController.text = '';
-                });
-              },
-              icon: const Icon(Icons.arrow_back, size: 16),
-              label: const Text('Back to Live List'),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).primaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+    // Voyage Card details view (live details view)
+    Widget buildVoyageDetails() {
+      if (activeVessel == null) return const SizedBox.shrink();
 
-          // Map
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Container(
-            height: 320,
-            width: double.infinity,
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Theme.of(context).dividerColor),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: IframeWidget(mmsi: _search),
-          ),
-          const SizedBox(height: 16),
-
-          // Voyage info & Timeline
-          if (activeVessel != null) ...[
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Theme.of(context).dividerColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(Icons.sailing, color: Theme.of(context).primaryColor),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                activeVessel['name']?.toString() ?? 'Detecting Vessel...',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                              Text(
-                                'MMSI: ${activeVessel['mmsi']} · IMO: ${activeVessel['imo'] ?? 'N/A'}',
-                                style: const TextStyle(color: Colors.grey, fontSize: 12),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10b981).withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  activeVessel['status']?.toString().toUpperCase() ?? 'UNDERWAY',
-                                  style: const TextStyle(color: Color(0xFF10b981), fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 12),
-
-                  // Route/Ports Info
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('DEPARTURE PORT', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text(
-                              activeVessel['departure_port']?.toString() ?? '—',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              activeVessel['atd'] != null ? 'ATD: ${activeVessel['atd']}' : '📡 Awaiting AIS...',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.trending_flat, color: Theme.of(context).primaryColor, size: 28),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text('REPORTED DESTINATION', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text(
-                              activeVessel['destination']?.toString() ?? 'Detecting via AIS...',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                              textAlign: TextAlign.end,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'ETA: ${activeVessel['eta']?.toString() ?? 'Awaiting Signal...'}',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
-                              textAlign: TextAlign.end,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Summary
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).primaryColor.withValues(alpha: 0.05),
-                    Theme.of(context).primaryColor.withValues(alpha: 0.01),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.15)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Theme.of(context).primaryColor, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Voyage Summary',
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'The cargo ship ${activeVessel['name']} is currently located in the '
-                    '${activeVessel['region'] ?? 'Ghana Coastal Waters'} (last reported '
-                    '${activeVessel['last_update'] != null ? "recently" : "moments ago"}).\n\n'
-                    '${activeVessel['name']} (IMO: ${activeVessel['imo'] ?? 'N/A'}) is a '
-                    '${activeVessel['type'] ?? 'Container Ship'} sailing under the flag of '
-                    '${activeVessel['flag'] ?? 'N/A'}. Her length overall (LOA) is '
-                    '${activeVessel['length'] ?? '—'} meters and her width is '
-                    '${activeVessel['width'] ?? '—'} meters.',
-                    style: const TextStyle(fontSize: 13, height: 1.5),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Tech Specs & Telemetry Grid
-            Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('General Specifications', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(height: 12),
-                      _buildDetailRow('Vessel Name', activeVessel['name']),
-                      _buildDetailRow('Flag', activeVessel['flag']),
-                      _buildDetailRow('IMO Number', activeVessel['imo']),
-                      _buildDetailRow('MMSI', activeVessel['mmsi']),
-                      _buildDetailRow('Call Sign', activeVessel['callsign']),
-                      _buildDetailRow('Vessel Type', activeVessel['type']),
-                      _buildDetailRow('Dimensions', '${activeVessel['length'] ?? '—'}m x ${activeVessel['width'] ?? '—'}m'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Latest AIS Telemetry', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(height: 12),
-                      _buildDetailRow('Navigational Status', activeVessel['status']),
-                      _buildDetailRow('Speed Over Ground', activeVessel['speed'] != null ? '${activeVessel['speed']} kn' : '—'),
-                      _buildDetailRow('Course Over Ground', activeVessel['course'] != null ? '${activeVessel['course']}°' : '—'),
-                      _buildDetailRow('True Heading', activeVessel['heading'] != null ? '${activeVessel['heading']}°' : '—'),
-                      _buildDetailRow('Rate of Turn', activeVessel['rot'] != null ? '${activeVessel['rot']}°/min' : '—'),
-                      _buildDetailRow('Draught', activeVessel['draught'] != null ? '${activeVessel['draught']} m' : '—'),
-                      _buildDetailRow('Position Coordinates', '${activeVessel['lat'] ?? '—'}, ${activeVessel['lng'] ?? '—'}'),
-                      _buildDetailRow('Last Update', activeVessel['last_update']),
-                    ],
-                  ),
+              color: cardBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-          ],
-        ] else ...[
-          // Loading / List views
-          if (_loading) ListView.separated(
-            padding: const EdgeInsets.all(20),
-            itemCount: 8,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (_, _) => const ShimmerListTile(),
-          )
-          else if (filtered.isEmpty)
-            Container(padding: const EdgeInsets.all(60), alignment: Alignment.center, decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)), child: Column(children: [Icon(Icons.sailing, size: 48, color: Colors.grey.shade300), const SizedBox(height: 16), const Text('No vessels in range', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 6), const Text('Waiting for live AIS data from the Gulf of Guinea...', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))]))
-          else
-            ...filtered.map((v) {
-              final doubleSpeed = double.tryParse(v['speed']?.toString() ?? '0');
-              final isUnderway = doubleSpeed != null && doubleSpeed > 0;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(14)),
-                child: Column(children: [
-                  Row(children: [
-                    Container(width: 40, height: 40, decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.directions_boat, color: primary)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(v['name']?.toString() ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      Text('MMSI: ${v['mmsi']} · ${v['type'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                    ])),
-                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(
-                        isUnderway ? '${v['speed']} kn' : 'At Anchor',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isUnderway ? const Color(0xFF10b981) : Colors.amber,
-                          fontSize: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.directions_boat_rounded, color: primary, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activeVessel['name']?.toString() ?? 'Detecting Vessel...',
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0f172a)),
+                            ),
+                            Text(
+                              'MMSI: ${activeVessel['mmsi']} · IMO: ${activeVessel['imo'] ?? 'N/A'}',
+                              style: GoogleFonts.inter(color: Colors.grey, fontSize: 12),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10b981).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                activeVessel['status']?.toString().toUpperCase() ?? 'UNDERWAY',
+                                style: GoogleFonts.outfit(color: const Color(0xFF10b981), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 12),
+
+                // Route/Ports Info
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('DEPARTURE PORT', style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          const SizedBox(height: 4),
+                          Text(
+                            activeVessel['departure_port']?.toString() ?? '—',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1e293b)),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            activeVessel['atd'] != null ? 'ATD: ${activeVessel['atd']}' : '📡 Awaiting AIS...',
+                            style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.trending_flat_rounded, color: primary, size: 28),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('REPORTED DESTINATION', style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          const SizedBox(height: 4),
+                          Text(
+                            activeVessel['destination']?.toString() ?? 'Detecting via AIS...',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1e293b)),
+                            textAlign: TextAlign.end,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'ETA: ${activeVessel['eta']?.toString() ?? 'Awaiting Signal...'}',
+                            style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
+                            textAlign: TextAlign.end,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Summary
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  primary.withValues(alpha: 0.05),
+                  primary.withValues(alpha: 0.01),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: primary.withValues(alpha: 0.15)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: primary, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Voyage Summary',
+                      style: GoogleFonts.outfit(
+                        color: primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The cargo ship ${activeVessel['name']} is currently located in the '
+                  '${activeVessel['region'] ?? 'Ghana Coastal Waters'} (last reported '
+                  '${activeVessel['last_update'] != null ? "recently" : "moments ago"}).\n\n'
+                  '${activeVessel['name']} (IMO: ${activeVessel['imo'] ?? 'N/A'}) is a '
+                  '${activeVessel['type'] ?? 'Container Ship'} sailing under the flag of '
+                  '${activeVessel['flag'] ?? 'N/A'}. Her length overall (LOA) is '
+                  '${activeVessel['length'] ?? '—'} meters and her width is '
+                  '${activeVessel['width'] ?? '—'} meters.',
+                  style: GoogleFonts.inter(fontSize: 13, height: 1.5, color: isDark ? Colors.white70 : const Color(0xFF475569)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Technical specifications grid (AIS telemetry removed as requested)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'General Specifications',
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0f172a)),
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow('Vessel Name', activeVessel['name']),
+                _buildDetailRow('Flag', activeVessel['flag']),
+                _buildDetailRow('IMO Number', activeVessel['imo']),
+                _buildDetailRow('MMSI', activeVessel['mmsi']),
+                _buildDetailRow('Call Sign', activeVessel['callsign']),
+                _buildDetailRow('Vessel Type', activeVessel['type']),
+                _buildDetailRow('Dimensions', '${activeVessel['length'] ?? '—'}m x ${activeVessel['width'] ?? '—'}m'),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return AppLayout(
+      title: 'Vessels',
+      child: RefreshIndicator(
+        onRefresh: _fetch,
+        color: primary,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+                child: Column(
+                  children: [
+                    // Status bar
+                    connectionWidget,
+                    const SizedBox(height: 16),
+
+                    // Search and Suggestions
+                    searchWidget,
+                    suggestionBox,
+                    const SizedBox(height: 16),
+
+                    // Detail View OR Main List
+                    if (isMmsi) ...[
+                      // Back to List link
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _search = '';
+                              _searchController.text = '';
+                            });
+                          },
+                          icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                          label: Text(
+                            'Back to Live List',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
                         ),
                       ),
-                      if (v['last_update'] != null) ...[
-                        _buildUpdateTime(v['last_update']),
-                      ],
-                    ]),
-                  ]),
-                  const SizedBox(height: 10),
-                  _buildVoyageInfo(context, v),
-                  const SizedBox(height: 10),
-                  _buildBottomActions(v),
-                ]),
-              );
-            }),
-        ],
-      ]),
+                      const SizedBox(height: 12),
+
+                      // Map Container
+                      Container(
+                        height: 320,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: IframeWidget(mmsi: _search),
+                      ),
+                      const SizedBox(height: 16),
+
+                      buildVoyageDetails(),
+                    ] else ...[
+                      // Shimmer loading state
+                      if (_loading)
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: 6,
+                          separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+                          itemBuilder: (ctx, i) => const ShimmerListTile(),
+                        )
+                      // Empty state view
+                      else if (filtered.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: primary.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.sailing_rounded, size: 36, color: primary),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No Vessels In Range',
+                                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0f172a)),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _search.isNotEmpty
+                                    ? 'Try modifying your search keywords.'
+                                    : 'Waiting for live AIS data from the Gulf of Guinea...',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748b)),
+                              ),
+                            ],
+                          ),
+                        )
+                      // Vessel list cards
+                      else
+                        ...filtered.map((v) {
+                          final doubleSpeed = double.tryParse(v['speed']?.toString() ?? '0');
+                          final isUnderway = doubleSpeed != null && doubleSpeed > 0;
+                          final speedColor = isUnderway ? const Color(0xFF10b981) : Colors.amber;
+                          final speedText = isUnderway ? '${v['speed']} kn' : 'At Anchor';
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(Icons.directions_boat_rounded, color: primary, size: 22),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            v['name']?.toString() ?? 'Unnamed Vessel',
+                                            style: GoogleFonts.outfit(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color: isDark ? Colors.white : const Color(0xFF0f172a),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'MMSI: ${v['mmsi']} · ${v['type'] ?? 'Cargo Ship'}',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 11,
+                                              color: isDark ? Colors.white70 : const Color(0xFF64748b),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: speedColor.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            speedText.toUpperCase(),
+                                            style: GoogleFonts.outfit(
+                                              color: speedColor,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        if (v['last_update'] != null) ...[
+                                          const SizedBox(height: 4),
+                                          _buildUpdateTime(v['last_update']),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                _buildVoyageInfo(context, v),
+                                const SizedBox(height: 12),
+                                _buildBottomActions(v),
+                              ],
+                            ),
+                          );
+                        }),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -639,46 +782,119 @@ class _VesselMovementsPageState extends State<VesselMovementsPage> {
     final localTime = DateTime.tryParse(lastUpdate.toString())?.toLocal();
     if (localTime == null) return const SizedBox.shrink();
     final timeStr = "${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}:${localTime.second.toString().padLeft(2, '0')}";
-    return Text(timeStr, style: const TextStyle(fontSize: 10, color: Colors.grey));
+    return Text(
+      timeStr,
+      style: GoogleFonts.inter(fontSize: 10, color: Colors.grey),
+    );
   }
 
   Widget _buildVoyageInfo(BuildContext context, dynamic v) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(8)),
-      child: Row(children: [
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('DESTINATION', style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
-          Text(v['destination']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-        ])),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('ETA', style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
-          Text(v['eta']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-        ])),
-      ]),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF16171d) : const Color(0xFFf8fafc),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'DESTINATION',
+                  style: GoogleFonts.outfit(
+                    fontSize: 9,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  v['destination']?.toString() ?? 'N/A',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1e293b),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ETA',
+                  style: GoogleFonts.outfit(
+                    fontSize: 9,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  v['eta']?.toString() ?? 'N/A',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1e293b),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildBottomActions(dynamic v) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(
-        'Pos: ${v['lat'] != null ? double.tryParse(v['lat'].toString())?.toStringAsFixed(4) : '0.0000'}, ${v['lng'] != null ? double.tryParse(v['lng'].toString())?.toStringAsFixed(4) : '0.0000'}',
-        style: const TextStyle(fontSize: 11, color: Colors.grey),
-      ),
-      TextButton(
-        onPressed: () {
-          setState(() {
-            _search = v['mmsi']?.toString() ?? '';
-            _searchController.text = _search;
-          });
-        },
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade400),
+            const SizedBox(width: 4),
+            Text(
+              'Pos: ${v['lat'] != null ? double.tryParse(v['lat'].toString())?.toStringAsFixed(4) : '0.0000'}, ${v['lng'] != null ? double.tryParse(v['lng'].toString())?.toStringAsFixed(4) : '0.0000'}',
+              style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
+            ),
+          ],
         ),
-        child: Text('View Details', style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
-      ),
-    ]);
+        TextButton(
+          onPressed: () {
+            setState(() {
+              _search = v['mmsi']?.toString() ?? '';
+              _searchController.text = _search;
+            });
+          },
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(
+            'View Details',
+            style: GoogleFonts.outfit(
+              color: Theme.of(context).primaryColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
