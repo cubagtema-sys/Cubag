@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../components/admin_search_delegate.dart';
 import '../components/member_search_delegate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_logo.dart';
 
 class AppLayout extends StatefulWidget {
@@ -163,6 +164,11 @@ class _AppLayoutState extends State<AppLayout> {
     final photoUrl = authService.userPhotoUrl;
     final primary = Theme.of(context).primaryColor;
     final borderColor = isDark ? Colors.white30 : const Color(0xFFe2e8f0);
+    final isThemeDark = Theme.of(context).brightness == Brightness.dark;
+    final dropdownBg = isThemeDark ? const Color(0xFF1e1f26) : Colors.white;
+    final textColor = isThemeDark ? Colors.white : const Color(0xFF0f172a);
+    final subTextColor = isThemeDark ? Colors.white70 : const Color(0xFF64748b);
+    final borderThemeColor = isThemeDark ? const Color(0xFF2d2e38) : const Color(0xFFe2e8f0);
     
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
@@ -171,20 +177,168 @@ class _AppLayoutState extends State<AppLayout> {
         decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: borderColor, width: 1.5)),
         child: CircleAvatar(
           radius: isSmall ? 14 : 16,
-          backgroundColor: const Color(0xFFf1f5f9),
+          backgroundColor: isThemeDark ? const Color(0xFF2a2b36) : const Color(0xFFf1f5f9),
           backgroundImage: (photoUrl != null && photoUrl.isNotEmpty) ? CachedNetworkImageProvider(photoUrl) : null,
-          child: (photoUrl == null || photoUrl.isEmpty) ? Icon(Icons.person_rounded, color: isDark ? Colors.black26 : const Color(0xFF94a3b8), size: isSmall ? 18 : 20) : null,
+          child: (photoUrl == null || photoUrl.isEmpty) ? Icon(Icons.person_rounded, color: isDark ? Colors.white70 : const Color(0xFF94a3b8), size: isSmall ? 18 : 20) : null,
         ),
       ),
       offset: const Offset(0, 48),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: dropdownBg,
+      surfaceTintColor: Colors.transparent,
+      elevation: 12,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: borderThemeColor, width: 1.5),
+      ),
       itemBuilder: (context) => [
-        PopupMenuItem(child: const Row(children: [Icon(Icons.person_outline, size: 20, color: Color(0xFF1e293b)), SizedBox(width: 12), Text('My Profile', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1e293b)))]), onTap: () => context.go('/profile')),
-        PopupMenuItem(child: const Row(children: [Icon(Icons.settings_outlined, size: 20, color: Color(0xFF1e293b)), SizedBox(width: 12), Text('Settings', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1e293b)))]), onTap: () => context.go(authService.userRole == 'admin' ? '/admin/settings' : '/settings')),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          child: const Row(children: [Icon(Icons.logout_rounded, size: 20, color: Color(0xFFef4444)), SizedBox(width: 12), Text('Sign Out', style: TextStyle(color: Color(0xFFef4444), fontWeight: FontWeight.bold))]),
-          onTap: () { authService.logout(); context.go('/login'); },
+        // User Details Header
+        PopupMenuItem<String>(
+          enabled: false,
+          child: Container(
+            width: 220,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: primary.withValues(alpha: 0.1),
+                  backgroundImage: (photoUrl != null && photoUrl.isNotEmpty) ? CachedNetworkImageProvider(photoUrl) : null,
+                  child: (photoUrl == null || photoUrl.isEmpty)
+                      ? Icon(Icons.person_rounded, color: primary, size: 22)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        authService.userName ?? 'Member',
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14.5,
+                          color: textColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        authService.userEmail ?? (authService.userRole ?? 'Member').toUpperCase(),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: subTextColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        PopupMenuItem<String>(
+          enabled: false,
+          height: 1,
+          child: Divider(color: borderThemeColor, height: 1),
+        ),
+        // My Profile Item
+        PopupMenuItem<String>(
+          onTap: () => context.go('/profile'),
+          child: Container(
+            width: 220,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.person_outline_rounded, size: 18, color: primary),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'My Profile',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.5,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Settings Item
+        PopupMenuItem<String>(
+          onTap: () => context.go(authService.userRole == 'admin' ? '/admin/settings' : '/settings'),
+          child: Container(
+            width: 220,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.settings_outlined, size: 18, color: primary),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Settings',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.5,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        PopupMenuItem<String>(
+          enabled: false,
+          height: 1,
+          child: Divider(color: borderThemeColor, height: 1),
+        ),
+        // Sign Out Item
+        PopupMenuItem<String>(
+          onTap: () {
+            authService.logout();
+            context.go('/login');
+          },
+          child: Container(
+            width: 220,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFef4444).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFef4444)),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Sign Out',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.5,
+                    color: const Color(0xFFef4444),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );

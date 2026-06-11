@@ -16,12 +16,16 @@ class AuthService extends ChangeNotifier {
   bool _isAuthenticated = false;
   String? _userRole;
   String? _userPhotoUrl;
+  String? _userName;
+  String? _userEmail;
   List<String> _permissions = [];
   bool _notificationsInitialized = false;
 
   bool get isAuthenticated => _isAuthenticated;
   String? get userRole => _userRole;
   String? get userPhotoUrl => _userPhotoUrl;
+  String? get userName => _userName;
+  String? get userEmail => _userEmail;
   List<String> get permissions => _permissions;
 
   bool hasPermission(String key) {
@@ -41,6 +45,8 @@ class AuthService extends ChangeNotifier {
     final token = prefs.getString('cubag_token');
     _userRole = prefs.getString('cubag_role');
     _userPhotoUrl = prefs.getString('cubag_photo');
+    _userName = prefs.getString('cubag_name');
+    _userEmail = prefs.getString('cubag_email');
     _permissions = prefs.getStringList('cubag_permissions') ?? [];
 
     if (token != null) {
@@ -101,6 +107,8 @@ class AuthService extends ChangeNotifier {
         _isAuthenticated = true;
         _userRole = role;
         _userPhotoUrl = user['profile_photo']?.toString();
+        _userName = user['name']?.toString();
+        _userEmail = user['email']?.toString();
 
         _initServices();
 
@@ -133,6 +141,8 @@ class AuthService extends ChangeNotifier {
     _isAuthenticated = false;
     _userRole = null;
     _userPhotoUrl = null;
+    _userName = null;
+    _userEmail = null;
     _permissions = [];
     _disposeServices();
     notifyListeners();
