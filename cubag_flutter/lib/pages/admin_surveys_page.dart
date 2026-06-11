@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
@@ -114,6 +115,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
           _hasMore = false;
         }
         _loading = false;
+        _hasError = false;
       });
     });
   }
@@ -173,7 +175,6 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 
   // ── Image Upload ───────────────────────────────────────────────
 
-  /// Upload any image to /uploads/image and return its public URL (or null).
   Future<String?> _uploadImage() async {
     final result = await FilePicker.pickFiles(
       type: FileType.image, allowMultiple: false, withData: true,
@@ -271,7 +272,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
+      content: Text(msg, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
       backgroundColor: isError ? _kRed : _kGreen,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -292,7 +293,15 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    if (_viewingResults != null) return AppLayout(title: 'Live Results', child: _buildResultsView());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1e293b) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0);
+    final textColor = isDark ? const Color(0xFFf8fafc) : const Color(0xFF0f172a);
+    final subTextColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF475569);
+    final inputBg = isDark ? const Color(0xFF0f172a).withValues(alpha: 0.4) : const Color(0xFFf8fafc);
+
+    if (_viewingResults != null) return AppLayout(title: 'Live Results', child: _buildResultsView(isDark, cardBg, borderColor, textColor, subTextColor));
+    
     final tabs = [
       {'id': 'active',  'label': 'Active'},
       {'id': 'history', 'label': 'History'},
@@ -305,29 +314,29 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         controller: _scrollController,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: const Color(0xFFf1f5f9), borderRadius: BorderRadius.circular(14)),
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)),
             child: Row(children: tabs.map((t) {
               final isActive = _tab == t['id'];
               return Expanded(child: GestureDetector(
                 onTap: () => _onTabChanged(t['id']!),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: isActive ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: isActive ? [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 8, offset: const Offset(0, 2))] : [],
+                    color: isActive ? _kOrange : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: isActive ? [BoxShadow(color: _kOrange.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
                   ),
                   alignment: Alignment.center,
-                  child: Text(t['label']!, style: TextStyle(color: isActive ? _kOrange : const Color(0xFF64748b), fontWeight: FontWeight.w700, fontSize: 12)),
+                  child: Text(t['label']!, style: GoogleFonts.outfit(color: isActive ? Colors.white : subTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
               ));
             }).toList()),
           ),
           const SizedBox(height: 20),
-          if (_tab == 'create')  _buildCreateForm(),
-          if (_tab != 'create')  _buildSurveyList(),
+          if (_tab == 'create')  _buildCreateForm(isDark, cardBg, borderColor, textColor, subTextColor, inputBg),
+          if (_tab != 'create')  _buildSurveyList(isDark, cardBg, borderColor, textColor, subTextColor),
         ]),
       ),
     );
@@ -335,7 +344,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 
   // ── Survey Card List ─────────────────────────────────────────
 
-  Widget _buildSurveyList() {
+  Widget _buildSurveyList(bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) {
     return LayoutBuilder(builder: (context, constraints) {
       double cardWidth = constraints.maxWidth;
       if (constraints.maxWidth > 1200) {
@@ -350,16 +359,18 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         return Wrap(
           spacing: 16,
           runSpacing: 16,
-          children: List.generate(8, (_) => SizedBox(
+          children: List.generate(8, (_) => Container(
             width: cardWidth,
             height: 240,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)),
             child: const ShimmerGridCard(),
           )),
         );
       }
 
       if (_hasError && _surveys.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
-      if (_surveys.isEmpty) return _emptyState();
+      if (_surveys.isEmpty) return _emptyState(cardBg, borderColor, subTextColor);
 
       return Column(children: [
         Wrap(
@@ -367,28 +378,28 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
           runSpacing: 16,
           children: _surveys.map((s) => SizedBox(
             width: cardWidth,
-            child: _surveyCard(s),
+            child: _surveyCard(s, isDark, cardBg, borderColor, textColor, subTextColor),
           )).toList(),
         ),
         if (_loadingMore) const Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: _kOrange)),
-        if (!_loading && _total > 0) Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Text('${_surveys.length} of $_total polls shown', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+        if (!_loading && _total > 0) Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Text('${_surveys.length} of $_total polls shown', style: GoogleFonts.outfit(fontSize: 13, color: subTextColor, fontWeight: FontWeight.w500))),
       ]);
     });
   }
 
-  Widget _emptyState() => Container(
+  Widget _emptyState(Color cardBg, Color borderColor, Color subTextColor) => Container(
     padding: const EdgeInsets.all(48),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFe2e8f0))),
+    decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)),
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(padding: const EdgeInsets.all(16), decoration: const BoxDecoration(color: Color(0xFFf1f5f9), shape: BoxShape.circle), child: const Icon(Icons.ballot_outlined, size: 40, color: Color(0xFF94a3b8))),
+      Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: subTextColor.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(Icons.ballot_outlined, size: 40, color: subTextColor)),
       const SizedBox(height: 16),
-      const Text('No polls found', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF475569))),
-      const SizedBox(height: 4),
-      const Text('Create a new poll using the "New Poll" tab.', style: TextStyle(fontSize: 13, color: Color(0xFF94a3b8))),
+      Text('No polls found', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: subTextColor)),
+      const SizedBox(height: 6),
+      Text('Create a new poll using the "New Poll" tab.', style: GoogleFonts.outfit(fontSize: 14, color: subTextColor)),
     ]),
   );
 
-  Widget _surveyCard(dynamic s) {
+  Widget _surveyCard(dynamic s, bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) {
     final type = s['type']?.toString() ?? 'Survey';
     final color = _typeColor(type);
     final icon  = _typeIcon(type);
@@ -400,12 +411,11 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
     final coverImage = s['cover_image']?.toString();
 
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFe2e8f0)), boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 10, offset: const Offset(0, 2))]),
+      decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.03), blurRadius: 10, offset: const Offset(0, 4))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Cover image if present
         if (coverImage != null && coverImage.isNotEmpty)
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
             child: CachedNetworkImage(
               imageUrl: coverImage, 
               width: double.infinity, 
@@ -414,46 +424,45 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
               errorWidget: (_, _, _) => const SizedBox.shrink(),
             ),
           ),
-        // Header strip
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           decoration: BoxDecoration(
-            color: color.withAlpha(10),
-            borderRadius: coverImage != null && coverImage.isNotEmpty ? BorderRadius.zero : const BorderRadius.vertical(top: Radius.circular(16)),
-            border: Border(bottom: BorderSide(color: color.withAlpha(30))),
+            color: color.withValues(alpha: 0.1),
+            borderRadius: coverImage != null && coverImage.isNotEmpty ? BorderRadius.zero : const BorderRadius.vertical(top: Radius.circular(15)),
+            border: Border(bottom: BorderSide(color: color.withValues(alpha: 0.2))),
           ),
           child: Row(children: [
-            Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 16, color: color)),
+            Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 16, color: color)),
             const SizedBox(width: 8),
-            Text(type.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.8)),
+            Text(type.toUpperCase(), style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.8)),
             const Spacer(),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: statusColor.withAlpha(20), borderRadius: BorderRadius.circular(20)), child: Text(statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor))),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor.withValues(alpha: 0.3))), child: Text(statusLabel, style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w800, color: statusColor))),
           ]),
         ),
         Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(s['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF0f172a))),
-            const SizedBox(height: 4),
-            if (s['description'] != null) Text(s['description'], maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Color(0xFF64748b))),
-            const SizedBox(height: 10),
+            Text(s['title'] ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+            const SizedBox(height: 6),
+            if (s['description'] != null) Text(s['description'], maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.outfit(fontSize: 13, color: subTextColor, height: 1.4)),
+            const SizedBox(height: 16),
             Row(children: [
-              const Icon(Icons.calendar_today, size: 13, color: Color(0xFF94a3b8)),
-              const SizedBox(width: 4),
-              Text(deadline != null ? 'Deadline: $deadline' : 'No deadline', style: const TextStyle(fontSize: 12, color: Color(0xFF64748b))),
+              Icon(Icons.calendar_today_rounded, size: 14, color: subTextColor),
+              const SizedBox(width: 6),
+              Text(deadline != null ? 'Deadline: $deadline' : 'No deadline', style: GoogleFonts.outfit(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Row(children: [
               Expanded(child: OutlinedButton.icon(
                 onPressed: () => _loadResults(s),
-                icon: const Icon(Icons.bar_chart, size: 15),
-                label: const Text('Live Results', style: TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(foregroundColor: color, side: BorderSide(color: color.withAlpha(80)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 10)),
+                icon: const Icon(Icons.bar_chart_rounded, size: 16),
+                label: Text('Results', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(foregroundColor: color, side: BorderSide(color: color.withValues(alpha: 0.5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 12)),
               )),
               const SizedBox(width: 8),
-              _iconBtn(icon: isActive ? Icons.pause_circle_outlined : Icons.play_circle_outlined, color: isActive ? _kAmber : _kGreen, tooltip: isActive ? 'Close Poll' : 'Reopen Poll', onTap: () => _toggleActive(s)),
-              const SizedBox(width: 6),
-              _iconBtn(icon: Icons.delete_outline, color: _kRed, tooltip: 'Delete', onTap: () => _confirmDelete(s)),
+              _iconBtn(icon: isActive ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, color: isActive ? _kAmber : _kGreen, tooltip: isActive ? 'Close Poll' : 'Reopen Poll', onTap: () => _toggleActive(s)),
+              const SizedBox(width: 8),
+              _iconBtn(icon: Icons.delete_outline_rounded, color: _kRed, tooltip: 'Delete', onTap: () => _confirmDelete(s, isDark, cardBg, borderColor, textColor, subTextColor)),
             ]),
           ]),
         ),
@@ -462,59 +471,61 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   }
 
   Widget _iconBtn({required IconData icon, required Color color, required String tooltip, required VoidCallback onTap}) =>
-    Tooltip(message: tooltip, child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(10), child: Container(padding: const EdgeInsets.all(9), decoration: BoxDecoration(color: color.withAlpha(15), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withAlpha(40))), child: Icon(icon, size: 18, color: color))));
+    Tooltip(message: tooltip, child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.3))), child: Icon(icon, size: 20, color: color))));
 
-  void _confirmDelete(dynamic s) {
+  void _confirmDelete(dynamic s, bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) {
     showDialog(context: context, builder: (ctx) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Delete Poll', style: TextStyle(fontWeight: FontWeight.w800)),
-      content: Text('Are you sure you want to permanently delete "${s['title']}"? All responses will also be deleted.'),
+      backgroundColor: cardBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: borderColor)),
+      title: Text('Delete Poll', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor)),
+      content: Text('Are you sure you want to permanently delete "${s['title']}"? All responses will also be deleted.', style: GoogleFonts.outfit(color: subTextColor)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-        ElevatedButton(onPressed: () { Navigator.pop(ctx); _delete(s['id']); }, style: ElevatedButton.styleFrom(backgroundColor: _kRed, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0), child: const Text('Delete')),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.outfit(color: subTextColor, fontWeight: FontWeight.bold))),
+        ElevatedButton(onPressed: () { Navigator.pop(ctx); _delete(s['id']); }, style: ElevatedButton.styleFrom(backgroundColor: _kRed, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0), child: Text('Delete', style: GoogleFonts.outfit(fontWeight: FontWeight.bold))),
       ],
     ));
   }
 
   // ── Live Results View ────────────────────────────────────────
 
-  Widget _buildResultsView() {
+  Widget _buildResultsView(bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) {
     final s = _viewingResults;
     final type = s['type']?.toString() ?? 'Survey';
     final color = _typeColor(type);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        InkWell(onTap: _closeResults, borderRadius: BorderRadius.circular(10), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: const Color(0xFFf1f5f9), borderRadius: BorderRadius.circular(10)), child: const Row(children: [Icon(Icons.arrow_back, size: 16, color: Color(0xFF475569)), SizedBox(width: 6), Text('Back', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF475569)))]))),
-        const SizedBox(width: 12),
+        InkWell(onTap: _closeResults, borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), decoration: BoxDecoration(color: subTextColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Row(children: [Icon(Icons.arrow_back_rounded, size: 18, color: textColor), const SizedBox(width: 8), Text('Back', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor))]))),
+        const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(s['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF0f172a)), maxLines: 1, overflow: TextOverflow.ellipsis),
-          Text('$type • Deadline: ${s['deadline'] ?? 'None'}', style: const TextStyle(color: Color(0xFF64748b), fontSize: 12)),
+          Text(s['title'] ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20, color: textColor), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text('$type • Deadline: ${s['deadline'] ?? 'None'}', style: GoogleFonts.outfit(color: subTextColor, fontSize: 13, fontWeight: FontWeight.w500)),
         ])),
       ]),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(color: color.withAlpha(10), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withAlpha(30))),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.3))),
         child: Row(children: [
-          _resultsLoading ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: color, strokeWidth: 2)) : Icon(Icons.sync, size: 14, color: color),
-          const SizedBox(width: 8),
-          Text(_resultsLoading ? 'Refreshing...' : 'Auto-refresh in ${_countdown}s', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+          _resultsLoading ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: color, strokeWidth: 2)) : Icon(Icons.sync_rounded, size: 16, color: color),
+          const SizedBox(width: 10),
+          Text(_resultsLoading ? 'Refreshing...' : 'Auto-refresh in ${_countdown}s', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
           const Spacer(),
-          GestureDetector(onTap: () { setState(() => _resultsLoading = true); _refreshResults(s['id']); }, child: Text('Refresh Now', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color, decoration: TextDecoration.underline))),
+          GestureDetector(onTap: () { setState(() => _resultsLoading = true); _refreshResults(s['id']); }, child: Text('Refresh Now', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: color, decoration: TextDecoration.underline))),
         ]),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       if (_resultsLoading && _resultsData == null)
         const Center(child: Padding(padding: EdgeInsets.all(48), child: CircularProgressIndicator(color: _kOrange)))
       else if (_resultsData == null)
-        const Center(child: Text('Could not load results.', style: TextStyle(color: Colors.grey)))
+        Center(child: Text('Could not load results.', style: GoogleFonts.outfit(color: subTextColor)))
       else
-        _buildResultsContent(color),
+        _buildResultsContent(color, isDark, cardBg, borderColor, textColor, subTextColor),
     ]);
   }
 
-  Widget _buildResultsContent(Color color) {
+  Widget _buildResultsContent(Color color, bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) {
     final responded    = _resultsData!['responded']     as List? ?? [];
     final notResponded = _resultsData!['not_responded'] as List? ?? [];
     final total        = _resultsData!['total']         as int? ?? 0;
@@ -524,132 +535,134 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        _kpiCard('Total Members', '$total', Icons.group, _kBlue),
-        const SizedBox(width: 10),
-        _kpiCard('Responded', '${responded.length}', Icons.check_circle_outline, _kGreen),
-        const SizedBox(width: 10),
-        _kpiCard('Pending', '${notResponded.length}', Icons.hourglass_empty, _kAmber),
+        _kpiCard('Total Members', '$total', Icons.groups_rounded, _kBlue, cardBg, borderColor, isDark),
+        const SizedBox(width: 12),
+        _kpiCard('Responded', '${responded.length}', Icons.check_circle_rounded, _kGreen, cardBg, borderColor, isDark),
+        const SizedBox(width: 12),
+        _kpiCard('Pending', '${notResponded.length}', Icons.hourglass_empty_rounded, _kAmber, cardBg, borderColor, isDark),
       ]),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFe2e8f0))),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10)]),
           child: Column(children: [
             SizedBox(
-              width: 110, height: 110,
+              width: 120, height: 120,
               child: CustomPaint(
-                painter: _RingPainter(rate / 100, color),
+                painter: _RingPainter(rate / 100, color, borderColor),
                 child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text('${rate.toStringAsFixed(0)}%', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
-                  const Text('responded', style: TextStyle(fontSize: 9, color: Color(0xFF94a3b8), fontWeight: FontWeight.w600)),
+                  Text('${rate.toStringAsFixed(0)}%', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.w900, color: color)),
+                  Text('responded', style: GoogleFonts.outfit(fontSize: 10, color: subTextColor, fontWeight: FontWeight.bold)),
                 ])),
               ),
             ),
-            const SizedBox(height: 12),
-            const Text('Participation Rate', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+            const SizedBox(height: 16),
+            Text('Participation Rate', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
           ]),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFe2e8f0))),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10)]),
           child: tallies.isNotEmpty
-            ? _buildTallyBars(tallies, responded.length, color)
+            ? _buildTallyBars(tallies, responded.length, color, textColor, subTextColor, isDark)
             : avgStars > 0
-              ? _buildStarResult(avgStars)
-              : const Center(child: Padding(padding: EdgeInsets.all(20), child: Column(children: [Icon(Icons.pending_actions, size: 32, color: Color(0xFFcbd5e1)), SizedBox(height: 8), Text('No votes recorded yet', style: TextStyle(color: Color(0xFF94a3b8), fontSize: 13))]))),
+              ? _buildStarResult(avgStars, textColor, subTextColor)
+              : Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(children: [Icon(Icons.pending_actions_rounded, size: 40, color: subTextColor.withValues(alpha: 0.3)), const SizedBox(height: 12), Text('No votes recorded yet', style: GoogleFonts.outfit(color: subTextColor, fontSize: 14, fontWeight: FontWeight.w500))]))),
         )),
       ]),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: _memberList('✅ Responded', responded, _kGreen)),
-        const SizedBox(width: 12),
-        Expanded(child: _memberList('⏳ Pending', notResponded, _kAmber)),
+        Expanded(child: _memberList('✅ Responded', responded, _kGreen, cardBg, borderColor, textColor, subTextColor)),
+        const SizedBox(width: 16),
+        Expanded(child: _memberList('⏳ Pending', notResponded, _kAmber, cardBg, borderColor, textColor, subTextColor)),
       ]),
     ]);
   }
 
-  Widget _buildTallyBars(Map tallies, int total, Color color) {
+  Widget _buildTallyBars(Map tallies, int total, Color color, Color textColor, Color subTextColor, bool isDark) {
     final maxVotes = tallies.values.fold<int>(0, (m, v) => math.max(m, (v as num).toInt()));
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Voting Results', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-      const SizedBox(height: 12),
+      Text('Voting Results', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+      const SizedBox(height: 16),
       ...tallies.entries.map((e) {
         final votes  = (e.value as num).toInt();
         final pct    = total > 0 ? (votes / total).clamp(0.0, 1.0) : 0.0;
         final barPct = maxVotes > 0 ? (votes / maxVotes).clamp(0.0, 1.0) : 0.0;
         final isLeader = votes == maxVotes && votes > 0;
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              if (isLeader) const Icon(Icons.emoji_events, size: 14, color: _kAmber),
-              if (isLeader) const SizedBox(width: 4),
-              Expanded(child: Text(e.key, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: isLeader ? color : const Color(0xFF0f172a)))),
-              Text('$votes votes', style: const TextStyle(fontSize: 11, color: Color(0xFF64748b))),
-              const SizedBox(width: 8),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(20)), child: Text('${(pct * 100).toStringAsFixed(1)}%', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color))),
+              if (isLeader) const Icon(Icons.emoji_events_rounded, size: 16, color: _kAmber),
+              if (isLeader) const SizedBox(width: 6),
+              Expanded(child: Text(e.key, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: isLeader ? color : textColor))),
+              Text('$votes votes', style: GoogleFonts.outfit(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)),
+              const SizedBox(width: 10),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withValues(alpha: 0.3))), child: Text('${(pct * 100).toStringAsFixed(1)}%', style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, color: color))),
             ]),
-            const SizedBox(height: 5),
-            ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: barPct.toDouble(), color: isLeader ? color : color.withAlpha(140), backgroundColor: const Color(0xFFf1f5f9), minHeight: 8)),
+            const SizedBox(height: 8),
+            ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(value: barPct.toDouble(), color: isLeader ? color : color.withValues(alpha: 0.4), backgroundColor: subTextColor.withValues(alpha: 0.1), minHeight: 10)),
           ]),
         );
       }),
     ]);
   }
 
-  Widget _buildStarResult(double avg) => Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    const Text('Average Rating', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-    const SizedBox(height: 12),
-    Text(avg.toStringAsFixed(1), style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: _kAmber)),
+  Widget _buildStarResult(double avg, Color textColor, Color subTextColor) => Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+    Text('Average Rating', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+    const SizedBox(height: 16),
+    Text(avg.toStringAsFixed(1), style: GoogleFonts.outfit(fontSize: 56, fontWeight: FontWeight.w900, color: _kAmber)),
     Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(5, (i) {
       final filled = i < avg; final half = !filled && i < avg.ceil() && avg % 1 >= 0.5;
-      return Icon(filled ? Icons.star_rounded : half ? Icons.star_half_rounded : Icons.star_outline_rounded, color: _kAmber, size: 24);
+      return Icon(filled ? Icons.star_rounded : half ? Icons.star_half_rounded : Icons.star_outline_rounded, color: _kAmber, size: 32);
     })),
-    const SizedBox(height: 4),
-    const Text('out of 5.0', style: TextStyle(fontSize: 12, color: Color(0xFF94a3b8))),
+    const SizedBox(height: 8),
+    Text('out of 5.0', style: GoogleFonts.outfit(fontSize: 14, color: subTextColor, fontWeight: FontWeight.w500)),
   ]);
 
-  Widget _kpiCard(String label, String value, IconData icon, Color color) => Expanded(child: Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: color.withAlpha(12), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withAlpha(40))),
+  Widget _kpiCard(String label, String value, IconData icon, Color color, Color cardBg, Color borderColor, bool isDark) => Expanded(child: Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10)]),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, color: color, size: 20),
-      const SizedBox(height: 8),
-      Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
-      const SizedBox(height: 2),
-      Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF94a3b8), letterSpacing: 0.5)),
+      Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 24)),
+      const SizedBox(height: 12),
+      Text(value, style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.w900, color: color)),
+      const SizedBox(height: 4),
+      Text(label.toUpperCase(), style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w800, color: color.withValues(alpha: 0.8), letterSpacing: 0.5)),
     ]),
   ));
 
-  Widget _memberList(String title, List members, Color color) => Container(
-    constraints: const BoxConstraints(maxHeight: 220),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFe2e8f0))),
+  Widget _memberList(String title, List members, Color color, Color cardBg, Color borderColor, Color textColor, Color subTextColor) => Container(
+    constraints: const BoxConstraints(maxHeight: 240),
+    decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)]),
     child: Column(children: [
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(color: color.withAlpha(10), borderRadius: const BorderRadius.vertical(top: Radius.circular(14)), border: Border(bottom: BorderSide(color: color.withAlpha(30)))),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: const BorderRadius.vertical(top: Radius.circular(16)), border: Border(bottom: BorderSide(color: color.withValues(alpha: 0.2)))),
         child: Row(children: [
-          Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: color)),
+          Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
           const Spacer(),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)), child: Text('${members.length}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800))),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)), child: Text('${members.length}', style: GoogleFonts.outfit(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
         ]),
       ),
       Flexible(child: members.isEmpty
-        ? const Padding(padding: EdgeInsets.all(20), child: Text('None', style: TextStyle(color: Color(0xFF94a3b8), fontSize: 12)))
-        : ListView.builder(
+        ? Padding(padding: const EdgeInsets.all(32), child: Text('None', style: GoogleFonts.outfit(color: subTextColor, fontSize: 14)))
+        : ListView.separated(
             padding: EdgeInsets.zero,
             itemCount: members.length,
+            separatorBuilder: (ctx, i) => Divider(height: 1, color: borderColor.withValues(alpha: 0.5)),
             itemBuilder: (_, i) {
               final m = members[i];
               final vote = m['vote']?.toString();
               return ListTile(
                 dense: true,
-                leading: CircleAvatar(radius: 14, backgroundColor: color.withAlpha(20), child: Text((m['name']?.toString() ?? '?').substring(0, 1), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color))),
-                title: Text(m['name']?.toString() ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                subtitle: Text(m['company']?.toString() ?? m['email']?.toString() ?? '', style: const TextStyle(fontSize: 10, color: Color(0xFF94a3b8))),
-                trailing: vote != null ? Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(20)), child: Text(vote, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: color))) : null,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: CircleAvatar(radius: 16, backgroundColor: color.withValues(alpha: 0.15), child: Text((m['name']?.toString() ?? '?').substring(0, 1), style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w800, color: color))),
+                title: Text(m['name']?.toString() ?? '', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: textColor)),
+                subtitle: Text(m['company']?.toString() ?? m['email']?.toString() ?? '', style: GoogleFonts.outfit(fontSize: 11, color: subTextColor)),
+                trailing: vote != null ? Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withValues(alpha: 0.3))), child: Text(vote, style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w800, color: color))) : null,
               );
             },
           )),
@@ -658,23 +671,23 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 
   // ── Create Form ──────────────────────────────────────────────
 
-  Widget _buildCreateForm() => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFe2e8f0)), boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 10)]),
+  Widget _buildCreateForm(bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor, Color inputBg) => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: _kOrange.withAlpha(20), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.add_chart, color: _kOrange, size: 20)),
-        const SizedBox(width: 10),
-        const Text('Create New Poll / Election', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: _kOrange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.add_chart_rounded, color: _kOrange, size: 22)),
+        const SizedBox(width: 12),
+        Text('Create New Poll / Election', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
       ]),
-      const SizedBox(height: 20),
+      const SizedBox(height: 24),
 
       // ── Cover / Banner Image ──────────────────────────────
-      _labeledWidget('Cover Image (optional)', _buildCoverImagePicker()),
-      const SizedBox(height: 14),
+      _labeledWidget('Cover Image (optional)', _buildCoverImagePicker(borderColor, subTextColor), subTextColor),
+      const SizedBox(height: 20),
 
-      _field('Poll Title *', _titleCtrl, hint: 'e.g. 2026 Board of Directors Election'),
-      const SizedBox(height: 14),
+      _field('Poll Title *', _titleCtrl, hint: 'e.g. 2026 Board of Directors Election', textColor: textColor, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg),
+      const SizedBox(height: 16),
       Row(children: [
         Expanded(child: _labeledWidget('Poll Type', CustomDropdown<String>(
           value: _type,
@@ -684,8 +697,8 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
             DropdownItem(value: 'Poll',     label: 'Quick Poll'),
           ],
           onChanged: (v) => setState(() => _type = v),
-        ))),
-        const SizedBox(width: 12),
+        ), subTextColor)),
+        const SizedBox(width: 16),
         Expanded(child: _labeledWidget('Response Method', CustomDropdown<String>(
           value: _method,
           items: const [
@@ -702,11 +715,11 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
               else                         _options = [{'name': '', 'photo': null}];
             });
           },
-        ))),
+        ), subTextColor)),
       ]),
-      const SizedBox(height: 14),
-      _field('Description *', _descCtrl, hint: 'Provide instructions or context for voters...', maxLines: 3),
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
+      _field('Description *', _descCtrl, hint: 'Provide instructions or context for voters...', maxLines: 3, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg),
+      const SizedBox(height: 16),
       _labeledWidget('Deadline *', GestureDetector(
         onTap: () async {
           final picked = await showDatePicker(context: context, initialDate: DateTime.now().add(const Duration(days: 1)), firstDate: DateTime.now(), lastDate: DateTime(2099));
@@ -714,86 +727,84 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(border: Border.all(color: const Color(0xFFe2e8f0), width: 1.5), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: inputBg, border: Border.all(color: borderColor, width: 1.5), borderRadius: BorderRadius.circular(12)),
           child: Row(children: [
-            const Icon(Icons.calendar_today, size: 16, color: Color(0xFF94a3b8)),
-            const SizedBox(width: 8),
-            Text(_deadline.isEmpty ? 'Pick a deadline date' : _deadline, style: TextStyle(color: _deadline.isEmpty ? const Color(0xFF94a3b8) : const Color(0xFF0f172a), fontSize: 13)),
+            Icon(Icons.calendar_today_rounded, size: 18, color: subTextColor),
+            const SizedBox(width: 10),
+            Text(_deadline.isEmpty ? 'Pick a deadline date' : _deadline, style: GoogleFonts.outfit(color: _deadline.isEmpty ? subTextColor : textColor, fontSize: 14)),
           ]),
         ),
-      )),
+      ), subTextColor),
 
       if (_method == 'Multiple Choice') ...[
-        const SizedBox(height: 14),
+        const SizedBox(height: 24),
         Row(children: [
-          const Text('Options / Candidates *', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+          Text('Options / Candidates *', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
           const Spacer(),
-          TextButton.icon(icon: const Icon(Icons.add, size: 16), label: const Text('Add', style: TextStyle(fontSize: 12)), onPressed: () => setState(() => _options.add({'name': '', 'photo': null}))),
+          TextButton.icon(icon: const Icon(Icons.add_rounded, size: 18), label: Text('Add Option', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold)), onPressed: () => setState(() => _options.add({'name': '', 'photo': null}))),
         ]),
-        const SizedBox(height: 8),
-        ..._options.asMap().entries.map((e) => _buildOptionRow(e.key, e.value)),
+        const SizedBox(height: 12),
+        ..._options.asMap().entries.map((e) => _buildOptionRow(e.key, e.value, textColor, subTextColor, borderColor, inputBg)),
       ],
 
       if (_method == 'Yes/No') ...[
-        const SizedBox(height: 14),
-        Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: _kBlue.withAlpha(10), borderRadius: BorderRadius.circular(12), border: Border.all(color: _kBlue.withAlpha(30))), child: const Row(children: [Icon(Icons.info_outline, size: 16, color: _kBlue), SizedBox(width: 8), Expanded(child: Text('Members will vote with a "Yes" or "No" button.', style: TextStyle(fontSize: 12, color: _kBlue, fontWeight: FontWeight.w600)))])),
+        const SizedBox(height: 20),
+        Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: _kBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: _kBlue.withValues(alpha: 0.3))), child: Row(children: [const Icon(Icons.info_outline_rounded, size: 20, color: _kBlue), const SizedBox(width: 12), Expanded(child: Text('Members will vote with a "Yes" or "No" button.', style: GoogleFonts.outfit(fontSize: 13, color: _kBlue, fontWeight: FontWeight.bold)))])),
       ],
       if (_method == 'Star Rating') ...[
-        const SizedBox(height: 14),
-        Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: _kAmber.withAlpha(10), borderRadius: BorderRadius.circular(12), border: Border.all(color: _kAmber.withAlpha(30))), child: const Row(children: [Icon(Icons.star, size: 16, color: _kAmber), SizedBox(width: 8), Expanded(child: Text('Members will submit a rating from 1 to 5 stars.', style: TextStyle(fontSize: 12, color: _kAmber, fontWeight: FontWeight.w600)))])),
+        const SizedBox(height: 20),
+        Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: _kAmber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: _kAmber.withValues(alpha: 0.3))), child: Row(children: [const Icon(Icons.star_rounded, size: 20, color: _kAmber), const SizedBox(width: 12), Expanded(child: Text('Members will submit a rating from 1 to 5 stars.', style: GoogleFonts.outfit(fontSize: 13, color: _kAmber, fontWeight: FontWeight.bold)))])),
       ],
 
-      const SizedBox(height: 20),
+      const SizedBox(height: 32),
       SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(
         onPressed: _submitting ? null : _create,
-        icon: _submitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.publish_rounded, size: 18),
-        label: Text(_submitting ? 'Publishing...' : 'Publish Poll', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+        icon: _submitting ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.publish_rounded, size: 20),
+        label: Text(_submitting ? 'Publishing...' : 'Publish Poll', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+        style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
       )),
     ]),
   );
 
   // ── Cover Image Picker Widget ─────────────────────────────────
 
-  Widget _buildCoverImagePicker() {
+  Widget _buildCoverImagePicker(Color borderColor, Color subTextColor) {
     return GestureDetector(
       onTap: _uploadingCover ? null : _pickCoverImage,
       child: Container(
         width: double.infinity,
-        height: 130,
+        height: 140,
         decoration: BoxDecoration(
-          color: const Color(0xFFf8fafc),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _coverImageUrl != null ? _kGreen.withAlpha(80) : const Color(0xFFe2e8f0), width: 1.5),
+          color: subTextColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _coverImageUrl != null ? _kGreen.withValues(alpha: 0.5) : borderColor, width: 2),
           image: _coverImageUrl != null
             ? DecorationImage(image: CachedNetworkImageProvider(_coverImageUrl!), fit: BoxFit.cover)
             : null,
         ),
         child: _coverImageUrl != null
           ? Stack(children: [
-              // Semi-transparent overlay
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.black.withAlpha(40),
+                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.black.withValues(alpha: 0.5),
                 ),
               ),
               Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.edit, color: Colors.white, size: 22),
-                const SizedBox(height: 4),
-                const Text('Tap to change', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                const Icon(Icons.edit_rounded, color: Colors.white, size: 28),
+                const SizedBox(height: 8),
+                Text('Tap to change', style: GoogleFonts.outfit(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
               ])),
-              // Green tick
-              Positioned(top: 8, right: 8, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: _kGreen, shape: BoxShape.circle), child: const Icon(Icons.check, color: Colors.white, size: 12))),
+              Positioned(top: 12, right: 12, child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: _kGreen, shape: BoxShape.circle), child: const Icon(Icons.check_rounded, color: Colors.white, size: 16))),
             ])
           : _uploadingCover
-            ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(color: _kOrange, strokeWidth: 2), SizedBox(height: 8), Text('Uploading...', style: TextStyle(color: Color(0xFF64748b), fontSize: 12))]))
+            ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(color: _kOrange, strokeWidth: 2), SizedBox(height: 12), Text('Uploading...', style: TextStyle(color: _kOrange, fontSize: 13, fontWeight: FontWeight.bold))]))
             : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: _kOrange.withAlpha(15), shape: BoxShape.circle), child: const Icon(Icons.add_photo_alternate_outlined, color: _kOrange, size: 28)),
-                const SizedBox(height: 8),
-                const Text('Upload Cover Image', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF475569))),
-                const SizedBox(height: 2),
-                const Text('PNG, JPG, WEBP — up to 10 MB', style: TextStyle(fontSize: 11, color: Color(0xFF94a3b8))),
+                Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: _kOrange.withValues(alpha: 0.1), shape: BoxShape.circle), child: const Icon(Icons.add_photo_alternate_rounded, color: _kOrange, size: 32)),
+                const SizedBox(height: 12),
+                Text('Upload Cover Image', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: subTextColor)),
+                const SizedBox(height: 4),
+                Text('PNG, JPG, WEBP — up to 10 MB', style: GoogleFonts.outfit(fontSize: 12, color: subTextColor)),
               ]),
       ),
     );
@@ -801,71 +812,73 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 
   // ── Option Row with Photo Upload ─────────────────────────────
 
-  Widget _buildOptionRow(int idx, Map<String, String?> opt) {
+  Widget _buildOptionRow(int idx, Map<String, String?> opt, Color textColor, Color subTextColor, Color borderColor, Color inputBg) {
     final photoUrl = opt['photo'];
     final isUploading = _uploadingOptionIdx.contains(idx);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        // Number badge
-        Container(width: 28, height: 28, alignment: Alignment.center, decoration: BoxDecoration(color: _kOrange.withAlpha(20), shape: BoxShape.circle), child: Text('${idx + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _kOrange))),
-        const SizedBox(width: 8),
+        Container(width: 32, height: 32, alignment: Alignment.center, decoration: BoxDecoration(color: _kOrange.withValues(alpha: 0.1), shape: BoxShape.circle), child: Text('${idx + 1}', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w900, color: _kOrange))),
+        const SizedBox(width: 12),
 
-        // Photo avatar (tap to upload)
         GestureDetector(
           onTap: isUploading ? null : () => _pickOptionPhoto(idx),
           child: Stack(children: [
             Container(
-              width: 44, height: 44,
+              width: 52, height: 52,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: photoUrl != null ? null : const Color(0xFFf1f5f9),
-                border: Border.all(color: photoUrl != null ? _kGreen.withAlpha(80) : const Color(0xFFe2e8f0), width: 1.5),
+                color: photoUrl != null ? null : inputBg,
+                border: Border.all(color: photoUrl != null ? _kGreen.withValues(alpha: 0.5) : borderColor, width: 2),
                 image: photoUrl != null
                   ? DecorationImage(image: NetworkImage(photoUrl), fit: BoxFit.cover)
                   : null,
               ),
               child: isUploading
-                ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2, color: _kOrange))
+                ? const Padding(padding: EdgeInsets.all(14), child: CircularProgressIndicator(strokeWidth: 2, color: _kOrange))
                 : photoUrl == null
-                  ? const Icon(Icons.add_a_photo_outlined, color: Color(0xFF94a3b8), size: 20)
+                  ? Icon(Icons.add_a_photo_rounded, color: subTextColor, size: 22)
                   : null,
             ),
             if (photoUrl != null && !isUploading)
-              Positioned(bottom: 0, right: 0, child: Container(width: 16, height: 16, decoration: const BoxDecoration(color: _kOrange, shape: BoxShape.circle), child: const Icon(Icons.edit, color: Colors.white, size: 9))),
+              Positioned(bottom: 0, right: 0, child: Container(width: 20, height: 20, decoration: const BoxDecoration(color: _kOrange, shape: BoxShape.circle), child: const Icon(Icons.edit_rounded, color: Colors.white, size: 11))),
           ]),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
 
-        // Name text field
         Expanded(child: TextFormField(
           initialValue: opt['name'],
-          decoration: _deco(hint: idx == 0 && _type == 'Election' ? 'Candidate name...' : 'Option label...'),
+          style: GoogleFonts.outfit(color: textColor, fontSize: 14),
+          decoration: _deco(hint: idx == 0 && _type == 'Election' ? 'Candidate name...' : 'Option label...', subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg),
           onChanged: (v) => setState(() => _options[idx] = {..._options[idx], 'name': v}),
         )),
 
-        // Remove btn
         if (_options.length > 1)
-          IconButton(icon: const Icon(Icons.delete_outline, color: _kRed, size: 18), onPressed: () => setState(() => _options.removeAt(idx))),
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: IconButton(icon: const Icon(Icons.delete_outline_rounded, color: _kRed, size: 22), onPressed: () => setState(() => _options.removeAt(idx))),
+          ),
       ]),
     );
   }
 
-  Widget _labeledWidget(String label, Widget child) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF374151))), const SizedBox(height: 6), child,
+  Widget _labeledWidget(String label, Widget child, Color subTextColor) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: subTextColor)), const SizedBox(height: 8), child,
   ]);
 
-  Widget _field(String label, TextEditingController ctrl, {String? hint, int maxLines = 1}) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF374151))), const SizedBox(height: 6),
-    TextField(controller: ctrl, maxLines: maxLines, decoration: _deco(hint: hint)),
+  Widget _field(String label, TextEditingController ctrl, {String? hint, int maxLines = 1, required Color textColor, required Color subTextColor, required Color borderColor, required Color inputBg}) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: subTextColor)), const SizedBox(height: 8),
+    TextField(controller: ctrl, maxLines: maxLines, style: GoogleFonts.outfit(color: textColor, fontSize: 14), decoration: _deco(hint: hint, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg)),
   ]);
 
-  InputDecoration _deco({String? hint}) => InputDecoration(
+  InputDecoration _deco({String? hint, required Color subTextColor, required Color borderColor, required Color inputBg}) => InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94a3b8)),
+    hintStyle: GoogleFonts.outfit(fontSize: 14, color: subTextColor),
+    filled: true,
+    fillColor: inputBg,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFe2e8f0), width: 1.5)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor, width: 1.5)),
     focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
   );
 }
@@ -875,22 +888,23 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 class _RingPainter extends CustomPainter {
   final double progress;
   final Color color;
-  const _RingPainter(this.progress, this.color);
+  final Color borderColor;
+  const _RingPainter(this.progress, this.color, this.borderColor);
 
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
-    final radius = math.min(cx, cy) - 10;
-    const strokeW = 12.0;
+    final radius = math.min(cx, cy) - 12;
+    const strokeW = 14.0;
 
     canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: radius), -math.pi / 2, 2 * math.pi, false,
-      Paint()..color = const Color(0xFFe2e8f0)..style = PaintingStyle.stroke..strokeWidth = strokeW..strokeCap = StrokeCap.round);
+      Paint()..color = borderColor..style = PaintingStyle.stroke..strokeWidth = strokeW..strokeCap = StrokeCap.round);
 
     if (progress > 0) {
       canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: radius), -math.pi / 2, 2 * math.pi * progress.clamp(0, 1), false,
         Paint()
-          ..shader = SweepGradient(colors: [color.withAlpha(180), color], startAngle: -math.pi / 2, endAngle: 2 * math.pi - math.pi / 2)
+          ..shader = SweepGradient(colors: [color.withValues(alpha: 0.5), color], startAngle: -math.pi / 2, endAngle: 2 * math.pi - math.pi / 2)
               .createShader(Rect.fromCircle(center: Offset(cx, cy), radius: radius))
           ..style = PaintingStyle.stroke..strokeWidth = strokeW..strokeCap = StrokeCap.round);
     }
