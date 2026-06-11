@@ -6,7 +6,7 @@ services:
     region: frankfurt
     plan: free
     buildCommand: "cd cubag-backend && pip install -r requirements.txt"
-    startCommand: "cd cubag-backend && gunicorn -w 3 --threads 2 -b 0.0.0.0:$PORT server:app"
+    startCommand: "gunicorn --chdir cubag-backend -w 3 --threads 2 -b 0.0.0.0:$PORT server:app"
     envVars:
       - key: FLASK_ENV
         value: "production"
