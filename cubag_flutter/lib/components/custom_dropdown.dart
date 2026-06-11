@@ -65,6 +65,8 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
   OverlayEntry _buildOverlay() {
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return OverlayEntry(
       builder: (ctx) => Stack(
@@ -82,14 +84,17 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
             child: Material(
               elevation: 8,
               borderRadius: BorderRadius.circular(12),
-              shadowColor: Colors.black.withAlpha(40),
+              shadowColor: isDark ? Colors.black.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.08),
               child: Container(
                 width: widget.width ?? size.width,
                 constraints: const BoxConstraints(maxHeight: 240),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1e293b) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFe2e8f0)),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0),
+                    width: 1.5,
+                  ),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -102,13 +107,13 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
                         onTap: () => _select(item.value),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          color: selected ? _kOrange.withAlpha(15) : Colors.transparent,
+                          color: selected ? _kOrange.withValues(alpha: isDark ? 0.2 : 0.08) : Colors.transparent,
                           child: Row(children: [
                             if (item.leading != null) ...[item.leading!, const SizedBox(width: 10)],
                             Expanded(child: Text(item.label, style: TextStyle(
                               fontSize: 13,
                               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                              color: selected ? _kOrange : const Color(0xFF0f172a),
+                              color: selected ? _kOrange : (isDark ? const Color(0xFFcbd5e1) : const Color(0xFF0f172a)),
                             ))),
                             if (selected) const Icon(Icons.check, size: 14, color: _kOrange),
                           ]),
@@ -133,6 +138,9 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     final currentLabel = widget.items.firstWhere(
       (item) => item.value == widget.value,
       orElse: () => DropdownItem<T>(value: widget.value, label: widget.hint ?? ''),
@@ -148,10 +156,10 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
             height: widget.dense ? 40 : 54,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1e293b) : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _open ? _kOrange : Colors.grey.shade300,
+                color: _open ? _kOrange : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                 width: _open ? 2.0 : 1.5,
               ),
             ),
@@ -165,7 +173,9 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
                   currentLabel.isEmpty ? (widget.hint ?? '') : currentLabel,
                   style: TextStyle(
                     fontSize: 13,
-                    color: currentLabel.isEmpty ? Colors.grey : const Color(0xFF0f172a),
+                    color: currentLabel.isEmpty 
+                        ? (isDark ? const Color(0xFF64748b) : Colors.grey) 
+                        : (isDark ? const Color(0xFFcbd5e1) : const Color(0xFF0f172a)),
                     fontWeight: FontWeight.w500,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -174,7 +184,11 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>> {
               AnimatedRotation(
                 turns: _open ? 0.5 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF64748b)),
+                child: Icon(
+                  Icons.keyboard_arrow_down, 
+                  size: 18, 
+                  color: isDark ? const Color(0xFF94a3b8) : const Color(0xFF64748b),
+                ),
               ),
             ]),
           ),
