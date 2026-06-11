@@ -252,7 +252,8 @@ class _PaymentsPageState extends State<PaymentsPage>
     return AppLayout(
       title: 'Payment',
       scrollable: false,
-      child: Center(
+      child: Align(
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: Padding(
