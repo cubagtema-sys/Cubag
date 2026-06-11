@@ -191,12 +191,12 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildThreeColumnLayout() => Row(children: [
         Expanded(flex: 35, child: _buildBrandPanel()),
         Expanded(flex: 35, child: _buildInfoPanel()),
-        Expanded(flex: 30, child: _buildFormPanel(padding: 40)),
+        Expanded(flex: 30, child: _buildFormPanel(padding: 40, showLogo: false)),
       ]);
 
   Widget _buildTwoColumnLayout() => Row(children: [
         Expanded(flex: 45, child: _buildBrandPanel()),
-        Expanded(flex: 55, child: _buildFormPanel(padding: 50)),
+        Expanded(flex: 55, child: _buildFormPanel(padding: 50, showLogo: false)),
       ]);
 
   Widget _buildMobileLayout() => SafeArea(
@@ -205,7 +205,7 @@ class _LoginPageState extends State<LoginPage> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: _buildForm(),
+              child: _buildForm(showLogo: true),
             ),
           ),
         ),
@@ -381,27 +381,29 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-  Widget _buildFormPanel({double padding = 60}) => Container(
+  Widget _buildFormPanel({double padding = 60, required bool showLogo}) => Container(
         color: Colors.white,
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.all(padding),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: _buildForm(),
+              child: _buildForm(showLogo: showLogo),
             ),
           ),
         ),
       );
 
-  Widget _buildForm() {
+  Widget _buildForm({required bool showLogo}) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const AppLogo(size: 60, borderRadius: 14, showShadow: true),
-            const SizedBox(height: 24),
+            if (showLogo) ...[
+              const AppLogo(size: 60, borderRadius: 14, showShadow: true),
+              const SizedBox(height: 24),
+            ],
             const Text('Welcome Back', textAlign: TextAlign.center, style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFF0f172a), letterSpacing: -0.5)),
             const SizedBox(height: 8),
             Text('Sign in to the CUBAG Member Portal', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600, fontSize: 15, height: 1.4)),
