@@ -216,7 +216,7 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF0f172a), Color(0xFF1e293b)],
+            colors: [Color(0xFFf08232), Color(0xFFea580c)],
           ),
         ),
         child: Stack(
@@ -227,7 +227,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Icon(
                 Icons.directions_boat,
                 size: 300,
-                color: Colors.white.withAlpha(8),
+                color: Colors.white.withAlpha(15),
               ),
             ),
             Padding(
@@ -252,7 +252,7 @@ class _LoginPageState extends State<LoginPage> {
                     width: 60,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: _kOrange,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -260,7 +260,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     'Customs Brokers Association of Ghana',
                     style: GoogleFonts.outfit(
-                      color: Colors.white70,
+                      color: Colors.white.withAlpha(220),
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
                       height: 1.4,
@@ -270,7 +270,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     'The official mobile gateway for licensed customs clearing and logistics firms in Ghana.',
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: Colors.white.withAlpha(180),
                       fontSize: 14,
                       height: 1.6,
                     ),
