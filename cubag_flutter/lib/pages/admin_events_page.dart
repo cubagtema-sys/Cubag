@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
@@ -84,7 +85,7 @@ class _State extends State<AdminEventsPage> {
       final d = data as Map<String, dynamic>;
       setState(() { 
         _loading = false;
-          _hasError = false;
+        _hasError = false;
         _events = ApiService.ensureList(d); 
         if (d.containsKey('total')) {
           _total = d['total'];
@@ -158,6 +159,13 @@ class _State extends State<AdminEventsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1e293b) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0);
+    final textColor = isDark ? const Color(0xFFf8fafc) : const Color(0xFF0f172a);
+    final subTextColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF475569);
+    final inputBg = isDark ? const Color(0xFF0f172a).withValues(alpha: 0.4) : const Color(0xFFf8fafc);
+
     final tabs = [
       {'id': 'upcoming', 'label': 'Upcoming'},
       {'id': 'history',  'label': 'History'},
@@ -172,47 +180,51 @@ class _State extends State<AdminEventsPage> {
             controller: _scrollController,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)),
                 child: Row(children: tabs.map((t) {
                   final active = _tab == t['id'];
                   return Expanded(child: GestureDetector(
                     onTap: () => _onTabChanged(t['id']!),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: active ? _kOrange : Colors.transparent, 
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: active ? [BoxShadow(color: _kOrange.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
+                      ),
                       alignment: Alignment.center,
-                      child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
+                      child: Text(t['label']!, style: GoogleFonts.outfit(color: active ? Colors.white : subTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
                   ));
                 }).toList()),
               ),
               const SizedBox(height: 16),
-              if (_tab == 'create')   _buildCreateForm(),
-              if (_tab != 'create')   _buildEventList(isPast: _tab == 'history'),
+              if (_tab == 'create')   _buildCreateForm(cardBg, borderColor, textColor, subTextColor, inputBg, isDark),
+              if (_tab != 'create')   _buildEventList(isPast: _tab == 'history', cardBg: cardBg, borderColor: borderColor, textColor: textColor, subTextColor: subTextColor, isDark: isDark),
             ]),
           ),
-          if (_editingEvent != null) _buildEditModal(),
+          if (_editingEvent != null) _buildEditModal(cardBg, borderColor, textColor, subTextColor, inputBg, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildCreateForm() => Container(
+  Widget _buildCreateForm(Color cardBg, Color borderColor, Color textColor, Color subTextColor, Color inputBg, bool isDark) => Container(
     constraints: const BoxConstraints(maxWidth: 600),
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10)]),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('New Event', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+      Text('New Event', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
+      const SizedBox(height: 20),
+      _field('Event Title', _titleCtrl, hint: 'e.g. Annual Meeting', textColor: textColor, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg),
       const SizedBox(height: 16),
-      _field('Event Title', _titleCtrl, hint: 'e.g. Annual Meeting'),
-      const SizedBox(height: 14),
-      _field('Venue', _locationCtrl, hint: 'e.g. Tema Secretariat'),
-      const SizedBox(height: 14),
+      _field('Venue', _locationCtrl, hint: 'e.g. Tema Secretariat', textColor: textColor, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg),
+      const SizedBox(height: 16),
       Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)), const SizedBox(height: 6),
+          Text('Date', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12, color: subTextColor)), const SizedBox(height: 6),
           GestureDetector(
             onTap: () async {
               final picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime(2099));
@@ -221,16 +233,17 @@ class _State extends State<AdminEventsPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                color: inputBg,
+                border: Border.all(color: borderColor),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                  Icon(Icons.calendar_today_rounded, size: 18, color: subTextColor),
                   const SizedBox(width: 8),
                   Text(
                     _date.isEmpty ? 'Pick date' : _date,
-                    style: TextStyle(color: _date.isEmpty ? Colors.grey.shade600 : Colors.black, fontSize: 13),
+                    style: GoogleFonts.outfit(color: _date.isEmpty ? subTextColor : textColor, fontSize: 14),
                   ),
                 ],
               ),
@@ -239,7 +252,7 @@ class _State extends State<AdminEventsPage> {
         ])),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Time', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)), const SizedBox(height: 6),
+          Text('Time', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12, color: subTextColor)), const SizedBox(height: 6),
           GestureDetector(
             onTap: () async {
               final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
@@ -248,16 +261,17 @@ class _State extends State<AdminEventsPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                color: inputBg,
+                border: Border.all(color: borderColor),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                  Icon(Icons.access_time_rounded, size: 18, color: subTextColor),
                   const SizedBox(width: 8),
                   Text(
                     _time.isEmpty ? 'Pick time' : _time,
-                    style: TextStyle(color: _time.isEmpty ? Colors.grey.shade600 : Colors.black, fontSize: 13),
+                    style: GoogleFonts.outfit(color: _time.isEmpty ? subTextColor : textColor, fontSize: 14),
                   ),
                 ],
               ),
@@ -265,61 +279,67 @@ class _State extends State<AdminEventsPage> {
           ),
         ])),
       ]),
-      const SizedBox(height: 14),
-      _field('Description', _descCtrl, hint: 'Details...', maxLines: 3),
       const SizedBox(height: 16),
-      SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
+      _field('Description', _descCtrl, hint: 'Details...', maxLines: 3, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg),
+      const SizedBox(height: 24),
+      SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(
         onPressed: _submitting ? null : _createEvent,
+        icon: _submitting ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.send_rounded, size: 18),
+        label: Text(_submitting ? 'Publishing...' : 'Publish Event', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
         style: ElevatedButton.styleFrom(
           backgroundColor: _kOrange,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 0,
         ),
-        child: Text(_submitting ? 'Publishing...' : 'Publish Event', style: const TextStyle(fontWeight: FontWeight.bold)),
       )),
     ]),
   );
 
-  Widget _buildEventList({required bool isPast}) {
+  Widget _buildEventList({required bool isPast, required Color cardBg, required Color borderColor, required Color textColor, required Color subTextColor, required bool isDark}) {
     if (_loading) {
       return ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: 8,
         separatorBuilder: (ctx, i) => const SizedBox(height: 12),
-        itemBuilder: (ctx, i) => const ShimmerListTile(),
+        itemBuilder: (ctx, i) => Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)),
+          child: const ShimmerListTile(),
+        ),
       );
     }
     if (_hasError && _events.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
-    if (_events.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No events found.', style: TextStyle(color: Colors.grey))));
+    if (_events.isEmpty) return Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)), child: Center(child: Text('No events found.', style: GoogleFonts.outfit(color: subTextColor, fontWeight: FontWeight.bold))));
     
     return Column(children: [
       ..._events.map((ev) {
         final dateStr = ev['date']?.toString().split('T')[0] ?? '';
         DateTime? dateObj; try { dateObj = DateTime.parse(dateStr); } catch (_) {}
         return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6)]),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 8, offset: const Offset(0, 3))]),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
-              width: 44, height: 44, decoration: BoxDecoration(color: (isPast ? Colors.grey : _kOrange).withAlpha(20), borderRadius: BorderRadius.circular(12)),
+              width: 52, height: 52, 
+              decoration: BoxDecoration(color: (isPast ? subTextColor : _kOrange).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text(dateObj != null ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dateObj.month-1] : '', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: isPast ? Colors.grey : _kOrange)),
-                Text(dateObj?.day.toString() ?? '', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: isPast ? Colors.grey : _kOrange, height: 1)),
+                Text(dateObj != null ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dateObj.month-1] : '', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w800, color: isPast ? subTextColor : _kOrange)),
+                Text(dateObj?.day.toString() ?? '', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900, color: isPast ? subTextColor : _kOrange, height: 1)),
               ]),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(ev['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15), overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 4),
+              Text(ev['title'] ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: textColor), overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 6),
               Row(children: [
-                const Icon(Icons.access_time, size: 14, color: Colors.grey), const SizedBox(width: 4), Text(ev['time'] ?? 'TBD', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                const SizedBox(width: 10),
-                const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey), const SizedBox(width: 4), Expanded(child: Text(ev['location'] ?? '', style: const TextStyle(fontSize: 12, color: Colors.grey), overflow: TextOverflow.ellipsis)),
+                Icon(Icons.access_time_rounded, size: 14, color: subTextColor), const SizedBox(width: 4), Text(ev['time'] ?? 'TBD', style: GoogleFonts.outfit(fontSize: 13, color: subTextColor, fontWeight: FontWeight.w500)),
+                const SizedBox(width: 12),
+                Icon(Icons.location_on_outlined, size: 14, color: subTextColor), const SizedBox(width: 4), Expanded(child: Text(ev['location'] ?? '', style: GoogleFonts.outfit(fontSize: 13, color: subTextColor, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
               ]),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               Row(children: [
                 if (!isPast) ...[
                   Expanded(
@@ -329,8 +349,8 @@ class _State extends State<AdminEventsPage> {
                           onScan: (memberId) => _handleCheckIn(ev['id'], memberId),
                         )));
                       },
-                      icon: const Icon(Icons.qr_code_scanner, size: 14),
-                      label: const Text('Check-in', style: TextStyle(fontSize: 12)),
+                      icon: const Icon(Icons.qr_code_scanner_rounded, size: 16),
+                      label: Text('Check-in', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF10b981),
                         foregroundColor: Colors.white,
@@ -346,11 +366,11 @@ class _State extends State<AdminEventsPage> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _viewAttendees(ev['id'], ev['title'] ?? ''),
-                    icon: const Icon(Icons.people_alt_outlined, size: 14),
-                    label: const Text('Attendees', style: TextStyle(fontSize: 12)),
+                    icon: const Icon(Icons.people_alt_outlined, size: 16),
+                    label: Text('Attendees', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold)),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.blue.shade700,
-                      side: BorderSide(color: Colors.blue.shade700),
+                      foregroundColor: Colors.blue.shade600,
+                      side: BorderSide(color: Colors.blue.shade600.withValues(alpha: 0.5)),
                       padding: EdgeInsets.zero,
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -361,31 +381,33 @@ class _State extends State<AdminEventsPage> {
               const SizedBox(height: 8),
               Row(children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: OutlinedButton.icon(
                     onPressed: () => _openEdit(ev),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: Text('Edit', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _kOrange,
-                      side: const BorderSide(color: _kOrange),
+                      side: BorderSide(color: _kOrange.withValues(alpha: 0.5)),
                       padding: EdgeInsets.zero,
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Edit Event', style: TextStyle(fontSize: 12)),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     onPressed: () => _deleteEvent(ev['id']),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                    label: Text('Delete', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _kRed,
-                      foregroundColor: Colors.white,
+                      backgroundColor: _kRed.withValues(alpha: 0.1),
+                      foregroundColor: _kRed,
                       elevation: 0,
                       padding: EdgeInsets.zero,
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Delete Event', style: TextStyle(fontSize: 12)),
                   ),
                 ),
               ]),
@@ -393,8 +415,8 @@ class _State extends State<AdminEventsPage> {
           ]),
         );
       }),
-      if (_loadingMore) const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
-      if (!_loading) Center(child: Padding(padding: const EdgeInsets.only(bottom: 20), child: Text('${_events.length} events shown${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+      if (_loadingMore) Center(child: Padding(padding: const EdgeInsets.all(16), child: CircularProgressIndicator(color: _kOrange))),
+      if (!_loading) Center(child: Padding(padding: const EdgeInsets.only(bottom: 24, top: 8), child: Text('${_events.length} events shown${_total > 0 ? " of $_total" : ""}', style: GoogleFonts.outfit(fontSize: 13, color: subTextColor, fontWeight: FontWeight.w500)))),
     ]);
   }
 
@@ -413,12 +435,12 @@ class _State extends State<AdminEventsPage> {
         } else {
           if (res.statusCode == 200 || res.statusCode == 201) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(res.data['message'] ?? 'Member checked in successfully!'),
+              content: Text(res.data['message'] ?? 'Member checked in successfully!', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
               backgroundColor: const Color(0xFF10b981),
             ));
           } else {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(res.data['message'] ?? 'Failed to check in member'),
+              content: Text(res.data['message'] ?? 'Failed to check in member', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
               backgroundColor: _kRed,
             ));
           }
@@ -426,10 +448,8 @@ class _State extends State<AdminEventsPage> {
       }
     } catch (e) {
       if (mounted) {
-        // Dio throws exceptions for non-2xx status codes
         if (e.toString().contains('DioException') || e.runtimeType.toString() == 'DioException') {
           try {
-            // Try to extract the response if it's a DioException
             final dynamic dioErr = e;
             if (dioErr.response != null && dioErr.response.data != null) {
               final resData = dioErr.response.data;
@@ -439,7 +459,7 @@ class _State extends State<AdminEventsPage> {
                 return;
               } else if (resData is Map && resData['message'] != null) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(resData['message']),
+                  content: Text(resData['message'], style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
                   backgroundColor: _kRed,
                 ));
                 setState(() => _loading = false);
@@ -450,7 +470,7 @@ class _State extends State<AdminEventsPage> {
         }
         
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed to check in: $e'),
+          content: Text('Failed to check in: $e', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
           backgroundColor: _kRed,
         ));
       }
@@ -470,57 +490,60 @@ class _State extends State<AdminEventsPage> {
           }
         });
 
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final cardBg = isDark ? const Color(0xFF1e293b) : Colors.white;
+        final textColor = isDark ? const Color(0xFFf8fafc) : const Color(0xFF0f172a);
+        final subTextColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF475569);
+
         return AlertDialog(
+          backgroundColor: cardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          contentPadding: const EdgeInsets.all(24),
+          contentPadding: const EdgeInsets.all(32),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Photo
               CircleAvatar(
                 radius: 50,
-                backgroundColor: Colors.grey.shade200,
+                backgroundColor: subTextColor.withValues(alpha: 0.1),
                 backgroundImage: member['profile_photo'] != null && member['profile_photo'].toString().isNotEmpty
                     ? NetworkImage(member['profile_photo'])
                     : null,
                 child: member['profile_photo'] == null || member['profile_photo'].toString().isEmpty
-                    ? Text((member['name'] ?? '?')[0].toUpperCase(), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.grey))
+                    ? Text((member['name'] ?? '?')[0].toUpperCase(), style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: subTextColor))
                     : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               
-              // Name & Company
-              Text(member['name'] ?? 'Unknown Member', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+              Text(member['name'] ?? 'Unknown Member', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: textColor), textAlign: TextAlign.center),
               const SizedBox(height: 4),
-              Text(member['company'] ?? 'No Company', style: const TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
+              Text(member['company'] ?? 'No Company', style: GoogleFonts.outfit(fontSize: 15, color: subTextColor), textAlign: TextAlign.center),
               if (member['license_number'] != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(member['license_number'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _kOrange)),
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(member['license_number'], style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: _kOrange)),
                 ),
               
-              const SizedBox(height: 24),
+              const SizedBox(height: 30),
               
-              // Status Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
-                  color: isSuccess ? const Color(0xFF10b981).withAlpha(20) : _kRed.withAlpha(20),
-                  borderRadius: BorderRadius.circular(12),
+                  color: isSuccess ? const Color(0xFF10b981).withValues(alpha: 0.1) : _kRed.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: isSuccess ? const Color(0xFF10b981) : _kRed, width: 2),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(isSuccess ? Icons.check_circle : Icons.cancel, color: isSuccess ? const Color(0xFF10b981) : _kRed),
-                    const SizedBox(width: 8),
+                    Icon(isSuccess ? Icons.check_circle_rounded : Icons.cancel_rounded, color: isSuccess ? const Color(0xFF10b981) : _kRed),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         isSuccess ? 'ACCESS GRANTED' : (message ?? 'ACCESS DENIED'),
-                        style: TextStyle(
+                        style: GoogleFonts.outfit(
                           color: isSuccess ? const Color(0xFF10b981) : _kRed,
                           fontWeight: FontWeight.bold,
-                          fontSize: isSuccess ? 16 : 13,
+                          fontSize: isSuccess ? 16 : 14,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -537,43 +560,48 @@ class _State extends State<AdminEventsPage> {
     });
   }
 
-  Widget _buildEditModal() => Positioned.fill(
+  Widget _buildEditModal(Color cardBg, Color borderColor, Color textColor, Color subTextColor, Color inputBg, bool isDark) => Positioned.fill(
     child: Container(
-      color: Colors.black54,
+      color: Colors.black.withValues(alpha: 0.6),
       child: Center(child: Container(
         margin: const EdgeInsets.all(20), padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        constraints: const BoxConstraints(maxWidth: 500),
+        decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [const Text('Edit Event', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)), const Spacer(), IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _editingEvent = null))]),
-          const SizedBox(height: 16),
-          _field('Title', _eTitleCtrl), const SizedBox(height: 12),
-          _field('Venue', _eLocationCtrl), const SizedBox(height: 12),
-          _field('Description', _eDescCtrl, maxLines: 3), const SizedBox(height: 16),
-          SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
+          Row(children: [Text('Edit Event', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)), const Spacer(), IconButton(icon: Icon(Icons.close_rounded, color: subTextColor), onPressed: () => setState(() => _editingEvent = null))]),
+          const SizedBox(height: 20),
+          _field('Title', _eTitleCtrl, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg), const SizedBox(height: 16),
+          _field('Venue', _eLocationCtrl, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg), const SizedBox(height: 16),
+          _field('Description', _eDescCtrl, maxLines: 3, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor, inputBg: inputBg), const SizedBox(height: 24),
+          SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(
             onPressed: _submitting ? null : _saveEdit,
+            icon: _submitting ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.save_rounded, size: 18),
+            label: Text(_submitting ? 'Saving...' : 'Save Changes', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
             style: ElevatedButton.styleFrom(
               backgroundColor: _kOrange,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               elevation: 0,
             ),
-            child: Text(_submitting ? 'Saving...' : 'Save Changes', style: const TextStyle(fontWeight: FontWeight.bold)),
           )),
         ]),
       )),
     ),
   );
 
-  Widget _field(String label, TextEditingController ctrl, {String? hint, int maxLines = 1}) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)), const SizedBox(height: 6),
+  Widget _field(String label, TextEditingController ctrl, {String? hint, int maxLines = 1, required Color textColor, required Color subTextColor, required Color borderColor, required Color inputBg}) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12, color: subTextColor)), const SizedBox(height: 6),
     TextField(
       controller: ctrl,
       maxLines: maxLines,
+      style: GoogleFonts.outfit(fontSize: 14, color: textColor),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+        hintStyle: GoogleFonts.outfit(fontSize: 13, color: subTextColor),
+        filled: true,
+        fillColor: inputBg,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kOrange, width: 2)),
       ),
     ),
