@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
+
+const _kOrange = Color(0xFFf08232);
 
 class PaymentsPage extends StatefulWidget {
   const PaymentsPage({super.key});
@@ -28,14 +31,12 @@ class _PaymentsPageState extends State<PaymentsPage>
   List<dynamic> _fees = [];
   Map<String, dynamic> _paySettings = {};
   bool _loadingData = true;
-  // Polling state
   int _pollAttempt = 0;
   final int _pollMax = 60; // 60 × 5s = 5 minutes
   bool _manualChecking = false;
   int? _currentPaymentId;
   String _currentTxRef = '';
 
-  // Repeating pulse animation for MoMo waiting screen
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
 
@@ -126,10 +127,7 @@ class _PaymentsPageState extends State<PaymentsPage>
     while (!isComplete && _pollAttempt < _pollMax && mounted) {
       await Future.delayed(const Duration(seconds: 5));
       if (!mounted) return;
-      if (_currentPaymentId != paymentId) {
-        // Active payment changed or cancelled, abort polling
-        return;
-      }
+      if (_currentPaymentId != paymentId) return;
 
       try {
         final res = await api.post('/payments/verify-code', data: {
@@ -138,7 +136,7 @@ class _PaymentsPageState extends State<PaymentsPage>
           'whitsun_ref': txRef,
         });
 
-        if (_currentPaymentId != paymentId) return; // double check
+        if (_currentPaymentId != paymentId) return;
 
         if (res.statusCode == 200) {
           final status = res.data['status']?.toString().toLowerCase() ?? '';
@@ -149,25 +147,16 @@ class _PaymentsPageState extends State<PaymentsPage>
             isComplete = true;
             if (mounted) setState(() { _errorMsg = res.data['message'] ?? 'Payment was declined or cancelled.'; _showError = true; _step = 1; });
           }
-          // 'pending' or anything else → keep polling
         }
       } catch (e) {
-        // continue polling
+        // continue
       }
 
-      if (_currentPaymentId != paymentId) return; // double check before state update
+      if (_currentPaymentId != paymentId) return;
       if (mounted) setState(() => _pollAttempt++);
-    }
-
-    // Timed out
-    if (!isComplete && _currentPaymentId == paymentId && mounted) {
-      setState(() {
-        // Stop auto-polling, but keep user on step 4 so they can click the check button manually
-      });
     }
   }
 
-  /// Manual one-shot check — triggered by "I've Approved" button
   Future<void> _manualStatusCheck() async {
     if (_currentTxRef.isEmpty || _manualChecking) return;
     setState(() => _manualChecking = true);
@@ -199,7 +188,7 @@ class _PaymentsPageState extends State<PaymentsPage>
               right: 24,
             ),
             dismissDirection: DismissDirection.up,
-            backgroundColor: Theme.of(context).primaryColor,
+            backgroundColor: _kOrange,
             duration: const Duration(seconds: 4),
           ),
         );
@@ -229,142 +218,330 @@ class _PaymentsPageState extends State<PaymentsPage>
     if (mounted) setState(() => _manualChecking = false);
   }
 
+  Widget _overlay({required Widget child}) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withAlpha(160),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(40),
+                  blurRadius: 40,
+                  offset: const Offset(0, 10),
+                )
+              ],
+            ),
+            child: SingleChildScrollView(child: child),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).primaryColor;
     final bank = (_paySettings['bankAccounts'] as List?)?.firstOrNull ?? {};
 
     return AppLayout(
       title: 'Payment',
-      child: Stack(children: [
-        Column(children: [
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Column(children: [
-              // Step Indicator
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Theme.of(context).cardColor.withValues(alpha: 0.5), borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
-                child: Row(
-                  children: List.generate(4, (i) {
-                    final n = i + 1;
-                    final labels = ['Type', 'Method', 'Review', 'Verify'];
-                    final active = _step >= n;
-                    final current = _step == n;
-                    
-                    return Expanded(
-                      child: Column(
+      scrollable: false,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      Card(
+                        color: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+                        ),
+                        child: Column(
+                          children: [
+                            // Stepper indicator
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFf8fafc),
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                border: Border(bottom: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(80), width: 1.5)),
+                              ),
+                              child: Row(
+                                children: List.generate(4, (i) {
+                                  final n = i + 1;
+                                  final labels = ['Type', 'Method', 'Review', 'Verify'];
+                                  final isCompleted = _step > n;
+                                  final isActive = _step == n;
+                                  
+                                  return Expanded(
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Divider(
+                                                thickness: 2.5,
+                                                color: i == 0
+                                                    ? Colors.transparent
+                                                    : (_step >= i + 1 ? _kOrange : const Color(0xFFe2e8f0)),
+                                              ),
+                                            ),
+                                            AnimatedContainer(
+                                              duration: const Duration(milliseconds: 200),
+                                              width: 28,
+                                              height: 28,
+                                              decoration: BoxDecoration(
+                                                color: isCompleted
+                                                    ? const Color(0xFF10b981)
+                                                    : (isActive ? _kOrange : Colors.white),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: isCompleted
+                                                      ? const Color(0xFF10b981)
+                                                      : (isActive ? _kOrange : const Color(0xFFcbd5e1)),
+                                                  width: 2,
+                                                ),
+                                                boxShadow: isActive
+                                                    ? [BoxShadow(color: _kOrange.withAlpha(50), blurRadius: 6, offset: const Offset(0, 2))]
+                                                    : null,
+                                              ),
+                                              child: Center(
+                                                child: isCompleted
+                                                    ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                                                    : Text(
+                                                        '$n',
+                                                        style: GoogleFonts.outfit(
+                                                          color: isActive ? Colors.white : const Color(0xFF64748b),
+                                                          fontWeight: FontWeight.w800,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Divider(
+                                                thickness: 2.5,
+                                                color: i == 3
+                                                    ? Colors.transparent
+                                                    : (_step > n ? _kOrange : const Color(0xFFe2e8f0)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          labels[i],
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 10,
+                                            color: isActive ? _kOrange : const Color(0xFF64748b),
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ),
+                            
+                            // Step Form content
+                            Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: _buildStepContent(_kOrange, bank),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(child: Divider(thickness: 2, color: i == 0 ? Colors.transparent : (_step >= i ? primary : Colors.grey.shade200))),
-                              Container(
-                                width: 26,
-                                height: 26,
-                                decoration: BoxDecoration(
-                                  color: active ? primary : Colors.grey.shade200,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: _step > n 
-                                    ? const Icon(Icons.check, color: Colors.white, size: 14)
-                                    : Text('$n', style: TextStyle(color: active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: 11)),
-                                ),
-                              ),
-                              Expanded(child: Divider(thickness: 2, color: i == 3 ? Colors.transparent : (_step > n ? primary : Colors.grey.shade200))),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              labels[i], 
-                              style: TextStyle(
-                                fontSize: 10, 
-                                color: current ? primary : Colors.grey, 
-                                fontWeight: FontWeight.bold,
-                              ),
+                          const Icon(Icons.verified_user_outlined, size: 14, color: Color(0xFF94a3b8)),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Secured by WhitsunPay PCI-DSS Compliance',
+                            style: GoogleFonts.outfit(
+                              fontSize: 11,
+                              color: const Color(0xFF64748b),
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }),
+                    ],
+                  ),
                 ),
-              ),
-
-              Padding(padding: const EdgeInsets.all(24), child: _buildStepContent(primary, bank)),
-            ]),
+                
+                // Success Modal Overlay
+                if (_showSuccess)
+                  _overlay(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(colors: [Color(0xFF10b981), Color(0xFF059669)]),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.check_rounded, color: Colors.white, size: 32),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Payment Confirmed!',
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0f172a),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Your transaction has been successfully processed.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Color(0xFF64748b), fontSize: 13, height: 1.4),
+                        ),
+                        if (_confirmedAmount.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFf0fdf4),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFbbf7d0)),
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'AMOUNT PAID',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 10,
+                                    color: const Color(0xFF16a34a),
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'GH₵ ${double.tryParse(_confirmedAmount)?.toStringAsFixed(2) ?? _confirmedAmount}',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF15803d),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10b981),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () {
+                              setState(() => _showSuccess = false);
+                              context.go('/payment-history');
+                            },
+                            child: Text(
+                              'View Payment History',
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => setState(() => _showSuccess = false),
+                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748b)),
+                          child: Text(
+                            'Close',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                
+                // Error Modal Overlay
+                if (_showError)
+                  _overlay(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(colors: [Color(0xFFef4444), Color(0xFFdc2626)]),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded, color: Colors.white, size: 32),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Transaction Failed',
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0f172a),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _errorMsg,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Color(0xFF64748b), fontSize: 13, height: 1.4),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0f172a),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () => setState(() => _showError = false),
+                            child: Text(
+                              'Try Again',
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.verified_user, size: 14, color: Colors.grey),
-            const SizedBox(width: 6),
-            const Flexible(child: Text('Secured by WhitsunPay PCI-DSS Compliance', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600))),
-          ]),
-        ]),
-
-        // Success Overlay
-        if (_showSuccess) _overlay(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 70, height: 70, decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF10b981), Color(0xFF059669)]), shape: BoxShape.circle), child: const Icon(Icons.check, color: Colors.white, size: 36)),
-            const SizedBox(height: 16),
-            const Text('Payment Confirmed!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('Your transaction has been successfully processed.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12)),
-            if (_confirmedAmount.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: const Color(0x1410b981), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0x3310b981))),
-                child: Column(children: [
-                  const Text('AMOUNT PAID', style: TextStyle(fontSize: 10, color: Color(0xFF10b981), fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  const SizedBox(height: 4),
-                  Text('GH₵ ${double.tryParse(_confirmedAmount)?.toStringAsFixed(2) ?? _confirmedAmount}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
-                ]),
-              ),
-            ],
-            const SizedBox(height: 16),
-            SizedBox(width: double.infinity, child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10b981), padding: const EdgeInsets.symmetric(vertical: 12)),
-              onPressed: () { setState(() => _showSuccess = false); context.go('/payment-history'); },
-              child: const Text('View Payment History', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )),
-            TextButton(onPressed: () => setState(() => _showSuccess = false), child: const Text('Close')),
-          ]),
         ),
-
-        // Error Overlay
-        if (_showError) _overlay(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 90, height: 90, decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFFef4444), Color(0xFFdc2626)]), shape: BoxShape.circle), child: const Icon(Icons.close, color: Colors.white, size: 48)),
-            const SizedBox(height: 24),
-            const Text('Transaction Failed', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(_errorMsg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
-            const SizedBox(height: 24),
-            SizedBox(width: double.infinity, child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, padding: const EdgeInsets.symmetric(vertical: 16)),
-              onPressed: () => setState(() => _showError = false),
-              child: const Text('Try Again', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )),
-          ]),
-        ),
-      ]),
+      ),
     );
-  }
-
-  Widget _overlay({required Widget child}) {
-    return Positioned.fill(child: Container(
-      color: Colors.black.withValues(alpha: 0.75),
-      child: Center(child: Container(
-        margin: const EdgeInsets.all(24),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 60)]),
-        child: SingleChildScrollView(child: child),
-      )),
-    ));
   }
 
   Widget _buildStepContent(Color primary, dynamic bank) {
@@ -372,276 +549,503 @@ class _PaymentsPageState extends State<PaymentsPage>
       if (_loadingData) {
         return const Center(
           child: Padding(
-            padding: EdgeInsets.all(24.0),
-            child: CircularProgressIndicator(),
+            padding: EdgeInsets.all(40.0),
+            child: CircularProgressIndicator(color: _kOrange),
           ),
         );
       }
-      return Column(children: [
-        CustomDropdown<String>(
-          value: _reason,
-          hint: 'Select Payment Category',
-          items: [
-            ..._fees.map((f) => DropdownItem<String>(value: f['label'].toString(), label: f['label'].toString())),
-            const DropdownItem<String>(value: 'Other', label: 'Other / Miscellaneous'),
-          ],
-          onChanged: (v) {
-            setState(() {
-              _reason = v;
-              if (v == 'Other') {
-                _amountCtrl.clear();
-              } else {
-                final fee = _fees.firstWhere((f) => f['label'] == v, orElse: () => null);
-                _amountCtrl.text = fee != null ? fee['amount'].toString() : '';
-              }
-            });
-          },
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _amountCtrl,
-          onChanged: (v) => setState(() {}), // Trigger rebuild to enable button
-          keyboardType: TextInputType.number,
-          readOnly: _reason.isNotEmpty && _reason != 'Other',
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          decoration: InputDecoration(
-            labelText: 'Amount to Pay',
-            prefixText: '₵ ',
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PAYMENT CATEGORY',
+            style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF64748b), fontWeight: FontWeight.w800, letterSpacing: 0.5),
           ),
-        ),
-        const SizedBox(height: 24),
-        SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
-          onPressed: _reason.isEmpty || _amountCtrl.text.isEmpty ? null : () => setState(() => _step = 2),
-          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text('Continue to Methods ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), Icon(Icons.arrow_forward, color: Colors.white)]),
-        )),
-      ]);
+          const SizedBox(height: 8),
+          CustomDropdown<String>(
+            value: _reason,
+            hint: 'Select Payment Category',
+            items: [
+              ..._fees.map((f) => DropdownItem<String>(value: f['label'].toString(), label: f['label'].toString())),
+              const DropdownItem<String>(value: 'Other', label: 'Other / Miscellaneous'),
+            ],
+            onChanged: (v) {
+              setState(() {
+                _reason = v;
+                if (v == 'Other') {
+                  _amountCtrl.clear();
+                } else {
+                  final fee = _fees.firstWhere((f) => f['label'] == v, orElse: () => null);
+                  _amountCtrl.text = fee != null ? fee['amount'].toString() : '';
+                }
+              });
+            },
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'AMOUNT TO PAY',
+            style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF64748b), fontWeight: FontWeight.w800, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFf8fafc),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFe2e8f0),
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
+                    border: Border(right: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5)),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'GH₵',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: TextFormField(
+                    controller: _amountCtrl,
+                    onChanged: (v) => setState(() {}),
+                    keyboardType: TextInputType.number,
+                    readOnly: _reason.isNotEmpty && _reason != 'Other',
+                    style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF0f172a)),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                      hintText: '0.00',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: _reason.isEmpty || _amountCtrl.text.isEmpty ? null : () => setState(() => _step = 2),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              icon: const Text('Continue to Methods', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              label: const Icon(Icons.arrow_forward_rounded, size: 16),
+            ),
+          ),
+        ],
+      );
     }
 
     if (_step == 2) {
-      return Column(children: [
-        const Text('PREFERRED METHOD', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: _methodCard('momo', Icons.smartphone, 'Mobile Money', primary)),
-          const SizedBox(width: 14),
-          Expanded(child: _methodCard('bank', Icons.account_balance, 'Bank Transfer', primary)),
-        ]),
-        const SizedBox(height: 20),
-        if (_method == 'momo') ...[
-          CustomDropdown<String>(
-            value: _momoNetwork,
-            hint: 'Please select your mobile money network',
-            items: const [
-              DropdownItem(value: 'MTN', label: 'MTN MoMo'),
-              DropdownItem(value: 'Vodafone', label: 'Telecel (Vodafone)'),
-              DropdownItem(value: 'AirtelTigo', label: 'AT (AirtelTigo)'),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PREFERRED PAYMENT METHOD',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 11, color: const Color(0xFF64748b), letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _methodCard('momo', Icons.smartphone_rounded, 'Mobile Money', primary)),
+              const SizedBox(width: 14),
+              Expanded(child: _methodCard('bank', Icons.account_balance_rounded, 'Bank Transfer', primary)),
             ],
-            onChanged: (v) => setState(() => _momoNetwork = v),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            onChanged: (v) { _momoPhone = v; setState(() {}); },
-            keyboardType: TextInputType.phone,
-            maxLength: 10,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: 'MoMo Phone Number',
-              hintText: '024XXXXXXX',
-              counterText: "",
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          const SizedBox(height: 24),
+          if (_method == 'momo') ...[
+            Text(
+              'MOBILE NETWORK',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 11, color: const Color(0xFF64748b), letterSpacing: 0.5),
             ),
+            const SizedBox(height: 8),
+            CustomDropdown<String>(
+              value: _momoNetwork,
+              hint: 'Select Mobile Money Network',
+              items: const [
+                DropdownItem(value: 'MTN', label: 'MTN MoMo'),
+                DropdownItem(value: 'Vodafone', label: 'Telecel (Vodafone)'),
+                DropdownItem(value: 'AirtelTigo', label: 'AT (AirtelTigo)'),
+              ],
+              onChanged: (v) => setState(() => _momoNetwork = v),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'MOMO PHONE NUMBER',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 11, color: const Color(0xFF64748b), letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFf8fafc),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+              ),
+              child: TextFormField(
+                initialValue: _momoPhone,
+                onChanged: (v) { _momoPhone = v; setState(() {}); },
+                keyboardType: TextInputType.phone,
+                maxLength: 10,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1e293b)),
+                decoration: const InputDecoration(
+                  labelText: null,
+                  hintText: 'e.g. 024XXXXXXX',
+                  hintStyle: TextStyle(color: Color(0xFF94a3b8), fontSize: 14),
+                  counterText: "",
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+            ),
+          ],
+          if (_method == 'bank') ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFf8fafc),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'CUBAG OFFICIAL BANK ACCOUNT',
+                    style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, color: primary, letterSpacing: 0.5),
+                  ),
+                  const SizedBox(height: 12),
+                  _bankRow('Bank Name', bank['bankName']?.toString() ?? '—'),
+                  _bankRow('Account Number', bank['accountNumber']?.toString() ?? '—'),
+                  _bankRow('Branch Name', bank['branch']?.toString() ?? '—'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'TRANSACTION ID / REFERENCE',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 11, color: const Color(0xFF64748b), letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFf8fafc),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+              ),
+              child: TextFormField(
+                initialValue: _bankTxId,
+                onChanged: (v) { _bankTxId = v; setState(() {}); },
+                style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1e293b)),
+                decoration: const InputDecoration(
+                  hintText: 'Enter bank transfer transaction reference ID...',
+                  hintStyle: TextStyle(color: Color(0xFF94a3b8), fontSize: 13),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => setState(() => _step = 1),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 50),
+                    side: const BorderSide(color: Color(0xFFcbd5e1), width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    foregroundColor: const Color(0xFF475569),
+                  ),
+                  child: Text(
+                    'Back',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: (_method == 'momo' && (_momoNetwork.isEmpty || _momoPhone.trim().length != 10)) ||
+                             (_method == 'bank' && _bankTxId.trim().isEmpty)
+                      ? null
+                      : () => setState(() => _step = 3),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Review Summary',
+                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
-        if (_method == 'bank') ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('CUBAG OFFICIAL BANK ACCOUNT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primary)),
-              const SizedBox(height: 8),
-              _bankRow('Bank', bank['bankName']?.toString() ?? '—'),
-              _bankRow('A/C Number', bank['accountNumber']?.toString() ?? '—'),
-              _bankRow('Branch', bank['branch']?.toString() ?? '—'),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            onChanged: (v) { _bankTxId = v; setState(() {}); },
-            decoration: InputDecoration(
-              labelText: 'Transaction ID / Ref',
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-        Row(children: [
-          Expanded(child: OutlinedButton(onPressed: () => setState(() => _step = 1), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Back'))),
-          const SizedBox(width: 12),
-          Expanded(flex: 2, child: ElevatedButton(
-            onPressed: (_method == 'momo' && (_momoNetwork.isEmpty || _momoPhone.trim().length != 10)) ||
-                       (_method == 'bank' && _bankTxId.trim().isEmpty)
-                ? null
-                : () => setState(() => _step = 3),
-            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-            child: const Text('Review Summary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-          )),
-        ]),
-      ]);
+      );
     }
 
     if (_step == 3) {
       final methodLabel = _method == 'momo' ? (_momoNetwork.isNotEmpty ? 'Mobile Money ($_momoNetwork)' : 'Mobile Money') : 'Bank Transfer';
-      return Column(children: [
-        Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).dividerColor)),
-          child: Column(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(gradient: LinearGradient(colors: [primary, primary.withValues(alpha: 0.75)]), borderRadius: const BorderRadius.vertical(top: Radius.circular(15))),
-              child: const Text('ORDER SUMMARY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
-            ...[
-              {'label': 'Category', 'value': _reason, 'highlight': false},
-              {'label': 'Payment Method', 'value': methodLabel, 'highlight': false},
-              {'label': 'Total Payable', 'value': 'GH₵ ${double.tryParse(_amountCtrl.text)?.toStringAsFixed(2) ?? _amountCtrl.text}', 'highlight': true},
-            ].map((row) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(row['label']! as String, style: const TextStyle(color: Colors.grey)),
-                Text(row['value']! as String, style: TextStyle(fontWeight: (row['highlight'] as bool) ? FontWeight.bold : FontWeight.w600, color: (row['highlight'] as bool) ? primary : null, fontSize: (row['highlight'] as bool) ? 18 : 14)),
-              ]),
-            )),
-          ]),
-        ),
-        const SizedBox(height: 20),
-        Row(children: [
-          OutlinedButton(onPressed: () => setState(() => _step = 2), style: OutlinedButton.styleFrom(minimumSize: const Size(52, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Icon(Icons.arrow_back)),
-          const SizedBox(width: 12),
-          Expanded(child: ElevatedButton(
-            onPressed: _loading ? null : _submitPayment,
-            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-            child: _loading ? const CircularProgressIndicator(color: Colors.white) : Text(_method == 'momo' ? 'Initiate Payment' : 'Confirm Payment', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-          )),
-        ]),
-      ]);
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [_kOrange, const Color(0xFFea580c)]),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                  ),
+                  child: Text(
+                    'DIGITAL INVOICE SUMMARY',
+                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                  ),
+                ),
+                ...[
+                  {'label': 'Payment Category', 'value': _reason, 'highlight': false},
+                  {'label': 'Selected Method', 'value': methodLabel, 'highlight': false},
+                  {'label': 'Total Payable Amount', 'value': 'GH₵ ${double.tryParse(_amountCtrl.text)?.toStringAsFixed(2) ?? _amountCtrl.text}', 'highlight': true},
+                ].map((row) {
+                  final isHighlight = row['highlight'] as bool;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: const BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Color(0xFFf1f5f9), width: 1.5)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          row['label']! as String,
+                          style: TextStyle(
+                            color: isHighlight ? const Color(0xFF475569) : Colors.grey.shade500,
+                            fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          row['value']! as String,
+                          style: GoogleFonts.outfit(
+                            fontWeight: isHighlight ? FontWeight.w900 : FontWeight.w700,
+                            color: isHighlight ? _kOrange : const Color(0xFF1e293b),
+                            fontSize: isHighlight ? 18 : 13.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              OutlinedButton(
+                onPressed: () => setState(() => _step = 2),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(50, 50),
+                  side: const BorderSide(color: Color(0xFFcbd5e1), width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  foregroundColor: const Color(0xFF475569),
+                ),
+                child: const Icon(Icons.arrow_back_rounded, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _submitPayment,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: _loading
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(
+                          _method == 'momo' ? 'Initiate Mobile Payment' : 'Confirm & Submit Payment',
+                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
     }
 
     // Step 4 — Waiting for MoMo PIN approval
     final remaining = (_pollMax - _pollAttempt) * 5;
     final progressVal = _pollMax > 0 ? _pollAttempt / _pollMax : 0.0;
 
-    return Column(children: [
-      // Repeating pulsing icon
-      AnimatedBuilder(
-        animation: _pulseAnim,
-        builder: (_, child) => Transform.scale(scale: _pulseAnim.value, child: child),
-        child: Container(
-          width: 72, height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [primary.withValues(alpha: 0.6), primary]),
+    return Column(
+      children: [
+        AnimatedBuilder(
+          animation: _pulseAnim,
+          builder: (_, child) => Transform.scale(scale: _pulseAnim.value, child: child),
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(colors: [primary.withAlpha(140), primary]),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withAlpha(60),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: const Icon(Icons.phone_android_rounded, color: Colors.white, size: 36),
           ),
-          child: const Icon(Icons.phone_android, color: Colors.white, size: 36),
         ),
-      ),
-      const SizedBox(height: 20),
-      const Text('Awaiting Approval', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 8),
-      Text(
-        'A MoMo prompt has been sent to $_momoPhone.\nOpen your phone and enter your PIN to approve.',
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.grey, height: 1.5),
-      ),
-      const SizedBox(height: 10),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: primary.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: primary.withValues(alpha: 0.2)),
+        const SizedBox(height: 20),
+        Text(
+          'Awaiting Approval',
+          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF0f172a)),
         ),
-        child: Column(children: [
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.info, color: primary, size: 14),
-            SizedBox(width: 6),
-            Text('MTN MoMo Approval Notice', style: TextStyle(color: primary, fontSize: 11, fontWeight: FontWeight.bold)),
-          ]),
-          SizedBox(height: 4),
-          Text(
-            'If the prompt does not popup, please dial *170# -> Option 6 (My Wallet) -> Option 3 (My Approvals) on your phone to approve.',
-            style: TextStyle(color: Colors.black87, fontSize: 11, height: 1.4),
-            textAlign: TextAlign.center,
-          ),
-        ]),
-      ),
-      const SizedBox(height: 24),
-      if (_pollAttempt >= _pollMax) ...[
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.red.shade200),
-          ),
-          child: const Text(
-            'Auto-checking timed out. If you have approved the payment on your phone, click "I\'ve Approved — Check Now" below to complete.',
-            style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
+        const SizedBox(height: 8),
+        Text(
+          'A Mobile Money prompt has been sent to $_momoPhone.\nOpen your phone and enter your PIN to approve.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Color(0xFF64748b), fontSize: 13, height: 1.5),
         ),
         const SizedBox(height: 16),
-      ],
-
-      // Progress bar
-      ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: LinearProgressIndicator(
-          value: progressVal,
-          minHeight: 6,
-          backgroundColor: primary.withValues(alpha: 0.1),
-          valueColor: AlwaysStoppedAnimation<Color>(primary),
-        ),
-      ),
-      const SizedBox(height: 8),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text('Checking... (attempt ${_pollAttempt + 1}/$_pollMax)', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        Text('~${remaining}s left', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-      ]),
-
-      const SizedBox(height: 24),
-
-      // Manual check button
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: _manualChecking ? null : _manualStatusCheck,
-          icon: _manualChecking
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.check_circle_outline, color: Colors.white),
-          label: Text(_manualChecking ? 'Checking...' : "I've Approved — Check Now",
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green.shade600,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 0,
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: primary.withAlpha(12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: primary.withAlpha(30)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline_rounded, color: primary, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    'MTN MoMo Approval Notice',
+                    style: GoogleFonts.outfit(color: primary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.3),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'If the prompt does not popup, please dial *170# -> Option 6 (My Wallet) -> Option 3 (My Approvals) on your phone to approve.',
+                style: TextStyle(color: Color(0xFF334155), fontSize: 11, height: 1.4),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
-      ),
-      const SizedBox(height: 10),
-      TextButton(
-        onPressed: () => setState(() { _step = 2; _pollAttempt = 0; _currentTxRef = ''; }),
-        child: const Text('Cancel & Change Method', style: TextStyle(color: Colors.grey)),
-      ),
-    ]);
+        const SizedBox(height: 24),
+        if (_pollAttempt >= _pollMax) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: const Text(
+              'Auto-checking timed out. If you have approved the payment on your phone, click "I\'ve Approved — Check Now" below to complete.',
+              style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: progressVal,
+            minHeight: 6,
+            backgroundColor: primary.withAlpha(30),
+            valueColor: AlwaysStoppedAnimation<Color>(primary),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Checking status... (attempt ${_pollAttempt + 1}/$_pollMax)', style: const TextStyle(fontSize: 10, color: Color(0xFF94a3b8))),
+            Text('~${remaining}s left', style: const TextStyle(fontSize: 10, color: Color(0xFF94a3b8))),
+          ],
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _manualChecking ? null : _manualStatusCheck,
+            icon: _manualChecking
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+            label: Text(
+              _manualChecking ? 'Verifying...' : "I've Approved — Check Now",
+              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10b981),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextButton(
+          onPressed: () => setState(() { _step = 2; _pollAttempt = 0; _currentTxRef = ''; }),
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748b)),
+          child: Text(
+            'Cancel & Change Method',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _methodCard(String id, IconData icon, String label, Color primary) {
@@ -651,17 +1055,45 @@ class _PaymentsPageState extends State<PaymentsPage>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(border: Border.all(color: selected ? primary : Colors.grey.shade300, width: selected ? 2.5 : 1.5), borderRadius: BorderRadius.circular(16), color: selected ? primary.withValues(alpha: 0.05) : null),
-        child: Column(children: [
-          Icon(icon, size: 32, color: selected ? primary : Colors.grey),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: selected ? primary : Colors.grey.shade700)),
-        ]),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: selected ? primary : const Color(0xFFe2e8f0),
+            width: selected ? 2.5 : 1.5,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          color: selected ? primary.withAlpha(12) : Colors.white,
+          boxShadow: selected
+              ? [BoxShadow(color: primary.withAlpha(15), blurRadius: 6, offset: const Offset(0, 3))]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 28, color: selected ? primary : const Color(0xFF94a3b8)),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w800,
+                color: selected ? primary : const Color(0xFF475569),
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _bankRow(String label, String value) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: Colors.grey)), Text(value, style: const TextStyle(fontWeight: FontWeight.bold))]));
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 12.5, fontWeight: FontWeight.w500)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF1e293b))),
+        ],
+      ),
+    );
   }
 }
