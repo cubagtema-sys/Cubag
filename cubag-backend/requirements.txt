@@ -16,3 +16,4 @@ resend
 reportlab
 APScheduler==3.10.4
 Flask-Caching==2.3.0
+feedparser==6.0.11
