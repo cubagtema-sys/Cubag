@@ -9,7 +9,7 @@ import threading
 import time as _time
 import feedparser
 from bs4 import BeautifulSoup
-from utils import gcs_upload, log_admin_action, admin_required, sub_admin_required
+from utils import log_admin_action, admin_required, sub_admin_required
 from config.cache import cache
 
 # Configure logging
