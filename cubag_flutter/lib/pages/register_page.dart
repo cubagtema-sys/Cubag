@@ -143,22 +143,13 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 1050;
-    final isTablet = size.width > 700 && size.width <= 1050;
+    final isWide = size.width > 700;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: isDesktop
-          ? _buildThreeColumnLayout()
-          : (isTablet ? _buildTwoColumnLayout() : _buildMobileLayout()),
+      body: isWide ? _buildTwoColumnLayout() : _buildMobileLayout(),
     );
   }
-
-  Widget _buildThreeColumnLayout() => Row(children: [
-        Expanded(flex: 35, child: _buildBrandPanel()),
-        Expanded(flex: 35, child: _buildInfoPanel()),
-        Expanded(flex: 30, child: _buildFormPanel(padding: 40, showLogo: false)),
-      ]);
 
   Widget _buildTwoColumnLayout() => Row(children: [
         Expanded(flex: 45, child: _buildBrandPanel()),
@@ -248,104 +239,6 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       );
 
-  Widget _buildInfoPanel() => Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFf8fafc),
-          border: Border(right: BorderSide(color: Color(0xFFe2e8f0), width: 1)),
-        ),
-        padding: const EdgeInsets.all(48),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Broker Community',
-              style: GoogleFonts.outfit(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0f172a),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Join the elite network of customs clearing professionals in Ghana.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-            const SizedBox(height: 40),
-            _infoCard(
-              icon: Icons.how_to_reg_outlined,
-              title: 'Verified Registration',
-              desc: 'Access official CUBAG digital services by registering your certified credentials securely.',
-            ),
-            const SizedBox(height: 24),
-            _infoCard(
-              icon: Icons.verified_user_outlined,
-              title: 'Direct Port Clearance',
-              desc: 'Seamlessly declare cargo, track vessel arrivals, and settle port clearance dues.',
-            ),
-            const SizedBox(height: 24),
-            _infoCard(
-              icon: Icons.handshake_outlined,
-              title: 'Industry Networking',
-              desc: 'Connect with other licensed brokers, stay updated on trade policies, and grow your agency.',
-            ),
-          ],
-        ),
-      );
-
-  Widget _infoCard({required IconData icon, required String title, required String desc}) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(color: const Color(0xFFf1f5f9)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: _kOrange.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: _kOrange, size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.outfit(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0f172a),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    desc,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 12,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
 
   Widget _buildFormPanel({double padding = 60, required bool showLogo}) => Container(
         color: Colors.white,
