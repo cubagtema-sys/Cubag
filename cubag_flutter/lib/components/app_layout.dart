@@ -29,6 +29,8 @@ class AppLayout extends StatefulWidget {
 }
 
 class _AppLayoutState extends State<AppLayout> {
+  bool _isSidebarCollapsed = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,9 +63,12 @@ class _AppLayoutState extends State<AppLayout> {
     final isSmall = size.width < 600;
     final primary = Theme.of(context).primaryColor;
     final currentRoute = GoRouterState.of(context).matchedLocation;
+    final isThemeDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDesktop ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFf8fafc),
+      backgroundColor: isDesktop 
+          ? (isThemeDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFf8fafc)) 
+          : const Color(0xFFf8fafc),
       appBar: isDesktop ? null : AppBar(
         backgroundColor: primary,
         surfaceTintColor: Colors.transparent,
@@ -256,7 +261,7 @@ class _AppLayoutState extends State<AppLayout> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: primary.withValues(alpha: 0.08),
+                     color: primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(Icons.person_outline_rounded, size: 18, color: primary),
@@ -285,7 +290,7 @@ class _AppLayoutState extends State<AppLayout> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: primary.withValues(alpha: 0.08),
+                     color: primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(Icons.settings_outlined, size: 18, color: primary),
@@ -346,30 +351,59 @@ class _AppLayoutState extends State<AppLayout> {
 
   Widget _buildDesktopHeader(BuildContext context, AuthService authService, int unreadCount) {
     final isAdmin = authService.userRole == 'admin' || authService.userRole == 'sub_admin';
+    final isThemeDark = Theme.of(context).brightness == Brightness.dark;
+    final headerBg = isThemeDark ? const Color(0xFF16171d) : Colors.white;
+    final borderThemeColor = isThemeDark ? const Color(0xFF2d2e38) : const Color(0xFFf1f5f9);
+    final textColor = isThemeDark ? Colors.white : const Color(0xFF0f172a);
+    final iconColor = isThemeDark ? Colors.white70 : const Color(0xFF64748b);
+
     return Container(
       height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFf1f5f9)))),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: headerBg,
+        border: Border(bottom: BorderSide(color: borderThemeColor, width: 1.5)),
+      ),
       child: Row(
         children: [
-          Row(children: [
-            if (!isAdmin) ...[
-              const AppLogo(size: 32, borderRadius: 8, showShadow: false), 
-              const SizedBox(width: 12),
-            ],
-            Text(widget.title, style: const TextStyle(color: Color(0xFF0f172a), fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5))
-          ]),
+          IconButton(
+            icon: Icon(
+              _isSidebarCollapsed ? Icons.menu_rounded : Icons.menu_open_rounded,
+              color: iconColor,
+            ),
+            onPressed: () {
+              setState(() {
+                _isSidebarCollapsed = !_isSidebarCollapsed;
+              });
+            },
+            tooltip: _isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
+          ),
+          const SizedBox(width: 8),
+          if (!isAdmin) ...[
+            const AppLogo(size: 32, borderRadius: 8, showShadow: false), 
+            const SizedBox(width: 12),
+          ],
+          Text(
+            widget.title, 
+            style: GoogleFonts.outfit(
+              color: textColor, 
+              fontWeight: FontWeight.w800, 
+              fontSize: 20, 
+              letterSpacing: -0.5,
+            ),
+          ),
           const Spacer(),
           if (!widget.hideSearch)
             IconButton(
-              icon: const Icon(Icons.search_rounded, color: Color(0xFF64748b)),
+              icon: Icon(Icons.search_rounded, color: iconColor),
               onPressed: () => showSearch(
                 context: context,
                 delegate: authService.userRole == 'admin' ? AdminSearchDelegate() : MemberSearchDelegate(),
               ),
             ),
-          _buildNotificationIcon(context, authService.userRole, false, unreadCount),
-          _buildProfileMenu(context, authService, false),
+          _buildNotificationIcon(context, authService.userRole, false, unreadCount, isDark: isThemeDark),
+          const SizedBox(width: 4),
+          _buildProfileMenu(context, authService, false, isDark: isThemeDark),
         ],
       ),
     );
@@ -424,34 +458,217 @@ class _AppLayoutState extends State<AppLayout> {
     );
   }
 
-
   Widget _buildSidebar(BuildContext context, String? role) {
-    final primary = Theme.of(context).primaryColor;
-    return Container(
-      width: 220,
-      decoration: const BoxDecoration(color: Colors.white, border: Border(right: BorderSide(color: Color(0xFFf1f5f9)))),
-      child: Column(children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [primary, const Color(0xFFe06920)])),
-          child: const Row(children: [
-            AppLogo(size: 44, borderRadius: 11, showShadow: true),
-            SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('CUBAG', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-              Text('Enterprise Platform', style: TextStyle(color: Colors.white70, fontSize: 11)),
-            ])),
-          ]),
+    final authService = Provider.of<AuthService>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sidebarBg = isDark ? const Color(0xFF16171d) : Colors.white;
+    final borderThemeColor = isDark ? const Color(0xFF2d2e38) : const Color(0xFFf1f5f9);
+    final textColor = isDark ? Colors.white : const Color(0xFF0f172a);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      width: _isSidebarCollapsed ? 76 : 260,
+      decoration: BoxDecoration(
+        color: sidebarBg,
+        border: Border(right: BorderSide(color: borderThemeColor, width: 1.5)),
+      ),
+      child: Column(
+        children: [
+          // Sidebar Header
+          Container(
+            height: 64,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: borderThemeColor, width: 1.5)),
+            ),
+            child: _isSidebarCollapsed
+                ? const Center(child: AppLogo(size: 32, borderRadius: 8, showShadow: false))
+                : Row(
+                    children: [
+                      const AppLogo(size: 32, borderRadius: 8, showShadow: false),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'CUBAG',
+                              style: GoogleFonts.outfit(
+                                color: textColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            _buildRoleBadge(context, role),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          // Sidebar Items
+          Expanded(
+            child: _buildNavItems(context, role),
+          ),
+          // Sidebar Footer
+          _buildSidebarFooter(context, authService),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoleBadge(BuildContext context, String? role) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayRole = (role ?? 'Member').replaceAll('_', ' ').toUpperCase();
+    Color badgeBg;
+    Color badgeText;
+    
+    if (role == 'admin') {
+      badgeBg = isDark ? const Color(0xFF3e2723) : const Color(0xFFfff3e0);
+      badgeText = isDark ? const Color(0xFFffb74d) : const Color(0xFFe65100);
+    } else if (role == 'sub_admin') {
+      badgeBg = isDark ? const Color(0xFF004d40) : const Color(0xFFe0f2f1);
+      badgeText = isDark ? const Color(0xFF4db6ac) : const Color(0xFF004d40);
+    } else {
+      badgeBg = isDark ? const Color(0xFF334155) : const Color(0xFFf1f5f9);
+      badgeText = isDark ? const Color(0xFFcbd5e1) : const Color(0xFF475569);
+    }
+    
+    return UnconstrainedBox(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(top: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+        decoration: BoxDecoration(
+          color: badgeBg,
+          borderRadius: BorderRadius.circular(4),
         ),
-        Expanded(child: _buildNavItems(context, role)),
-      ]),
+        child: Text(
+          displayRole,
+          style: GoogleFonts.inter(
+            fontSize: 8,
+            fontWeight: FontWeight.w800,
+            color: badgeText,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarFooter(BuildContext context, AuthService authService) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderThemeColor = isDark ? const Color(0xFF2d2e38) : const Color(0xFFf1f5f9);
+    final textColor = isDark ? Colors.white : const Color(0xFF0f172a);
+    final subTextColor = isDark ? Colors.white70 : const Color(0xFF64748b);
+    final photoUrl = authService.userPhotoUrl;
+    final primary = Theme.of(context).primaryColor;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: borderThemeColor, width: 1.5)),
+      ),
+      child: _isSidebarCollapsed
+          ? Center(
+              child: GestureDetector(
+                onTap: () => context.go('/profile'),
+                child: Tooltip(
+                  message: authService.userName ?? 'My Profile',
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: borderThemeColor, width: 1.5),
+                    ),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: isDark ? const Color(0xFF2a2b36) : const Color(0xFFf1f5f9),
+                      backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                          ? CachedNetworkImageProvider(photoUrl)
+                          : null,
+                      child: (photoUrl == null || photoUrl.isEmpty)
+                          ? Icon(Icons.person_rounded, color: isDark ? Colors.white70 : const Color(0xFF94a3b8), size: 18)
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1e1f26) : const Color(0xFFf8fafc),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderThemeColor),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: primary.withValues(alpha: 0.1),
+                    backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                        ? CachedNetworkImageProvider(photoUrl)
+                        : null,
+                    child: (photoUrl == null || photoUrl.isEmpty)
+                        ? Icon(Icons.person_rounded, color: primary, size: 18)
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          authService.userName ?? 'Member',
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: textColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          authService.userEmail ?? '',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            color: subTextColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: 'Sign Out',
+                    child: IconButton(
+                      icon: const Icon(Icons.logout_rounded, size: 16, color: Color(0xFFef4444)),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        authService.logout();
+                        context.go('/login');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
   Widget _buildNavItems(BuildContext context, String? role, {ScrollController? controller}) {
     final isAdmin = role == 'admin';
     final currentRoute = GoRouterState.of(context).matchedLocation;
-    final primary = Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? const Color(0xFF2d2e38) : const Color(0xFFf1f5f9);
 
     List<Widget> sections = [];
     if (isAdmin) {
@@ -536,19 +753,48 @@ class _AppLayoutState extends State<AppLayout> {
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: [
         ...sections,
-        const Divider(indent: 20, endIndent: 20, color: Color(0xFFf1f5f9)),
-        _navTile(context, 'Settings', Icons.settings_rounded, (isAdmin || role == 'sub_admin') ? '/admin/settings' : '/settings', currentRoute),
+        Divider(
+          indent: _isSidebarCollapsed ? 12 : 20,
+          endIndent: _isSidebarCollapsed ? 12 : 20,
+          color: dividerColor,
+        ),
+        _navTile(
+          context, 
+          'Settings', 
+          Icons.settings_rounded, 
+          (isAdmin || role == 'sub_admin') ? '/admin/settings' : '/settings', 
+          currentRoute,
+        ),
       ],
     );
   }
 
   Widget _buildSection(BuildContext context, String title, String currentRoute, List<_NavItemData> items) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? const Color(0xFF2d2e38) : const Color(0xFFf1f5f9);
+
+    if (_isSidebarCollapsed) {
+      return Column(
+        children: [
+          ...items.map((item) => _navTile(context, item.title, item.icon, item.route, currentRoute)),
+          Divider(indent: 12, endIndent: 12, color: dividerColor, height: 16),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-          child: Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94a3b8), letterSpacing: 1.0)),
+          child: Text(
+            title, 
+            style: GoogleFonts.outfit(
+              fontSize: 9.5, 
+              fontWeight: FontWeight.w800, 
+              color: const Color(0xFF94a3b8), 
+              letterSpacing: 1.2,
+            ),
+          ),
         ),
         ...items.map((item) => _navTile(context, item.title, item.icon, item.route, currentRoute)),
         const SizedBox(height: 2),
@@ -559,27 +805,94 @@ class _AppLayoutState extends State<AppLayout> {
   Widget _navTile(BuildContext context, String title, IconData icon, String route, String current) {
     final active = current == route || (route != '/' && current.startsWith(route));
     final primary = Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+    final activeBg = primary.withValues(alpha: 0.08);
+    final hoverBg = isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03);
+    final activeIconColor = primary;
+    final inactiveIconColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF64748b);
+    final activeTextColor = primary;
+    final inactiveTextColor = isDark ? const Color(0xFFcbd5e1) : const Color(0xFF334155);
+
+    final tileContent = Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
       child: Material(
-        color: active ? primary.withValues(alpha: 0.1) : Colors.transparent,
+        color: active ? activeBg : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
-        child: ListTile(
+        child: InkWell(
           onTap: () {
             context.go(route);
             if (Scaffold.maybeOf(context)?.isDrawerOpen == true) Navigator.pop(context);
           },
-          dense: true,
-          minLeadingWidth: 20,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-          visualDensity: const VisualDensity(vertical: -4),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          leading: Icon(icon, color: active ? primary : const Color(0xFF64748b), size: 18),
-          title: Text(title, style: TextStyle(color: active ? primary : const Color(0xFF334155), fontWeight: active ? FontWeight.w700 : FontWeight.w600, fontSize: 12)),
+          borderRadius: BorderRadius.circular(8),
+          hoverColor: hoverBg,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: _isSidebarCollapsed ? 0 : 14,
+                  vertical: 10,
+                ),
+                child: Row(
+                  mainAxisAlignment: _isSidebarCollapsed 
+                      ? MainAxisAlignment.center 
+                      : MainAxisAlignment.start,
+                  children: [
+                    Icon(
+                      icon,
+                      color: active ? activeIconColor : inactiveIconColor,
+                      size: 20,
+                    ),
+                    if (!_isSidebarCollapsed) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.outfit(
+                            color: active ? activeTextColor : inactiveTextColor,
+                            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (active)
+                Positioned(
+                  left: 0,
+                  top: 8,
+                  bottom: 8,
+                  child: Container(
+                    width: 3.5,
+                    decoration: BoxDecoration(
+                      color: primary,
+                      borderRadius: const BorderRadius.horizontal(
+                        right: Radius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
+
+    if (_isSidebarCollapsed) {
+      return Tooltip(
+        message: title,
+        preferBelow: false,
+        verticalOffset: 20,
+        margin: const EdgeInsets.only(left: 8),
+        child: tileContent,
+      );
+    }
+    return tileContent;
   }
 }
 

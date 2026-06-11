@@ -19,9 +19,11 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _identifierCtrl = TextEditingController();
   final _passCtrl       = TextEditingController();
+  final _passFocusNode  = FocusNode();
   bool _loading         = false;
   bool _showPw          = false;
   bool _rememberMe      = false;
+  bool _passFocused     = false;
   String? _error;
   String _loginMode     = 'email';
 
@@ -32,6 +34,13 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+    _passFocusNode.addListener(() {
+      if (_passFocusNode.hasFocus && !_passFocused && mounted) {
+        setState(() {
+          _passFocused = true;
+        });
+      }
+    });
     _loadSavedIdentifier();
     _checkBiometric();
   }
@@ -140,6 +149,7 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _identifierCtrl.dispose();
     _passCtrl.dispose();
+    _passFocusNode.dispose();
     super.dispose();
   }
 
@@ -446,7 +456,8 @@ class _LoginPageState extends State<LoginPage> {
       const SizedBox(height: 8),
       TextFormField(
         controller: _passCtrl,
-        obscureText: !_showPw,
+        focusNode: _passFocusNode,
+        obscureText: !_showPw && _passFocused,
         decoration: _inputDecoration(
           hint: '••••••••',
           icon: Icons.lock_outline_rounded,
