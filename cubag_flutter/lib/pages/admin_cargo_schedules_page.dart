@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../components/fetch_error_view.dart';
@@ -143,15 +144,24 @@ class _State extends State<AdminCargoSchedulesPage> {
   @override
   Widget build(BuildContext context) {
     final tabs = [{'id': 'upload', 'label': 'New Entry'}, {'id': 'history', 'label': 'History'}];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1e293b) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0);
+    final textColor = isDark ? const Color(0xFFcbd5e1) : const Color(0xFF0f172a);
+    final subTextColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF64748b);
+
     return AppLayout(
       title: 'Cargo Schedules',
       scrollable: true,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
         // Tab bar
         Container(
           padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0f172a) : Colors.grey.shade100, 
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: borderColor),
+          ),
           child: Row(children: tabs.map((t) {
             final active = _tab == t['id'];
             return Expanded(child: GestureDetector(
@@ -164,28 +174,76 @@ class _State extends State<AdminCargoSchedulesPage> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(color: active ? _kOrange : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: active ? _kOrange : Colors.transparent, 
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: active ? [
+                    BoxShadow(
+                      color: _kOrange.withValues(alpha: 0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    )
+                  ] : null,
+                ),
                 alignment: Alignment.center,
-                child: Text(t['label']!, style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
+                child: Text(
+                  t['label']!, 
+                  style: GoogleFonts.outfit(
+                    color: active ? Colors.white : subTextColor, 
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ));
           }).toList()),
         ),
         const SizedBox(height: 16),
 
-        if (_tab == 'upload') _buildUploadTab(),
-        if (_tab == 'history') _buildHistoryTab(),
+        if (_tab == 'upload') _buildUploadTab(isDark, cardBg, borderColor, textColor, subTextColor),
+        if (_tab == 'history') _buildHistoryTab(isDark, cardBg, borderColor, textColor, subTextColor),
       ]),
     );
   }
 
-  Widget _buildUploadTab() => Container(
+  Widget _buildUploadTab(bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) => Container(
     constraints: const BoxConstraints(maxWidth: 700),
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: cardBg, 
+      borderRadius: BorderRadius.circular(16), 
+      border: Border.all(color: borderColor),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (_success) Container(margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: _kGreen.withAlpha(25), borderRadius: BorderRadius.circular(10)), child: const Text('Published successfully!', style: TextStyle(color: _kGreen, fontWeight: FontWeight.w700))),
-      _label('Type'), const SizedBox(height: 6),
+      if (_success) 
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.only(bottom: 16), 
+          padding: const EdgeInsets.all(12), 
+          decoration: BoxDecoration(
+            color: _kGreen.withValues(alpha: isDark ? 0.15 : 0.08), 
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _kGreen.withValues(alpha: 0.3)),
+          ), 
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: _kGreen, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Published successfully!', 
+                style: GoogleFonts.outfit(color: _kGreen, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      _label('Type', subTextColor), const SizedBox(height: 8),
       CustomDropdown<String>(
         value: _type,
         items: const [
@@ -195,20 +253,44 @@ class _State extends State<AdminCargoSchedulesPage> {
         ],
         onChanged: (v) => setState(() => _type = v),
       ),
-      const SizedBox(height: 14),
-      _label('Container ID'), const SizedBox(height: 6),
-      TextField(controller: _containerCtrl, decoration: _deco(hint: 'MSCU...')),
-      const SizedBox(height: 14),
-      _label('Vessel Name'), const SizedBox(height: 6),
-      TextField(controller: _vesselCtrl, decoration: _deco(hint: 'Vessel...')),
-      const SizedBox(height: 14),
+      const SizedBox(height: 18),
+      _label('Container ID', subTextColor), const SizedBox(height: 8),
+      TextField(
+        controller: _containerCtrl, 
+        style: GoogleFonts.outfit(fontSize: 13, color: textColor),
+        decoration: _deco(hint: 'MSCU...', isDark: isDark, borderColor: borderColor, subTextColor: subTextColor),
+      ),
+      const SizedBox(height: 18),
+      _label('Vessel Name', subTextColor), const SizedBox(height: 8),
+      TextField(
+        controller: _vesselCtrl, 
+        style: GoogleFonts.outfit(fontSize: 13, color: textColor),
+        decoration: _deco(hint: 'Vessel...', isDark: isDark, borderColor: borderColor, subTextColor: subTextColor),
+      ),
+      const SizedBox(height: 18),
       Row(children: [
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label('Date'), const SizedBox(height: 6), TextField(controller: _dateCtrl, decoration: _deco(hint: '10 May'))])),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _label('Date', subTextColor), 
+          const SizedBox(height: 8), 
+          TextField(
+            controller: _dateCtrl, 
+            style: GoogleFonts.outfit(fontSize: 13, color: textColor),
+            decoration: _deco(hint: '10 May', isDark: isDark, borderColor: borderColor, subTextColor: subTextColor),
+          ),
+        ])),
         const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label('Port'), const SizedBox(height: 6), TextField(controller: _portCtrl, decoration: _deco(hint: 'Tema'))])),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _label('Port', subTextColor), 
+          const SizedBox(height: 8), 
+          TextField(
+            controller: _portCtrl, 
+            style: GoogleFonts.outfit(fontSize: 13, color: textColor),
+            decoration: _deco(hint: 'Tema', isDark: isDark, borderColor: borderColor, subTextColor: subTextColor),
+          ),
+        ])),
       ]),
-      const SizedBox(height: 14),
-      _label('Status'), const SizedBox(height: 6),
+      const SizedBox(height: 18),
+      _label('Status', subTextColor), const SizedBox(height: 8),
       CustomDropdown<String>(
         value: _status,
         items: const [
@@ -220,24 +302,45 @@ class _State extends State<AdminCargoSchedulesPage> {
         onChanged: (v) => setState(() => _status = v),
       ),
       if (_type == 'movement') ...[
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         Row(children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label('Origin'), const SizedBox(height: 6), TextField(controller: _originCtrl, decoration: _deco())])),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _label('Origin', subTextColor), 
+            const SizedBox(height: 8), 
+            TextField(
+              controller: _originCtrl, 
+              style: GoogleFonts.outfit(fontSize: 13, color: textColor),
+              decoration: _deco(hint: 'Origin port...', isDark: isDark, borderColor: borderColor, subTextColor: subTextColor),
+            ),
+          ])),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label('Destination'), const SizedBox(height: 6), TextField(controller: _destinationCtrl, decoration: _deco())])),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _label('Destination', subTextColor), 
+            const SizedBox(height: 8), 
+            TextField(
+              controller: _destinationCtrl, 
+              style: GoogleFonts.outfit(fontSize: 13, color: textColor),
+              decoration: _deco(hint: 'Destination port...', isDark: isDark, borderColor: borderColor, subTextColor: subTextColor),
+            ),
+          ])),
         ]),
       ],
-      const SizedBox(height: 16),
-      SizedBox(width: double.infinity, height: 48, child: ElevatedButton.icon(
+      const SizedBox(height: 24),
+      SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(
         onPressed: _loading ? null : _upload,
-        icon: const Icon(Icons.upload),
-        label: Text(_loading ? 'Publishing...' : 'Upload to Portal', style: const TextStyle(fontWeight: FontWeight.bold)),
-        style: ElevatedButton.styleFrom(backgroundColor: _kOrange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        icon: Icon(_loading ? Icons.sync_rounded : Icons.upload_rounded, size: 18),
+        label: Text(_loading ? 'Publishing...' : 'Upload to Portal', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kOrange, 
+          foregroundColor: Colors.white, 
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
+        ),
       )),
     ]),
   );
 
-  Widget _buildHistoryTab() {
+  Widget _buildHistoryTab(bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) {
     if (_fetching) {
       return ListView.separated(
         shrinkWrap: true,
@@ -288,53 +391,131 @@ class _State extends State<AdminCargoSchedulesPage> {
       const SizedBox(height: 16),
 
       if (_displayed.isEmpty) 
-        Container(padding: const EdgeInsets.all(48), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)), child: const Center(child: Text('No schedules found.', style: TextStyle(color: Colors.grey))))
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24), 
+          decoration: BoxDecoration(
+            color: cardBg, 
+            borderRadius: BorderRadius.circular(16), 
+            border: Border.all(color: borderColor),
+          ), 
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _kOrange.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.inventory_2_outlined, size: 32, color: _kOrange),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No schedules found.', 
+                style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: textColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Schedules added will list here.',
+                style: GoogleFonts.outfit(fontSize: 12, color: subTextColor),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        )
       else
         ..._displayed.map((s) {
           final color = _statusColor(s['status'] ?? 'Scheduled');
           return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: cardBg, 
+              borderRadius: BorderRadius.circular(16), 
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             clipBehavior: Clip.antiAlias,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(height: 3, color: color),
-              Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(height: 4, color: color),
+              Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Container(width: 40, height: 40, decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(10)), child: Icon(_typeIcon(s['type'] ?? ''), color: color, size: 20)),
+                  Container(
+                    width: 44, 
+                    height: 44, 
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1), 
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: color.withValues(alpha: 0.15)),
+                    ), 
+                    child: Icon(_typeIcon(s['type'] ?? ''), color: color, size: 20),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(s['vessel'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
-                    Text(s['container'] ?? '', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text(
+                      s['vessel'] ?? '', 
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14, color: textColor), 
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      s['container'] ?? '', 
+                      style: GoogleFonts.outfit(fontSize: 11, color: subTextColor, fontWeight: FontWeight.w600),
+                    ),
                   ])),
                 ]),
-                const SizedBox(height: 10),
-                Wrap(spacing: 12, children: [
-                  _pill(Icons.location_on_outlined, s['port'] ?? ''),
-                  _pill(Icons.calendar_today, s['date'] ?? ''),
-                  _pill(Icons.category, s['type']?.toString().toUpperCase() ?? '', color: _kOrange),
+                const SizedBox(height: 14),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  _pill(Icons.location_on_outlined, s['port'] ?? '', subTextColor),
+                  _pill(Icons.calendar_today_rounded, s['date'] ?? '', subTextColor),
+                  _pill(
+                    Icons.category_rounded, 
+                    s['type']?.toString().toUpperCase() ?? '', 
+                    _kOrange,
+                    color: _kOrange,
+                    isDark: isDark,
+                  ),
                 ]),
-                const Divider(height: 20),
+                const Divider(height: 28),
                 Row(children: [
                   Expanded(child: GestureDetector(
-                    onTap: () => _showStatusPicker(s),
+                    onTap: () => _showStatusPicker(s, isDark, cardBg, borderColor, textColor, subTextColor),
                     child: Container(
-                      height: 40,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _statusColor(s['status'] ?? 'Scheduled'), width: 1.5),
-                        color: _statusColor(s['status'] ?? 'Scheduled').withAlpha(15),
+                        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+                        color: color.withValues(alpha: 0.08),
                       ),
                       child: Row(children: [
-                        Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: _statusColor(s['status'] ?? 'Scheduled'))),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(s['status'] ?? 'Scheduled', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _statusColor(s['status'] ?? 'Scheduled')))),
-                        Icon(Icons.keyboard_arrow_down, size: 18, color: _statusColor(s['status'] ?? 'Scheduled')),
+                        Container(
+                          width: 8, 
+                          height: 8, 
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(
+                          s['status'] ?? 'Scheduled', 
+                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: color),
+                        )),
+                        Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: color),
                       ]),
                     ),
                   )),
                   const SizedBox(width: 8),
-                  IconButton(icon: const Icon(Icons.delete_outline, color: _kRed), onPressed: () => _delete(s['id'])),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: _kRed), 
+                    onPressed: () => _delete(s['id']),
+                    splashRadius: 22,
+                    tooltip: 'Delete Entry',
+                  ),
                 ]),
               ])),
             ]),
@@ -347,39 +528,79 @@ class _State extends State<AdminCargoSchedulesPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextButton.icon(
+            OutlinedButton.icon(
               onPressed: _page > 1 ? () => _fetch(page: _page - 1) : null,
-              icon: const Icon(Icons.chevron_left),
-              label: const Text('Previous'),
-              style: TextButton.styleFrom(foregroundColor: _kOrange),
+              icon: const Icon(Icons.chevron_left_rounded, size: 16),
+              label: Text('Previous', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _kOrange,
+                disabledForegroundColor: subTextColor.withValues(alpha: 0.5),
+                side: BorderSide(color: _page > 1 ? _kOrange.withValues(alpha: 0.5) : borderColor),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
             ),
             const SizedBox(width: 16),
-            Text('Page $_page', style: const TextStyle(fontWeight: FontWeight.w600)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0f172a) : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: borderColor),
+              ),
+              child: Text(
+                'Page $_page', 
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 12, color: textColor),
+              ),
+            ),
             const SizedBox(width: 16),
-            TextButton.icon(
+            OutlinedButton.icon(
               onPressed: _hasMore ? () => _fetch(page: _page + 1) : null,
-              icon: const Icon(Icons.chevron_right),
-              label: const Text('Next'),
-              style: TextButton.styleFrom(foregroundColor: _kOrange),
+              icon: const Icon(Icons.chevron_right_rounded, size: 16),
+              label: Text('Next', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _kOrange,
+                disabledForegroundColor: subTextColor.withValues(alpha: 0.5),
+                side: BorderSide(color: _hasMore ? _kOrange.withValues(alpha: 0.5) : borderColor),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
       ],
     ]);
   }
 
-  void _showStatusPicker(dynamic schedule) {
+  void _showStatusPicker(dynamic schedule, bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) {
     const statuses = ['Scheduled', 'In Progress', 'Completed', 'Cancelled'];
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      backgroundColor: cardBg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      barrierColor: Colors.black.withValues(alpha: isDark ? 0.6 : 0.4),
       builder: (ctx) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Update Status', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Update Cargo Status', 
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 16, color: textColor),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close_rounded, color: subTextColor, size: 20),
+                  onPressed: () => Navigator.pop(ctx),
+                  splashRadius: 20,
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             ...statuses.map((s) {
               final isActive = schedule['status'] == s;
               final color = _statusColor(s);
@@ -389,18 +610,32 @@ class _State extends State<AdminCargoSchedulesPage> {
                   _updateStatus(schedule['id'], s);
                 },
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: isActive ? color.withAlpha(20) : Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: isActive ? color : Colors.grey.shade200, width: isActive ? 2 : 1),
+                    color: isActive ? color.withValues(alpha: isDark ? 0.2 : 0.08) : (isDark ? const Color(0xFF0f172a) : Colors.grey.withValues(alpha: 0.02)),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isActive ? color : borderColor, 
+                      width: isActive ? 2 : 1,
+                    ),
                   ),
                   child: Row(children: [
-                    Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+                    Container(
+                      width: 10, 
+                      height: 10, 
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: Text(s, style: TextStyle(fontWeight: isActive ? FontWeight.w800 : FontWeight.w600, color: isActive ? color : const Color(0xFF0f172a)))),
-                    if (isActive) Icon(Icons.check_circle, color: color, size: 20),
+                    Expanded(child: Text(
+                      s, 
+                      style: GoogleFonts.outfit(
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.w600, 
+                        color: isActive ? color : textColor,
+                        fontSize: 13,
+                      ),
+                    )),
+                    if (isActive) Icon(Icons.check_circle_rounded, color: color, size: 18),
                   ]),
                 ),
               );
@@ -411,7 +646,44 @@ class _State extends State<AdminCargoSchedulesPage> {
     );
   }
 
-  Widget _pill(IconData icon, String text, {Color? color}) => Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: color ?? Colors.grey), const SizedBox(width: 4), Text(text, style: TextStyle(fontSize: 12, color: color ?? Colors.grey))]);
-  Widget _label(String t) => Text(t, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12));
-  InputDecoration _deco({String? hint}) => InputDecoration(hintText: hint, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.all(12));
+  Widget _pill(IconData icon, String text, Color defaultColor, {Color? color, bool isDark = false}) {
+    final textColor = color ?? defaultColor;
+    final bg = color != null ? color.withValues(alpha: isDark ? 0.15 : 0.08) : Colors.transparent;
+    final borderCol = color != null ? color.withValues(alpha: 0.25) : Colors.transparent;
+    
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: color != null ? 8 : 0, vertical: color != null ? 3 : 0),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: color != null ? Border.all(color: borderCol) : null,
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 13, color: textColor),
+        const SizedBox(width: 4),
+        Text(text, style: GoogleFonts.outfit(fontSize: 11, color: textColor, fontWeight: color != null ? FontWeight.bold : FontWeight.w600)),
+      ]),
+    );
+  }
+
+  Widget _label(String t, Color color) => Text(
+    t.toUpperCase(), 
+    style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 10, color: color, letterSpacing: 0.5),
+  );
+
+  InputDecoration _deco({required String hint, required bool isDark, required Color borderColor, required Color subTextColor}) => InputDecoration(
+    fillColor: isDark ? const Color(0xFF0f172a) : Colors.grey.withValues(alpha: 0.02),
+    filled: true,
+    hintText: hint, 
+    hintStyle: GoogleFonts.outfit(fontSize: 13, color: subTextColor),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12), 
+      borderSide: BorderSide(color: borderColor, width: 1.5),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12), 
+      borderSide: const BorderSide(color: _kOrange, width: 2),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  );
 }
