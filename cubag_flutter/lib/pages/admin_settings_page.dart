@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
 
@@ -180,11 +181,19 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final primary = const Color(0xFFf08232);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final cardBg = isDark ? const Color(0xFF1e293b) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0);
+    final textColor = isDark ? const Color(0xFFf8fafc) : const Color(0xFF0f172a);
+    final subTextColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF475569);
+    final inputBg = isDark ? const Color(0xFF0f172a).withValues(alpha: 0.4) : const Color(0xFFf8fafc);
 
     return AppLayout(
       title: 'Platform Settings',
+      scrollable: true,
       child: _fetchingUser
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: Padding(padding: EdgeInsets.all(48), child: CircularProgressIndicator(color: Color(0xFFf08232))))
           : Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
@@ -192,256 +201,305 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Profile details card
-                    Card(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.person_outline, color: primary, size: 24),
-                                const SizedBox(width: 8),
-                                const Text(
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                  child: Icon(Icons.person_outline_rounded, color: primary, size: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
                                   'Profile Details',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: textColor),
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 20),
+                            _readOnlyField('Full Name', _user['name']?.toString() ?? '—', inputBg, borderColor, textColor, subTextColor),
                             const SizedBox(height: 16),
-                            _readOnlyField('Full Name', _user['name']?.toString() ?? '—'),
-                            const SizedBox(height: 12),
-                            _readOnlyField('Email Address', _user['email']?.toString() ?? '—'),
-                            const SizedBox(height: 12),
-                            _readOnlyField('Role', (_user['role']?.toString() ?? '—').toUpperCase()),
+                            _readOnlyField('Email Address', _user['email']?.toString() ?? '—', inputBg, borderColor, textColor, subTextColor),
+                            const SizedBox(height: 16),
+                            _readOnlyField('Role', (_user['role']?.toString() ?? '—').toUpperCase(), inputBg, borderColor, textColor, subTextColor),
                           ],
                         ),
                       ),
                     ),
-              const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
-              // Change password card
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.lock_reset, color: primary, size: 24),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Reset Password',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                        ],
+                    // Change password card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
                       ),
-                      const SizedBox(height: 16),
-                      if (_message.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: _isSuccess ? const Color(0x1510b981) : const Color(0x15ef4444),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _message,
-                            style: TextStyle(
-                              color: _isSuccess ? const Color(0xFF10b981) : const Color(0xFFef4444),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      _pwField('Current Password', _currentCtrl, _showCurrent, () => setState(() => _showCurrent = !_showCurrent)),
-                      const SizedBox(height: 12),
-                      _pwField('New Password', _newCtrl, _showNew, () => setState(() => _showNew = !_showNew)),
-                      const SizedBox(height: 12),
-                      _pwField('Confirm Password', _confirmCtrl, _showConfirm, () => setState(() => _showConfirm = !_showConfirm)),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _changePassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text(
-                                  'Update Password',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // NEW COLUMN ITEM: Compliance Weights Card
-              const SizedBox(height: 20),
-              if (!_fetchingSettings)
-                Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.score, color: primary, size: 24),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Compliance Scoring Weights',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                  child: Icon(Icons.lock_reset_rounded, color: primary, size: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Reset Password',
+                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: textColor),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        if (_settingsMessage.isNotEmpty) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: _settingsSuccess ? const Color(0x1510b981) : const Color(0x15ef4444),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              _settingsMessage,
-                              style: TextStyle(
-                                color: _settingsSuccess ? const Color(0xFF10b981) : const Color(0xFFef4444),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
+                            const SizedBox(height: 20),
+                            if (_message.isNotEmpty) ...[
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: _isSuccess ? const Color(0xFF10b981).withValues(alpha: 0.15) : const Color(0xFFef4444).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: _isSuccess ? const Color(0xFF10b981).withValues(alpha: 0.3) : const Color(0xFFef4444).withValues(alpha: 0.3)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(_isSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded, color: _isSuccess ? const Color(0xFF10b981) : const Color(0xFFef4444), size: 20),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _message.replaceAll('✅ ', '').replaceAll('❌ ', ''),
+                                        style: GoogleFonts.outfit(
+                                          color: _isSuccess ? const Color(0xFF10b981) : const Color(0xFFef4444),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+                            _pwField('Current Password', _currentCtrl, _showCurrent, () => setState(() => _showCurrent = !_showCurrent), inputBg, borderColor, textColor, subTextColor, primary),
+                            const SizedBox(height: 16),
+                            _pwField('New Password', _newCtrl, _showNew, () => setState(() => _showNew = !_showNew), inputBg, borderColor, textColor, subTextColor, primary),
+                            const SizedBox(height: 16),
+                            _pwField('Confirm Password', _confirmCtrl, _showConfirm, () => setState(() => _showConfirm = !_showConfirm), inputBg, borderColor, textColor, subTextColor, primary),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _changePassword,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primary,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 0,
+                                ),
+                                child: _isLoading
+                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    : Text(
+                                        'Update Password',
+                                        style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        const Text("Payment Points", style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(child: _weightField('Punctual', _payPunctualCtrl)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _weightField('History', _payHistoryCtrl)),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        const Text("License Points", style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(child: _weightField('Active', _licActiveCtrl)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _weightField('Inactive', _licInactiveCtrl)),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text("Tasks & Surveys Points", style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(child: _weightField('Tasks', _taskCtrl)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _weightField('Surveys', _surveyCtrl)),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text("AGM Points", style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(child: _weightField('Active', _agmActiveCtrl)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _weightField('Inactive', _agmInactiveCtrl)),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: ElevatedButton(
-                            onPressed: _savingSettings ? null : _saveSettings,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                            ),
-                            child: _savingSettings
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text(
-                                    'Save Compliance Weights',
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+
+                    // Compliance Weights Card
+                    const SizedBox(height: 24),
+                    if (!_fetchingSettings)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: borderColor),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(color: primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                    child: Icon(Icons.score_rounded, color: primary, size: 24),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Compliance Scoring Weights',
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: textColor),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              if (_settingsMessage.isNotEmpty) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: _settingsSuccess ? const Color(0xFF10b981).withValues(alpha: 0.15) : const Color(0xFFef4444).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: _settingsSuccess ? const Color(0xFF10b981).withValues(alpha: 0.3) : const Color(0xFFef4444).withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(_settingsSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded, color: _settingsSuccess ? const Color(0xFF10b981) : const Color(0xFFef4444), size: 20),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          _settingsMessage.replaceAll('✅ ', '').replaceAll('❌ ', ''),
+                                          style: GoogleFonts.outfit(
+                                            color: _settingsSuccess ? const Color(0xFF10b981) : const Color(0xFFef4444),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                              Text("Payment Points", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor, fontSize: 15)),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(child: _weightField('Punctual', _payPunctualCtrl, inputBg, borderColor, textColor, subTextColor, primary)),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: _weightField('History', _payHistoryCtrl, inputBg, borderColor, textColor, subTextColor, primary)),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              Text("License Points", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor, fontSize: 15)),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(child: _weightField('Active', _licActiveCtrl, inputBg, borderColor, textColor, subTextColor, primary)),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: _weightField('Inactive', _licInactiveCtrl, inputBg, borderColor, textColor, subTextColor, primary)),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              Text("Tasks & Surveys Points", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor, fontSize: 15)),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(child: _weightField('Tasks', _taskCtrl, inputBg, borderColor, textColor, subTextColor, primary)),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: _weightField('Surveys', _surveyCtrl, inputBg, borderColor, textColor, subTextColor, primary)),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              Text("AGM Points", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor, fontSize: 15)),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(child: _weightField('Active', _agmActiveCtrl, inputBg, borderColor, textColor, subTextColor, primary)),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: _weightField('Inactive', _agmInactiveCtrl, inputBg, borderColor, textColor, subTextColor, primary)),
+                                ],
+                              ),
+                              const SizedBox(height: 28),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _savingSettings ? null : _saveSettings,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primary,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    elevation: 0,
+                                  ),
+                                  child: _savingSettings
+                                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                      : Text(
+                                          'Save Compliance Weights',
+                                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 48), // Bottom padding
+                  ],
                 ),
-            ],
-          ),
-        ),
-      ),
+              ),
+            ),
     );
   }
 
-  Widget _readOnlyField(String label, String value) {
+  Widget _readOnlyField(String label, String value, Color inputBg, Color borderColor, Color textColor, Color subTextColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+          style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: subTextColor),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.grey.shade500.withValues(alpha: 0.05),
+            color: inputBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: borderColor),
           ),
           child: Text(
             value,
-            style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
+            style: GoogleFonts.outfit(fontSize: 15, color: textColor, fontWeight: FontWeight.bold),
           ),
         ),
       ],
     );
   }
 
-  Widget _pwField(String label, TextEditingController ctrl, bool show, VoidCallback toggle) {
+  Widget _pwField(String label, TextEditingController ctrl, bool show, VoidCallback toggle, Color inputBg, Color borderColor, Color textColor, Color subTextColor, Color primary) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+          style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: subTextColor),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         TextField(
           controller: ctrl,
           obscureText: !show,
+          style: GoogleFonts.outfit(color: textColor, fontSize: 15),
           decoration: InputDecoration(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFf08232), width: 2)),
+            filled: true,
+            fillColor: inputBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
             suffixIcon: IconButton(
-              icon: Icon(show ? Icons.visibility : Icons.visibility_off, color: Colors.grey, size: 20),
+              icon: Icon(show ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: subTextColor, size: 22),
               onPressed: toggle,
             ),
           ),
@@ -450,23 +508,26 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     );
   }
 
-  Widget _weightField(String label, TextEditingController ctrl) {
+  Widget _weightField(String label, TextEditingController ctrl, Color inputBg, Color borderColor, Color textColor, Color subTextColor, Color primary) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+          style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: subTextColor),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
+          style: GoogleFonts.outfit(color: textColor, fontSize: 15, fontWeight: FontWeight.bold),
           decoration: InputDecoration(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFf08232), width: 2)),
+            filled: true,
+            fillColor: inputBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
           ),
         ),
       ],
