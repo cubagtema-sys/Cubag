@@ -3,12 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
 import '../components/app_logo.dart';
 
 const _kOrange = Color(0xFFf08232);
-const _kOrangeDark = Color(0xFFe06920);
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -177,59 +177,222 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 700;
-    return Scaffold(body: isWide ? _buildWideLayout() : _buildMobileLayout());
+    final isDesktop = size.width > 1050;
+    final isTablet = size.width > 700 && size.width <= 1050;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: isDesktop
+          ? _buildThreeColumnLayout()
+          : (isTablet ? _buildTwoColumnLayout() : _buildMobileLayout()),
+    );
   }
 
-  Widget _buildWideLayout() => Row(children: [
-    Expanded(flex: 4, child: _buildSidebar()),
-    Expanded(flex: 6, child: _buildFormPanel()),
-  ]);
+  Widget _buildThreeColumnLayout() => Row(children: [
+        Expanded(flex: 35, child: _buildBrandPanel()),
+        Expanded(flex: 35, child: _buildInfoPanel()),
+        Expanded(flex: 30, child: _buildFormPanel(padding: 40)),
+      ]);
 
-  Widget _buildMobileLayout() => Scaffold(
-    backgroundColor: Colors.white,
-    body: SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: _buildForm(),
+  Widget _buildTwoColumnLayout() => Row(children: [
+        Expanded(flex: 45, child: _buildBrandPanel()),
+        Expanded(flex: 55, child: _buildFormPanel(padding: 50)),
+      ]);
+
+  Widget _buildMobileLayout() => SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: _buildForm(),
+            ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 
-  Widget _buildSidebar() => Container(
-    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [_kOrange, _kOrangeDark])),
-    child: Padding(padding: const EdgeInsets.all(48), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Text('CUBAG', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1)),
-        const SizedBox(height: 12),
-        const Text('Enterprise Mobility Platform', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 48),
-        _sidebarFeature(Icons.people_outline, 'Seamless Member Access'),
-        const SizedBox(height: 24),
-        _sidebarFeature(Icons.directions_boat_outlined, 'Live Cargo Schedules'),
-        const SizedBox(height: 24),
-        _sidebarFeature(Icons.payments_outlined, 'Secure Digital Payments'),
-      ])),
-  );
+  Widget _buildBrandPanel() => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0f172a), Color(0xFF1e293b)],
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -50,
+              bottom: -50,
+              child: Icon(
+                Icons.directions_boat,
+                size: 300,
+                color: Colors.white.withAlpha(8),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(48),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const AppLogo(size: 64, borderRadius: 16),
+                  const SizedBox(height: 32),
+                  Text(
+                    'CUBAG',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 60,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _kOrange,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Customs Brokers Association of Ghana',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white70,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'The official mobile gateway for licensed customs clearing and logistics firms in Ghana.',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 14,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 
-  Widget _sidebarFeature(IconData icon, String label) => Row(children: [
-    Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: Colors.white, size: 22)),
-    const SizedBox(width: 16),
-    Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
-  ]);
+  Widget _buildInfoPanel() => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFf8fafc),
+          border: Border(right: BorderSide(color: Color(0xFFe2e8f0), width: 1)),
+        ),
+        padding: const EdgeInsets.all(48),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Capabilities',
+              style: GoogleFonts.outfit(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0f172a),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Secure, fast, and unified port solutions at your fingertips.',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 40),
+            _infoCard(
+              icon: Icons.shield_outlined,
+              title: 'Secure Access & Credentials',
+              desc: 'Manage your verified broker profile, keep track of standing scores, and renew certifications.',
+            ),
+            const SizedBox(height: 24),
+            _infoCard(
+              icon: Icons.map_outlined,
+              title: 'Vessel & Cargo Intelligence',
+              desc: 'Access live maritime AIS tracking feeds, port schedules, and custom cargo clearing timelines.',
+            ),
+            const SizedBox(height: 24),
+            _infoCard(
+              icon: Icons.wallet_outlined,
+              title: 'Integrated Payments Gateway',
+              desc: 'Settle annual dues and platform charges directly using Mobile Money or bank transfers instantly.',
+            ),
+          ],
+        ),
+      );
 
-  Widget _buildFormPanel() => Container(
-    color: Colors.white,
-    child: Center(child: SingleChildScrollView(child: Container(
-      padding: const EdgeInsets.all(60),
-      constraints: const BoxConstraints(maxWidth: 520),
-      child: _buildForm(),
-    ))),
-  );
+  Widget _infoCard({required IconData icon, required String title, required String desc}) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(8),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(color: const Color(0xFFf1f5f9)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _kOrange.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: _kOrange, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0f172a),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    desc,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildFormPanel({double padding = 60}) => Container(
+        color: Colors.white,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(padding),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: _buildForm(),
+            ),
+          ),
+        ),
+      );
 
   Widget _buildForm() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
