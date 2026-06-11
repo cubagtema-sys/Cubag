@@ -74,7 +74,6 @@ class MobileMenuPage extends StatelessWidget {
         _buildSection(context, 'MAIN', [
           _MenuItem('Dashboard', Icons.home_rounded, '/dashboard'),
           _MenuItem('Announcements', Icons.campaign_rounded, '/announcements'),
-          _MenuItem('Notifications', Icons.notifications_rounded, '/notifications'),
         ]),
         _buildSection(context, 'SERVICES', [
           _MenuItem('Payments', Icons.account_balance_wallet_rounded, '/payments'),

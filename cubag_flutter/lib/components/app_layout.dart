@@ -360,7 +360,6 @@ class _AppLayoutState extends State<AppLayout> {
         _buildSection(context, 'MAIN', currentRoute, [
           _NavItemData('Dashboard', Icons.home_rounded, '/dashboard'),
           _NavItemData('Announcements', Icons.campaign_rounded, '/announcements'),
-          _NavItemData('Notifications', Icons.notifications_rounded, '/notifications'),
         ]),
         _buildSection(context, 'SERVICES', currentRoute, [
           _NavItemData('Payments', Icons.account_balance_wallet_rounded, '/payments'),
