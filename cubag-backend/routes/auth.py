@@ -629,11 +629,11 @@ def update_fcm_token():
 
 
 def send_reset_email(to_email, token):
-    # BUG-B11/B12 fix: strip trailing #/ from CLIENT_URL before building link
-    client_url = os.getenv('CLIENT_URL', '').rstrip('/#')
-    if not client_url:
-        logger.error('[send_reset_email] CLIENT_URL env var is not set!')
-        return False
+    client_url = os.getenv('CLIENT_URL', '')
+    if not client_url or 'localhost' in client_url or '127.0.0.1' in client_url:
+        client_url = 'https://cubag-web-app.onrender.com'
+    
+    client_url = client_url.rstrip('/#')
     reset_link = f'{client_url}/#/reset-password?token={token}&email={to_email}'
     subject   = 'Reset your CUBAG Password'
     body_text = (
