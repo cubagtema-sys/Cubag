@@ -285,7 +285,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
           width: double.infinity,
           constraints: BoxConstraints(
             maxWidth: 600,
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
           ),
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
@@ -298,9 +298,31 @@ class _NetworkingPageState extends State<NetworkingPage> {
                 width: 40, height: 4, margin: const EdgeInsets.only(top: 12),
                 decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
               ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Member Details',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0f172a),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748b)),
+                      onPressed: () => Navigator.pop(ctx),
+                      splashRadius: 20,
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFf1f5f9)),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                   child: _buildDetailSheet(primary),
                 ),
               ),
@@ -328,20 +350,20 @@ class _NetworkingPageState extends State<NetworkingPage> {
               child: Material(
                 type: MaterialType.transparency,
                 child: CircleAvatar(
-                  radius: 30,
+                  radius: 24,
                   backgroundColor: color.withAlpha(20),
                   child: Text(
                     initials,
                     style: TextStyle(
                       color: color,
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontSize: 14,
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,13 +372,13 @@ class _NetworkingPageState extends State<NetworkingPage> {
                     m['name']?.toString() ?? '',
                     style: GoogleFonts.outfit(
                       fontWeight: FontWeight.w800,
-                      fontSize: 18,
+                      fontSize: 15,
                       color: const Color(0xFF0f172a),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: color.withAlpha(20),
                       borderRadius: BorderRadius.circular(20),
@@ -364,7 +386,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
                     child: Text(
                       (m['member_type']?.toString() ?? '').toUpperCase(),
                       style: TextStyle(
-                        fontSize: 9,
+                        fontSize: 8,
                         color: color,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,
@@ -376,7 +398,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
             ),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         // Info Rows
         ...([
@@ -387,8 +409,8 @@ class _NetworkingPageState extends State<NetworkingPage> {
           {'icon': Icons.phone_outlined, 'label': 'Phone Number', 'val': m['phone']},
         ].where((r) => r['val'] != null && r['val'].toString().isNotEmpty)).map((row) {
           return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: const Color(0xFFf8fafc),
               borderRadius: BorderRadius.circular(12),
@@ -397,15 +419,15 @@ class _NetworkingPageState extends State<NetworkingPage> {
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
                     color: color.withAlpha(15),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(row['icon'] as IconData, color: color, size: 18),
+                  child: Icon(row['icon'] as IconData, color: color, size: 15),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +435,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
                       Text(
                         row['label'].toString().toUpperCase(),
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 8,
                           color: Colors.grey.shade500,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
@@ -423,7 +445,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
                       Text(
                         row['val'].toString(),
                         style: GoogleFonts.outfit(
-                          fontSize: 14,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF1e293b),
                         ),
@@ -436,7 +458,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
           );
         }),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
@@ -457,18 +479,18 @@ class _NetworkingPageState extends State<NetworkingPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _kOrange,
                   foregroundColor: Colors.white,
-                  minimumSize: const Size(0, 48),
+                  minimumSize: const Size(0, 38),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   elevation: 0,
                 ),
-                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
                 label: Text(
                   'Message',
                   style: GoogleFonts.outfit(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -478,19 +500,19 @@ class _NetworkingPageState extends State<NetworkingPage> {
               child: OutlinedButton.icon(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 48),
+                  minimumSize: const Size(0, 38),
                   side: const BorderSide(color: Color(0xFFcbd5e1), width: 1.5),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   foregroundColor: const Color(0xFF475569),
                 ),
-                icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                icon: const Icon(Icons.mail_outline_rounded, size: 16),
                 label: Text(
                   'Email',
                   style: GoogleFonts.outfit(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -524,24 +546,7 @@ class _NetworkingPageState extends State<NetworkingPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Member Directory',
-                  style: GoogleFonts.outfit(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0f172a),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Search and connect with CUBAG certified professionals.',
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFF64748b),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
 
                 // Search Bar
                 Container(
