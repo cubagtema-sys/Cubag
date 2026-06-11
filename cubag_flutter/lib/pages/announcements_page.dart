@@ -234,293 +234,300 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
         child: SingleChildScrollView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Search Input Box
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFf1f5f9),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: TextFormField(
-                  controller: _searchCtrl,
-                  onChanged: (val) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'Search circulars by title or keyword...',
-                    hintStyle: const TextStyle(color: Color(0xFF94a3b8), fontSize: 14),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94a3b8)),
-                    suffixIcon: _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, color: Color(0xFF94a3b8)),
-                            onPressed: () => setState(() {
-                              _searchCtrl.clear();
-                            }),
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Filter Chips
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: categories.map((c) => _buildFilterChip(c)).toList(),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Header Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    searchQuery.isNotEmpty
-                        ? 'SEARCH RESULTS (${filtered.length})'
-                        : 'LATEST CIRCULARS (${filtered.length})',
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                      color: const Color(0xFF64748b),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  if (unread > 0)
-                    TextButton.icon(
-                      onPressed: _markAllRead,
-                      icon: const Icon(Icons.done_all_rounded, size: 16),
-                      label: const Text('Mark All Read', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _kOrange,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Search Input Box
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFf1f5f9),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: TextFormField(
+                        controller: _searchCtrl,
+                        onChanged: (val) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'Search circulars by title or keyword...',
+                          hintStyle: const TextStyle(color: Color(0xFF94a3b8), fontSize: 14),
+                          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94a3b8)),
+                          suffixIcon: _searchCtrl.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded, color: Color(0xFF94a3b8)),
+                                  onPressed: () => setState(() {
+                                    _searchCtrl.clear();
+                                  }),
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-              // Announcements List
-              if (_loading)
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: 8,
-                  separatorBuilder: (ctx, i) => const SizedBox(height: 16),
-                  itemBuilder: (ctx, i) => const ShimmerListTile(),
-                )
-              else if (filtered.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    // Filter Chips
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: categories.map((c) => _buildFilterChip(c)).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Header Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFf8fafc),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.campaign_outlined,
-                            size: 48,
-                            color: Color(0xFFcbd5e1),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No Circulars Found',
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF475569),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
                         Text(
                           searchQuery.isNotEmpty
-                              ? 'Try refining your keywords or clearing the search query.'
-                              : 'There are no active circulars posted in this category.',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
+                              ? 'SEARCH RESULTS (${filtered.length})'
+                              : 'LATEST CIRCULARS (${filtered.length})',
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.w800,
                             fontSize: 13,
-                            color: Color(0xFF94a3b8),
-                            height: 1.4,
+                            color: const Color(0xFF64748b),
+                            letterSpacing: 0.5,
                           ),
                         ),
-                        if (searchQuery.isNotEmpty || _filter != 'All') ...[
-                          const SizedBox(height: 20),
-                          OutlinedButton(
-                            onPressed: () => setState(() {
-                              _searchCtrl.clear();
-                              _filter = 'All';
-                            }),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFFcbd5e1)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Reset Filters',
-                              style: TextStyle(
-                                color: Color(0xFF475569),
-                                fontWeight: FontWeight.bold,
-                              ),
+                        if (unread > 0)
+                          TextButton.icon(
+                            onPressed: _markAllRead,
+                            icon: const Icon(Icons.done_all_rounded, size: 16),
+                            label: const Text('Mark All Read', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: _kOrange,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             ),
                           ),
-                        ],
                       ],
                     ),
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 16),
-                  itemBuilder: (context, i) {
-                    final a = filtered[i];
-                    final isRead = a['is_read'] == true;
-                    final isExpanded = _expanded.contains(a['id']);
-                    final category = a['category'] ?? a['type'] ?? 'General';
-                    final dateStr = _formatDate(a['created_at']);
+                    const SizedBox(height: 16),
 
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border(
-                          left: BorderSide(
-                            color: isRead ? const Color(0xFFcbd5e1).withAlpha(120) : _kOrange,
-                            width: isRead ? 1.5 : 4.5,
-                          ),
-                          top: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
-                          right: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
-                          bottom: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(isRead ? 6 : 12),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Theme(
-                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                        child: ExpansionTile(
-                          key: PageStorageKey(a['id']),
-                          initiallyExpanded: isExpanded,
-                          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          childrenPadding: EdgeInsets.zero,
-                          onExpansionChanged: (expanded) => _toggleExpand(a['id'], isRead),
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: (isRead ? const Color(0xFFf1f5f9) : _kOrange.withAlpha(20)),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              _categoryIcon(category),
-                              color: isRead ? const Color(0xFF64748b) : _kOrange,
-                              size: 20,
-                            ),
-                          ),
-                          title: Row(
+                    // Announcements List
+                    if (_loading)
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: 8,
+                        separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+                        itemBuilder: (ctx, i) => const ShimmerListTile(),
+                      )
+                    else if (filtered.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _categoryBadge(category),
-                              const Spacer(),
-                              if (dateStr.isNotEmpty)
-                                Text(
-                                  dateStr,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF94a3b8),
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFf8fafc),
+                                  shape: BoxShape.circle,
                                 ),
-                            ],
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              a['title'] ?? '',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: isRead ? FontWeight.w700 : FontWeight.w900,
-                                color: const Color(0xFF0f172a),
+                                child: const Icon(
+                                  Icons.campaign_outlined,
+                                  size: 48,
+                                  color: Color(0xFFcbd5e1),
+                                ),
                               ),
-                            ),
-                          ),
-                          trailing: Icon(
-                            isExpanded
-                                ? Icons.keyboard_arrow_up_rounded
-                                : Icons.keyboard_arrow_down_rounded,
-                            color: const Color(0xFF94a3b8),
-                          ),
-                          children: [
-                            const Divider(height: 1, color: Color(0xFFf1f5f9)),
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    a['body'] ?? a['content'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFF334155),
-                                      height: 1.5,
+                              const SizedBox(height: 16),
+                              Text(
+                                'No Circulars Found',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF475569),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                searchQuery.isNotEmpty
+                                    ? 'Try refining your keywords or clearing the search query.'
+                                    : 'There are no active circulars posted in this category.',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF94a3b8),
+                                  height: 1.4,
+                                ),
+                              ),
+                              if (searchQuery.isNotEmpty || _filter != 'All') ...[
+                                const SizedBox(height: 20),
+                                OutlinedButton(
+                                  onPressed: () => setState(() {
+                                    _searchCtrl.clear();
+                                    _filter = 'All';
+                                  }),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Color(0xFFcbd5e1)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.person_pin_rounded,
-                                        size: 14,
-                                        color: Color(0xFF94a3b8),
-                                      ),
-                                      const SizedBox(width: 6),
+                                  child: const Text(
+                                    'Reset Filters',
+                                    style: TextStyle(
+                                      color: Color(0xFF475569),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 16),
+                        itemBuilder: (context, i) {
+                          final a = filtered[i];
+                          final isRead = a['is_read'] == true;
+                          final isExpanded = _expanded.contains(a['id']);
+                          final category = a['category'] ?? a['type'] ?? 'General';
+                          final dateStr = _formatDate(a['created_at']);
+
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border(
+                                left: BorderSide(
+                                  color: isRead ? const Color(0xFFcbd5e1).withAlpha(120) : _kOrange,
+                                  width: isRead ? 1.5 : 4.5,
+                                ),
+                                top: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+                                right: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+                                bottom: BorderSide(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(isRead ? 6 : 12),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: Theme(
+                              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                              child: ExpansionTile(
+                                key: PageStorageKey(a['id']),
+                                initiallyExpanded: isExpanded,
+                                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                childrenPadding: EdgeInsets.zero,
+                                onExpansionChanged: (expanded) => _toggleExpand(a['id'], isRead),
+                                leading: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: (isRead ? const Color(0xFFf1f5f9) : _kOrange.withAlpha(20)),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _categoryIcon(category),
+                                    color: isRead ? const Color(0xFF64748b) : _kOrange,
+                                    size: 20,
+                                  ),
+                                ),
+                                title: Row(
+                                  children: [
+                                    _categoryBadge(category),
+                                    const Spacer(),
+                                    if (dateStr.isNotEmpty)
                                       Text(
-                                        'Posted by: ${a['posted_by'] ?? 'CUBAG Secretariat'}',
+                                        dateStr,
                                         style: const TextStyle(
                                           fontSize: 11,
-                                          color: Color(0xFF64748b),
-                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF94a3b8),
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                    ],
+                                  ],
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    a['title'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: isRead ? FontWeight.w700 : FontWeight.w900,
+                                      color: const Color(0xFF0f172a),
+                                    ),
+                                  ),
+                                ),
+                                trailing: Icon(
+                                  isExpanded
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                  color: const Color(0xFF94a3b8),
+                                ),
+                                children: [
+                                  const Divider(height: 1, color: Color(0xFFf1f5f9)),
+                                  Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          a['body'] ?? a['content'] ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFF334155),
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.person_pin_rounded,
+                                              size: 14,
+                                              color: Color(0xFF94a3b8),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Posted by: ${a['posted_by'] ?? 'CUBAG Secretariat'}',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Color(0xFF64748b),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
+                          );
+                        },
+                      ),
+
+                    if (_loadingMore)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: _kOrange,
+                          ),
                         ),
                       ),
-                    );
-                  },
+                  ],
                 ),
-
-              if (_loadingMore)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: _kOrange,
-                    ),
-                  ),
-                ),
-            ],
+              ),
+            ),
           ),
         ),
       ),
