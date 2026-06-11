@@ -79,7 +79,8 @@ class _SettingsPageState extends State<SettingsPage> {
     return AppLayout(
       title: 'Account Settings',
       scrollable: false,
-      child: Center(
+      child: Align(
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: Padding(
