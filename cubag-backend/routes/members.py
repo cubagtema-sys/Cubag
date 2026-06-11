@@ -148,6 +148,19 @@ def get_license_history():
             if not member:
                 return jsonify({'message': 'Member not found'}), 404
 
+            # Auto-heal license number if active but has none/pending/none string
+            status = str(member.get('status')).lower()
+            lic_num = member.get('license_number')
+            if status == 'active' and (not lic_num or str(lic_num).lower() in ('pending', 'none', 'n/a', '')):
+                import datetime
+                year = datetime.datetime.now().year
+                new_license = f"CUBAG-LIC-{year}-{member_id:04d}"
+                cursor.execute("UPDATE members SET license_number = %s WHERE id = %s", (new_license, member_id))
+                conn.commit()
+                # Update in local dict
+                member = dict(member)
+                member['license_number'] = new_license
+
         # Always build a history entry from the member's current record.
         # A record is considered "submitted" if payment_ref is set OR status is active/pending.
         history = []
@@ -426,6 +439,20 @@ def get_member(member_id):
                 return jsonify({'message': 'Member not found'}), 404
 
             if is_owner or is_admin:
+                # Auto-heal license number if active but has none/pending/none string
+                status = str(member.get('status')).lower()
+                lic_num = member.get('license_number')
+                if status == 'active' and (not lic_num or str(lic_num).lower() in ('pending', 'none', 'n/a', '')):
+                    import datetime
+                    year = datetime.datetime.now().year
+                    new_license = f"CUBAG-LIC-{year}-{member_id:04d}"
+                    cursor.execute("UPDATE members SET license_number = %s WHERE id = %s", (new_license, member_id))
+                    # Update local dict
+                    result_member = dict(member)
+                    result_member['license_number'] = new_license
+                else:
+                    result_member = dict(member)
+
                 from utils import calculate_and_update_member_rating
                 rating_data = calculate_and_update_member_rating(member_id, cursor)
                 cursor.execute("""
@@ -439,7 +466,7 @@ def get_member(member_id):
                      'recorded_at': str(h['recorded_at'])}
                     for h in cursor.fetchall()
                 ]
-                result = dict(member)
+                result = result_member
                 result['compliance_score']    = rating_data['compliance_score']
                 result['star_rating']          = rating_data['star_rating']
                 result['manual_review_score']  = rating_data['manual_review_score']
@@ -526,11 +553,23 @@ def download_certificate_pdf(member_id):
             """, (member_id,))
             member = cursor.fetchone()
 
-        if not member:
-            return "Member not found", 404
+            if not member:
+                return "Member not found", 404
 
-        if str(member['status']).lower() != 'active':
-            return "Certificate only available for active members", 403
+            if str(member['status']).lower() != 'active':
+                return "Certificate only available for active members", 403
+
+            # Auto-heal license number if active but has none/pending/none string
+            lic_num = member.get('license_number')
+            if not lic_num or str(lic_num).lower() in ('pending', 'none', 'n/a', ''):
+                import datetime
+                year = datetime.datetime.now().year
+                new_license = f"CUBAG-LIC-{year}-{member_id:04d}"
+                cursor.execute("UPDATE members SET license_number = %s WHERE id = %s", (new_license, member_id))
+                conn.commit()
+                # Update local dictionary
+                member = dict(member)
+                member['license_number'] = new_license
 
         # Create highly designed PDF in memory
         from reportlab.pdfgen import canvas

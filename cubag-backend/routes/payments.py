@@ -488,7 +488,20 @@ def _mark_payment_as_paid(payment_id):
                 license_issued = True
             else:
                 # Regular payment, just ensure they are active if they were pending
-                cursor.execute("UPDATE members SET status = 'active' WHERE id = %s AND status = 'pending'", (member_id,))
+                cursor.execute("SELECT license_number FROM members WHERE id = %s", (member_id,))
+                member_row = cursor.fetchone()
+                license_number = member_row['license_number'] if member_row else None
+                if not license_number or str(license_number).lower() in ('pending', 'none', 'n/a', ''):
+                    import datetime
+                    year = now.year
+                    license_number = f"CUBAG-LIC-{year}-{member_id:04d}"
+                    cursor.execute("""
+                        UPDATE members 
+                        SET status = 'active', license_number = %s 
+                        WHERE id = %s AND status = 'pending'
+                    """, (license_number, member_id))
+                else:
+                    cursor.execute("UPDATE members SET status = 'active' WHERE id = %s AND status = 'pending'", (member_id,))
 
             conn.commit()
 
