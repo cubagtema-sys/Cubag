@@ -1,10 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
 import '../components/fetch_error_view.dart';
 import '../components/shimmer_loader.dart';
+
+const _kOrange = Color(0xFFf08232);
+const _kGreen  = Color(0xFF10b981);
+const _kAmber  = Color(0xFFf59e0b);
+const _kRed    = Color(0xFFef4444);
 
 class AdminPaymentsPage extends StatefulWidget {
   const AdminPaymentsPage({super.key});
@@ -46,7 +52,13 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
       _page = page;
     } else if (refresh) _page = 1;
 
-    setState(() { _loading = true; _hasError = false; if (refresh || page != null) _transactions = []; });
+    setState(() { 
+      _loading = true; 
+      _hasError = false; 
+      if (refresh || page != null) {
+        _transactions = []; 
+      }
+    });
     
     await ApiService().fetchDataWithCache('/payments/admin/all?page=$_page&limit=20&search=$_search&status=$_filterStatus', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
@@ -84,10 +96,10 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg),
-        backgroundColor: const Color(0xFF10b981),
+        content: Text(msg, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
+        backgroundColor: _kGreen,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -117,39 +129,44 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
     if (mounted) setState(() => _actionLoading = false);
   }
 
-  /// Show confirmation dialog using Navigator overlay (not inline Stack).
   void _showConfirmDialog(dynamic txId, double amount, String memberName) {
-    final primary = Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1e293b) : Colors.white;
+    final textColor = isDark ? const Color(0xFFf8fafc) : const Color(0xFF0f172a);
+    final subTextColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF475569);
+
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (ctx) => AlertDialog(
+        backgroundColor: cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.all(24),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             width: 56, height: 56,
-            decoration: const BoxDecoration(color: Color(0x1910b981), shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle, color: Color(0xFF10b981), size: 28),
+            decoration: BoxDecoration(color: _kGreen.withValues(alpha: 0.15), shape: BoxShape.circle),
+            child: const Icon(Icons.check_circle_rounded, color: _kGreen, size: 28),
           ),
           const SizedBox(height: 16),
-          const Text('Confirm Payment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text('Confirm Payment', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
           const SizedBox(height: 8),
           Text(
             'Mark ₵${amount.toStringAsFixed(2)} from $memberName as RECEIVED?\nThis will update the member\'s balance.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            style: GoogleFonts.outfit(color: subTextColor, fontSize: 13),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Row(children: [
             Expanded(
               child: OutlinedButton(
                 onPressed: () => Navigator.of(ctx).pop(),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 48),
+                  side: BorderSide(color: subTextColor.withValues(alpha: 0.3)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text('Cancel', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor)),
               ),
             ),
             const SizedBox(width: 12),
@@ -160,12 +177,12 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
                   _markPaid(txId);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primary,
+                  backgroundColor: _kGreen,
                   elevation: 0,
                   minimumSize: const Size(0, 48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text('Confirm', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ]),
@@ -174,11 +191,13 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
     );
   }
 
-  /// Show transaction details as a proper bottom sheet (renders above scroll view).
   void _showDetailSheet(Map<String, dynamic> tx) {
-    final primary = Theme.of(context).primaryColor;
     final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
     final status = tx['status']?.toString() ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1e293b) : Colors.white;
+    final textColor = isDark ? const Color(0xFFf8fafc) : const Color(0xFF0f172a);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0);
 
     showModalBottomSheet(
       context: context,
@@ -186,16 +205,16 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: cardBg,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 20, offset: const Offset(0, -4))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, -4))],
         ),
         padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 40),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Handle bar
           Center(child: Container(
             width: 40, height: 4,
-            decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: borderColor, borderRadius: BorderRadius.circular(2)),
           )),
           const SizedBox(height: 16),
 
@@ -203,29 +222,34 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
           Row(children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: primary.withAlpha(20), borderRadius: BorderRadius.circular(12)),
-              child: Icon(Icons.receipt_long, color: primary, size: 22),
+              decoration: BoxDecoration(color: _kOrange.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+              child: const Icon(Icons.receipt_long_rounded, color: _kOrange, size: 22),
             ),
             const SizedBox(width: 12),
-            const Expanded(child: Text('Transaction Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-            IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.of(ctx).pop()),
+            Expanded(child: Text('Transaction Details', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: textColor))),
+            IconButton(icon: Icon(Icons.close_rounded, size: 20, color: textColor), onPressed: () => Navigator.of(ctx).pop()),
           ]),
-          const SizedBox(height: 4),
-          const Divider(),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          Divider(color: borderColor),
+          const SizedBox(height: 12),
 
           // Amount + Status hero
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [primary, primary.withValues(alpha: 0.7)]),
-              borderRadius: BorderRadius.circular(14),
+              gradient: LinearGradient(
+                colors: isDark ? [const Color(0xFF1e293b), const Color(0xFF0f172a)] : [_kOrange, const Color(0xFFea580c)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: isDark ? Border.all(color: borderColor) : null,
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1)),
+              Text('AMOUNT', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1)),
               const SizedBox(height: 4),
-              Text('₵${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'monospace')),
+              Text('₵${amount.toStringAsFixed(2)}', style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 8),
               _StatusBadge(status: status),
             ]),
@@ -241,7 +265,7 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
             ['Date',           tx['date']?.toString() ?? '—'],
           ].map((row) => _DetailRow(label: row[0], value: row[1])),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           // Close button
           SizedBox(
@@ -249,11 +273,11 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
             child: ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
+                backgroundColor: _kOrange,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+              child: Text('Close', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ]),
@@ -261,17 +285,22 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
     );
   }
 
-  Map<String, dynamic> _statusMeta(String status) {
+  Color _statusColor(String status) {
     switch (status) {
-      case 'paid':    return {'color': const Color(0xFF10b981), 'bg': const Color(0x1910b981)};
-      case 'pending': return {'color': const Color(0xFFf59e0b), 'bg': const Color(0x19f59e0b)};
-      default:        return {'color': const Color(0xFFef4444), 'bg': const Color(0x19ef4444)};
+      case 'paid':    return _kGreen;
+      case 'pending': return _kAmber;
+      default:        return _kRed;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1e293b) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0);
+    final textColor = isDark ? const Color(0xFFf8fafc) : const Color(0xFF0f172a);
+    final subTextColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF475569);
+
     final revenue = double.tryParse(_kpis['revenue']?.toString() ?? '0') ?? 0;
 
     return AppLayout(
@@ -283,24 +312,32 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
           // Revenue Banner
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [primary, primary.withValues(alpha: 0.7)]),
-              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                colors: isDark ? [const Color(0xFF1e293b), const Color(0xFF0f172a)] : [_kOrange, const Color(0xFFea580c)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: isDark ? Border.all(color: borderColor) : null,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10, offset: const Offset(0, 4))
+              ],
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('TOTAL REVENUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1)),
-              const SizedBox(height: 4),
-              Text('₵${revenue.toStringAsFixed(2)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'monospace')),
+              Text('TOTAL REVENUE', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1)),
               const SizedBox(height: 6),
+              Text('₵${revenue.toStringAsFixed(2)}', style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 12),
               Row(children: [
-                _KpiChip(label: 'Pending', value: _kpis['pending']?.toString() ?? '0', color: const Color(0xFFf59e0b)),
+                _KpiChip(label: 'Pending', value: _kpis['pending']?.toString() ?? '0', color: _kAmber),
                 const SizedBox(width: 10),
-                _KpiChip(label: 'Failed', value: _kpis['failed']?.toString() ?? '0', color: const Color(0xFFef4444)),
+                _KpiChip(label: 'Failed', value: _kpis['failed']?.toString() ?? '0', color: _kRed),
               ]),
             ]),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Search + Filter row
           Row(children: [
@@ -308,23 +345,25 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
               flex: 3,
               child: TextField(
                 onChanged: _onSearchChanged,
-                style: const TextStyle(fontSize: 13),
+                style: GoogleFonts.outfit(fontSize: 13, color: textColor),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                  prefixIcon: Icon(Icons.search_rounded, color: subTextColor, size: 18),
                   hintText: 'Search by name or description...',
-                  hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+                  hintStyle: GoogleFonts.outfit(fontSize: 13, color: subTextColor),
+                  filled: true,
+                  fillColor: cardBg,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _kOrange, width: 2)),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               flex: 2,
               child: CustomDropdown<String>(
                 value: _filterStatus,
-                prefixIcon: const Icon(Icons.payments_outlined, size: 16, color: Color(0xFF64748b)),
+                prefixIcon: Icon(Icons.payments_outlined, size: 16, color: subTextColor),
                 items: const [
                   DropdownItem(value: 'all',     label: 'All Statuses'),
                   DropdownItem(value: 'paid',    label: 'Paid'),
@@ -335,7 +374,7 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
               ),
             ),
           ]),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Transaction Cards
           if (_loading)
@@ -350,86 +389,98 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
             FetchErrorView(onRetry: () => _fetch(refresh: true))
           else if (_transactions.isEmpty)
             Container(
-              padding: const EdgeInsets.all(40),
+              padding: const EdgeInsets.all(48),
               alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor),
+              ),
               child: Column(children: [
-                Icon(Icons.payments_outlined, size: 48, color: Colors.grey.shade300),
+                Icon(Icons.payments_outlined, size: 48, color: subTextColor.withValues(alpha: 0.5)),
                 const SizedBox(height: 12),
-                const Text('No payment records found.', style: TextStyle(color: Colors.grey)),
+                Text('No payment records found.', style: GoogleFonts.outfit(color: subTextColor, fontWeight: FontWeight.bold)),
               ]),
             )
           else
             ..._transactions.map((tx) {
-              final sm     = _statusMeta(tx['status']?.toString() ?? '');
+              final status = tx['status']?.toString() ?? '';
+              final color = _statusColor(status);
               final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
               return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10, offset: const Offset(0, 4))
+                  ],
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     // Avatar initials
                     Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(color: primary.withAlpha(20), shape: BoxShape.circle),
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(color: _kOrange.withValues(alpha: 0.15), shape: BoxShape.circle),
                       child: Center(child: Text(
                         (tx['member_name']?.toString() ?? '?').substring(0, 1).toUpperCase(),
-                        style: TextStyle(fontWeight: FontWeight.bold, color: primary, fontSize: 16),
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: _kOrange, fontSize: 18),
                       )),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(tx['member_name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
-                      Text('ID: ${tx['tx_id']?.toString() ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(tx['member_name']?.toString() ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: textColor), overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text('ID: ${tx['tx_id']?.toString() ?? ''}', style: GoogleFonts.outfit(fontSize: 11, color: subTextColor, fontWeight: FontWeight.w500)),
                     ])),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text('₵${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 2),
+                      Text('₵${amount.toStringAsFixed(2)}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                      const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: sm['bg'] as Color, borderRadius: BorderRadius.circular(4)),
-                        child: Text((tx['status']?.toString() ?? '').toUpperCase(), style: TextStyle(fontSize: 9, color: sm['color'] as Color, fontWeight: FontWeight.bold)),
+                        decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+                        child: Text(status.toUpperCase(), style: GoogleFonts.outfit(fontSize: 10, color: color, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                       ),
                     ]),
                   ]),
                   if ((tx['description']?.toString() ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(8)),
-                      child: Text(tx['description'].toString(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      padding: const EdgeInsets.all(10),
+                      width: double.infinity,
+                      decoration: BoxDecoration(color: isDark ? const Color(0xFF0f172a).withValues(alpha: 0.4) : const Color(0xFFf8fafc), borderRadius: BorderRadius.circular(8)),
+                      child: Text(tx['description'].toString(), style: GoogleFonts.outfit(fontSize: 12, color: subTextColor)),
                     ),
                   ],
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
                   Row(children: [
-                    if (tx['status'] == 'pending')
+                    if (status == 'pending')
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _actionLoading ? null : () => _showConfirmDialog(tx['tx_id'], amount, tx['member_name']?.toString() ?? ''),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: primary,
+                            backgroundColor: _kGreen,
                             elevation: 0,
-                            minimumSize: const Size(0, 40),
+                            minimumSize: const Size(0, 44),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
-                          label: const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+                          label: Text('Approve', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
                         ),
                       ),
-                    if (tx['status'] == 'pending') const SizedBox(width: 8),
+                    if (status == 'pending') const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _showDetailSheet(Map<String, dynamic>.from(tx)),
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 40),
+                          minimumSize: const Size(0, 44),
+                          side: BorderSide(color: borderColor),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        icon: const Icon(Icons.open_in_new, size: 15),
-                        label: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                        icon: Icon(Icons.open_in_new_rounded, size: 16, color: textColor),
+                        label: Text('View Details', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor)),
                       ),
                     ),
                   ]),
@@ -439,23 +490,53 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
             
             // Pagination Controls
             if (!_loading && (_page > 1 || _hasMore))
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: _page > 1 ? () => _fetch(page: _page - 1) : null,
-                      color: primary,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _page > 1 ? cardBg : Colors.transparent,
+                        border: Border.all(color: _page > 1 ? borderColor : borderColor.withValues(alpha: 0.3)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: IconButton(
+                        onPressed: _page > 1 ? () => _fetch(page: _page - 1) : null,
+                        icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                        color: _kOrange,
+                        disabledColor: subTextColor.withValues(alpha: 0.4),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Text('Page $_page', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: _hasMore ? () => _fetch(page: _page + 1) : null,
-                      color: primary,
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        border: Border.all(color: borderColor),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.01), blurRadius: 4),
+                        ],
+                      ),
+                      child: Text(
+                        'Page $_page', 
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _hasMore ? cardBg : Colors.transparent,
+                        border: Border.all(color: _hasMore ? borderColor : borderColor.withValues(alpha: 0.3)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: IconButton(
+                        onPressed: _hasMore ? () => _fetch(page: _page + 1) : null,
+                        icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                        color: _kOrange,
+                        disabledColor: subTextColor.withValues(alpha: 0.4),
+                      ),
                     ),
                   ],
                 ),
@@ -463,8 +544,11 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
               
             if (!_loading && _transactions.isNotEmpty) 
               Center(child: Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: Text('Showing ${_transactions.length} payments${_total > 0 ? " of $_total" : ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                padding: const EdgeInsets.only(bottom: 32),
+                child: Text(
+                  'Showing ${_transactions.length} payments${_total > 0 ? " of $_total" : ""}', 
+                  style: GoogleFonts.outfit(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500),
+                ),
               )),
         ]),
       )
@@ -479,17 +563,10 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    Color bg;
-    switch (status) {
-      case 'paid':    color = const Color(0xFF10b981); bg = const Color(0x4010b981); break;
-      case 'pending': color = const Color(0xFFf59e0b); bg = const Color(0x40f59e0b); break;
-      default:        color = const Color(0xFFef4444); bg = const Color(0x40ef4444);
-    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-      child: Text(status.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color, letterSpacing: 0.5)),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+      child: Text(status.toUpperCase(), style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.5)),
     );
   }
 }
@@ -502,14 +579,18 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? const Color(0xFFf8fafc) : const Color(0xFF0f172a);
+    final subTextColor = isDark ? const Color(0xFF94a3b8) : const Color(0xFF475569);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(
           width: 110,
-          child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94a3b8))),
+          child: Text(label, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: subTextColor)),
         ),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0f172a)))),
+        Expanded(child: Text(value, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: textColor))),
       ]),
     );
   }
@@ -525,12 +606,12 @@ class _KpiChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: Colors.white.withAlpha(30), borderRadius: BorderRadius.circular(20)),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 5),
-        Text('$value $label', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text('$value $label', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
       ]),
     );
   }
