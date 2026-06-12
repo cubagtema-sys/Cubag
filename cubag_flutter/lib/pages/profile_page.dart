@@ -429,7 +429,8 @@ class _ProfilePageState extends State<ProfilePage> {
               filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
                 color: const Color(0xFF020617).withValues(alpha: 0.85),
-                child: Center(
+                child: Align(
+                  alignment: const Alignment(0, -0.3),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
                     child: ConstrainedBox(
