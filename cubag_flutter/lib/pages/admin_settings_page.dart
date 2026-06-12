@@ -76,7 +76,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
       _settingsMessage = '';
     });
     try {
-      final res = await ApiService().putData('compliance-settings', {
+      final res = await ApiService().put('/compliance-settings', data: {
         'payment_punctual': int.tryParse(_payPunctualCtrl.text) ?? 25,
         'payment_history': int.tryParse(_payHistoryCtrl.text) ?? 15,
         'license_active': int.tryParse(_licActiveCtrl.text) ?? 15,
