@@ -542,7 +542,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                                 Text(
                                                   'CUBAG',
                                                   style: GoogleFonts.outfit(
-                                                    fontWeight: FontWeight.extrabold,
+                                                    fontWeight: FontWeight.w800,
                                                     fontSize: 18,
                                                     color: const Color(0xFF0F172A),
                                                     letterSpacing: 1,
@@ -938,7 +938,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       'SCAN AT CHECKPOINTS',
                                       style: GoogleFonts.outfit(
                                         fontSize: 10,
-                                        fontWeight: FontWeight.extrabold,
+                                        fontWeight: FontWeight.w800,
                                         color: const Color(0xFFf08232),
                                         letterSpacing: 1,
                                       ),
@@ -986,9 +986,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ),
-              ),
             ),
-          )),
+          ),
       ]),
     );
   }
