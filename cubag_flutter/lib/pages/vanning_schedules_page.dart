@@ -447,6 +447,7 @@ class _VanningSchedulesPageState extends State<VanningSchedulesPage> {
 
     return AppLayout(
       title: 'Vanning Schedules',
+      scrollable: false,
       child: RefreshIndicator(
         onRefresh: _fetch,
         color: primary,
