@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
     final authenticated = await _bioService.authenticate();
-    if (!authenticated) return;
+    if (!authenticated || !mounted) return;
 
     setState(() { _loading = true; _error = null; });
     final authService = Provider.of<AuthService>(context, listen: false);

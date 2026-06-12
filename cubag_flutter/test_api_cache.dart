@@ -7,7 +7,7 @@ void main() async {
   SharedPreferences.setMockInitialValues({});
   
   final api = ApiService();
-  await api.fetchDataWithCache('/announcements?page=1&limit=2', (data, isCached) {
+  await api.fetchDataWithCache('/announcements?page=1&limit=2', (data, isCached, {bool hasError = false}) {
     print('isCached: $isCached');
     print('data: $data');
   });
