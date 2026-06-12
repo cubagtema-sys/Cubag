@@ -6,7 +6,6 @@ import '../components/app_logo.dart';
 
 const _kOrange = Color(0xFFf08232);
 const _kOrangeDark = Color(0xFFd96e1c);
-const _kNavyBg = Color(0xFF070B19);
 const _kNavyCard = Color(0xFF0F172A);
 const _kPurpleGlow = Color(0xFF6366F1);
 
@@ -67,31 +66,31 @@ class _LandingPageState extends State<LandingPage> {
     final isMobile = size.width < 950;
 
     return Scaffold(
-      backgroundColor: _kNavyBg,
+      backgroundColor: const Color(0xFFF8FAFC), // Premium clean off-white
       body: Stack(
         children: [
           // 1. Ambient Glowing Orbs Background
           Positioned(
             top: -150,
             right: -150,
-            child: _AmbientGlow(color: _kOrange.withAlpha(20), size: 550),
+            child: _AmbientGlow(color: _kOrange.withAlpha(12), size: 550),
           ),
           Positioned(
             top: size.height * 0.35,
             left: -150,
-            child: _AmbientGlow(color: _kPurpleGlow.withAlpha(15), size: 450),
+            child: _AmbientGlow(color: Colors.amber.withAlpha(8), size: 450),
           ),
           Positioned(
             bottom: -100,
             right: -50,
-            child: _AmbientGlow(color: Colors.amber.withAlpha(12), size: 500),
+            child: _AmbientGlow(color: _kOrange.withAlpha(10), size: 500),
           ),
 
           // 2. High-Tech Grid Overlay
           Positioned.fill(
             child: CustomPaint(
               painter: _GridBackgroundPainter(
-                gridColor: Colors.white.withAlpha(8),
+                gridColor: Colors.black.withAlpha(10),
                 gridSpacing: 50.0,
               ),
             ),
@@ -194,10 +193,10 @@ class _LandingPageState extends State<LandingPage> {
       height: 80,
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       decoration: BoxDecoration(
-        color: _scrolled ? const Color(0xFF070B19).withAlpha(180) : Colors.transparent,
+        color: _scrolled ? Colors.white.withAlpha(225) : Colors.transparent,
         border: Border(
           bottom: BorderSide(
-            color: _scrolled ? Colors.white.withAlpha(20) : Colors.transparent,
+            color: _scrolled ? Colors.black.withAlpha(15) : Colors.transparent,
             width: 1,
           ),
         ),
@@ -218,7 +217,7 @@ class _LandingPageState extends State<LandingPage> {
                     Text(
                       'CUBAG',
                       style: GoogleFonts.outfit(
-                        color: Colors.white,
+                        color: const Color(0xFF0F172A),
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
@@ -245,7 +244,7 @@ class _LandingPageState extends State<LandingPage> {
                       child: Text(
                         'Sign In',
                         style: GoogleFonts.outfit(
-                          color: Colors.white70,
+                          color: const Color(0xFF475569),
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
@@ -278,7 +277,7 @@ class _LandingPageState extends State<LandingPage> {
               else
                 IconButton(
                   onPressed: () => setState(() => _mobileMenuOpen = true),
-                  icon: const Icon(Icons.menu, color: Colors.white, size: 28),
+                  icon: const Icon(Icons.menu, color: Color(0xFF0F172A), size: 28),
                 ),
             ],
           ),
@@ -298,7 +297,7 @@ class _LandingPageState extends State<LandingPage> {
           child: Text(
             text,
             style: GoogleFonts.outfit(
-              color: Colors.white70,
+              color: const Color(0xFF475569),
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -314,7 +313,7 @@ class _LandingPageState extends State<LandingPage> {
       child: GestureDetector(
         onTap: () => setState(() => _mobileMenuOpen = false),
         child: Container(
-          color: Colors.black.withAlpha(200),
+          color: Colors.black.withAlpha(100),
           child: Align(
             alignment: Alignment.centerRight,
             child: GestureDetector(
@@ -324,8 +323,8 @@ class _LandingPageState extends State<LandingPage> {
                 width: 280,
                 height: double.infinity,
                 decoration: const BoxDecoration(
-                  color: _kNavyCard,
-                  border: Border(left: BorderSide(color: Colors.white10)),
+                  color: Colors.white,
+                  border: Border(left: BorderSide(color: Colors.black12)),
                 ),
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -337,7 +336,7 @@ class _LandingPageState extends State<LandingPage> {
                         Text(
                           'NAVIGATION',
                           style: GoogleFonts.outfit(
-                            color: Colors.white38,
+                            color: const Color(0xFF94A3B8),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.0,
@@ -345,7 +344,7 @@ class _LandingPageState extends State<LandingPage> {
                         ),
                         IconButton(
                           onPressed: () => setState(() => _mobileMenuOpen = false),
-                          icon: const Icon(Icons.close, color: Colors.white70),
+                          icon: const Icon(Icons.close, color: Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -354,7 +353,7 @@ class _LandingPageState extends State<LandingPage> {
                     _drawerLink('Key Metrics', () => _scrollTo(_metricsKey)),
                     _drawerLink('Frequently Asked Questions', () => _scrollTo(_faqKey)),
                     const Spacer(),
-                    const Divider(color: Colors.white10),
+                    const Divider(color: Colors.black12),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
@@ -362,8 +361,8 @@ class _LandingPageState extends State<LandingPage> {
                       child: OutlinedButton(
                         onPressed: () => context.go('/login'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white30, width: 2.0),
+                          foregroundColor: _kOrange,
+                          side: const BorderSide(color: _kOrange, width: 2.0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -416,7 +415,7 @@ class _LandingPageState extends State<LandingPage> {
             Text(
               text,
               style: GoogleFonts.outfit(
-                color: Colors.white,
+                color: const Color(0xFF0F172A),
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -441,7 +440,7 @@ class _LandingPageState extends State<LandingPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _kOrange.withAlpha(30),
+                  color: _kOrange.withAlpha(25),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: _kOrange.withAlpha(75)),
                 ),
@@ -476,7 +475,7 @@ class _LandingPageState extends State<LandingPage> {
                     TextSpan(
                       text: 'Empowering Ghana\'s\nCustoms ',
                       style: GoogleFonts.outfit(
-                        color: Colors.white,
+                        color: const Color(0xFF0F172A),
                         fontSize: 56,
                         fontWeight: FontWeight.w900,
                         height: 1.15,
@@ -500,7 +499,7 @@ class _LandingPageState extends State<LandingPage> {
               Text(
                 'Seamlessly orchestrate real-time vessel telemetry, cargo schedules, mobile payments, and unified compliance workflows in Ghana\'s most advanced customs enterprise suite.',
                 style: GoogleFonts.inter(
-                  color: Colors.white60,
+                  color: const Color(0xFF475569),
                   fontSize: 16,
                   height: 1.6,
                 ),
@@ -537,8 +536,8 @@ class _LandingPageState extends State<LandingPage> {
                     child: OutlinedButton(
                       onPressed: () => _scrollTo(_featuresKey),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white30, width: 2.0),
+                        foregroundColor: _kOrange,
+                        side: const BorderSide(color: _kOrange, width: 2.0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -576,7 +575,7 @@ class _LandingPageState extends State<LandingPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: _kOrange.withAlpha(30),
+            color: _kOrange.withAlpha(25),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: _kOrange.withAlpha(75)),
           ),
@@ -612,7 +611,7 @@ class _LandingPageState extends State<LandingPage> {
               TextSpan(
                 text: 'Empowering Ghana\'s\nCustoms ',
                 style: GoogleFonts.outfit(
-                  color: Colors.white,
+                  color: const Color(0xFF0F172A),
                   fontSize: 38,
                   fontWeight: FontWeight.w900,
                   height: 1.15,
@@ -637,7 +636,7 @@ class _LandingPageState extends State<LandingPage> {
           'Seamlessly orchestrate real-time vessel telemetry, cargo schedules, mobile payments, and unified compliance workflows in Ghana\'s most advanced customs enterprise suite.',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
-            color: Colors.white60,
+            color: const Color(0xFF475569),
             fontSize: 14,
             height: 1.6,
           ),
@@ -673,8 +672,8 @@ class _LandingPageState extends State<LandingPage> {
               child: OutlinedButton(
                 onPressed: () => _scrollTo(_featuresKey),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white30, width: 2.0),
+                  foregroundColor: _kOrange,
+                  side: const BorderSide(color: _kOrange, width: 2.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -749,7 +748,7 @@ class _LandingPageState extends State<LandingPage> {
           'Unified Features for Modern Port Logistics',
           textAlign: TextAlign.center,
           style: GoogleFonts.outfit(
-            color: Colors.white,
+            color: const Color(0xFF0F172A),
             fontSize: 32,
             fontWeight: FontWeight.bold,
           ),
@@ -761,7 +760,7 @@ class _LandingPageState extends State<LandingPage> {
             'Everything a customs broker needs to manage schedules, track cargo vessels, pay annual fees, and network with agents at Tema & Takoradi Port.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              color: Colors.white38,
+              color: const Color(0xFF64748B),
               fontSize: 14,
               height: 1.5,
             ),
@@ -841,7 +840,7 @@ class _LandingPageState extends State<LandingPage> {
           'Frequently Asked Questions',
           textAlign: TextAlign.center,
           style: GoogleFonts.outfit(
-            color: Colors.white,
+            color: const Color(0xFF0F172A),
             fontSize: 32,
             fontWeight: FontWeight.bold,
           ),
@@ -874,15 +873,14 @@ class _LandingPageState extends State<LandingPage> {
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 60),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             _kOrange,
             _kOrangeDark,
-            const Color(0xFF5B21B6),
+            Color(0xFFEA580C),
           ],
-          stops: const [0.0, 0.4, 1.0],
         ),
         boxShadow: [
           BoxShadow(
@@ -959,8 +957,7 @@ class _LandingPageState extends State<LandingPage> {
   Widget _buildFooter(bool isMobile) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF030712),
-        border: Border(top: BorderSide(color: Colors.white10)),
+        color: Color(0xFF030712), // Elegant dark slate footer for structured grounding
       ),
       width: double.infinity,
       padding: const EdgeInsets.only(top: 64, bottom: 32, left: 24, right: 24),
@@ -1209,12 +1206,12 @@ class _VesselTrackerMockupState extends State<_VesselTrackerMockup> with SingleT
       width: 290,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _kNavyCard.withAlpha(210),
+        color: Colors.white.withAlpha(240),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withAlpha(25)),
+        border: Border.all(color: Colors.black.withAlpha(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(80),
+            color: Colors.black.withAlpha(15),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -1240,7 +1237,7 @@ class _VesselTrackerMockupState extends State<_VesselTrackerMockup> with SingleT
                   Text(
                     'MSC AMSTERDAM',
                     style: GoogleFonts.outfit(
-                      color: Colors.white,
+                      color: const Color(0xFF0F172A),
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
@@ -1286,25 +1283,25 @@ class _VesselTrackerMockupState extends State<_VesselTrackerMockup> with SingleT
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('SPEED', style: GoogleFonts.outfit(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold)),
+                  Text('SPEED', style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 8, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text('18.4 KTS', style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                  Text('18.4 KTS', style: GoogleFonts.outfit(color: const Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w700)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ETA', style: GoogleFonts.outfit(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold)),
+                  Text('ETA', style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 8, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text('2h 14m', style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                  Text('2h 14m', style: GoogleFonts.outfit(color: const Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w700)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('DRAFT', style: GoogleFonts.outfit(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold)),
+                  Text('DRAFT', style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 8, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text('12.5 M', style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                  Text('12.5 M', style: GoogleFonts.outfit(color: const Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w700)),
                 ],
               ),
             ],
@@ -1318,9 +1315,9 @@ class _VesselTrackerMockupState extends State<_VesselTrackerMockup> with SingleT
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('TEMA (GH)', style: GoogleFonts.outfit(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text('TEMA (GH)', style: GoogleFonts.outfit(color: const Color(0xFF475569), fontSize: 10, fontWeight: FontWeight.bold)),
                       Text('${(_progressController.value * 100).toInt()}%', style: GoogleFonts.outfit(color: _kOrange, fontSize: 10, fontWeight: FontWeight.bold)),
-                      Text('LOMÉ (TG)', style: GoogleFonts.outfit(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text('LOMÉ (TG)', style: GoogleFonts.outfit(color: const Color(0xFF475569), fontSize: 10, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1330,7 +1327,7 @@ class _VesselTrackerMockupState extends State<_VesselTrackerMockup> with SingleT
                       Container(
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(15),
+                          color: Colors.black.withAlpha(15),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -1407,12 +1404,12 @@ class _ComplianceMockupState extends State<_ComplianceMockup> with SingleTickerP
       width: 230,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _kNavyCard.withAlpha(210),
+        color: Colors.white.withAlpha(240),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withAlpha(25)),
+        border: Border.all(color: Colors.black.withAlpha(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(80),
+            color: Colors.black.withAlpha(15),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -1423,7 +1420,7 @@ class _ComplianceMockupState extends State<_ComplianceMockup> with SingleTickerP
           Text(
             'MEMBER COMPLIANCE',
             style: GoogleFonts.outfit(
-              color: Colors.white38,
+              color: const Color(0xFF64748B),
               fontSize: 9,
               fontWeight: FontWeight.bold,
               letterSpacing: 1,
@@ -1452,7 +1449,7 @@ class _ComplianceMockupState extends State<_ComplianceMockup> with SingleTickerP
                       Text(
                         '${(_progressAnimation.value * 100).toInt()}%',
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: const Color(0xFF0F172A),
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1490,7 +1487,7 @@ class _ComplianceMockupState extends State<_ComplianceMockup> with SingleTickerP
         Text(
           label,
           style: GoogleFonts.outfit(
-            color: Colors.white70,
+            color: const Color(0xFF334155),
             fontSize: 10,
             fontWeight: FontWeight.w500,
           ),
@@ -1517,7 +1514,7 @@ class _ComplianceRingPainter extends CustomPainter {
     final radius = math.min(size.width, size.height) / 2 - 6;
 
     final bgPaint = Paint()
-      ..color = Colors.white.withAlpha(15)
+      ..color = Colors.black.withAlpha(15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6;
 
@@ -1555,15 +1552,15 @@ class _DigitalCardMockup extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1A1A3A),
+            Color(0xFF1A1A3A),
             _kNavyCard,
-            _kOrange.withAlpha(80),
+            _kOrange,
           ],
-          stops: const [0.0, 0.6, 1.0],
+          stops: [0.0, 0.6, 1.0],
         ),
         border: Border.all(color: Colors.white.withAlpha(35)),
         boxShadow: [
@@ -1883,19 +1880,18 @@ class _MetricCardState extends State<_MetricCard> {
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: _kNavyCard.withAlpha(120),
+          color: Colors.white.withAlpha(200),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: _hovered ? _kOrange.withAlpha(100) : Colors.white.withAlpha(15),
+            color: _hovered ? _kOrange.withAlpha(120) : Colors.black.withAlpha(10),
             width: 1.5,
           ),
           boxShadow: [
-            if (_hovered)
-              BoxShadow(
-                color: _kOrange.withAlpha(20),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
+            BoxShadow(
+              color: _hovered ? _kOrange.withAlpha(15) : Colors.black.withAlpha(5),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
           ],
         ),
         child: Column(
@@ -1915,7 +1911,7 @@ class _MetricCardState extends State<_MetricCard> {
               widget.label,
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
-                color: Colors.white,
+                color: const Color(0xFF0F172A),
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -1925,7 +1921,7 @@ class _MetricCardState extends State<_MetricCard> {
               widget.detail,
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
-                color: Colors.white38,
+                color: const Color(0xFF64748B),
                 fontSize: 11,
               ),
             ),
@@ -1969,27 +1965,20 @@ class _FeatureCardState extends State<_FeatureCard> {
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
           color: _hovered 
-              ? const Color(0xFF1E293B).withAlpha(180)
-              : _kNavyCard.withAlpha(120),
+              ? const Color(0xFFF1F5F9).withAlpha(220)
+              : Colors.white.withAlpha(180),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: _hovered 
                 ? _kOrange.withAlpha(120) 
-                : Colors.white.withAlpha(20),
+                : Colors.black.withAlpha(10),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: _hovered 
-                  ? _kOrange.withAlpha(25) 
-                  : Colors.transparent,
+              color: _hovered ? _kOrange.withAlpha(15) : Colors.black.withAlpha(5),
               blurRadius: 32,
               offset: const Offset(0, 12),
-            ),
-            BoxShadow(
-              color: Colors.black.withAlpha(40),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -2000,7 +1989,7 @@ class _FeatureCardState extends State<_FeatureCard> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _hovered ? _kOrange : Colors.white.withAlpha(10),
+                color: _hovered ? _kOrange : _kOrange.withAlpha(25),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -2013,7 +2002,7 @@ class _FeatureCardState extends State<_FeatureCard> {
             Text(
               widget.title,
               style: GoogleFonts.outfit(
-                color: Colors.white,
+                color: const Color(0xFF0F172A),
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
@@ -2023,13 +2012,13 @@ class _FeatureCardState extends State<_FeatureCard> {
             Text(
               widget.description,
               style: GoogleFonts.inter(
-                color: Colors.white60,
+                color: const Color(0xFF475569),
                 fontSize: 13,
                 height: 1.5,
               ),
             ),
             const SizedBox(height: 16),
-            const Divider(color: Colors.white10),
+            const Divider(color: Colors.black12),
             const SizedBox(height: 12),
             ...widget.bullets.map((b) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -2041,7 +2030,7 @@ class _FeatureCardState extends State<_FeatureCard> {
                     child: Text(
                       b,
                       style: GoogleFonts.inter(
-                        color: Colors.white70,
+                        color: const Color(0xFF334155),
                         fontSize: 12.5,
                       ),
                     ),
@@ -2085,13 +2074,13 @@ class _FAQCardState extends State<_FAQCard> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: _expanded || _hovered
-                ? const Color(0xFF1E293B).withAlpha(180)
-                : _kNavyCard.withAlpha(120),
+                ? const Color(0xFFF1F5F9).withAlpha(220)
+                : Colors.white.withAlpha(180),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: _expanded 
                   ? _kOrange.withAlpha(100) 
-                  : (_hovered ? Colors.white.withAlpha(30) : Colors.white.withAlpha(15)),
+                  : (_hovered ? Colors.black.withAlpha(25) : Colors.black.withAlpha(10)),
             ),
           ),
           child: Column(
@@ -2104,7 +2093,7 @@ class _FAQCardState extends State<_FAQCard> {
                     child: Text(
                       widget.question,
                       style: GoogleFonts.outfit(
-                        color: Colors.white,
+                        color: const Color(0xFF0F172A),
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -2127,7 +2116,7 @@ class _FAQCardState extends State<_FAQCard> {
                   child: Text(
                     widget.answer,
                     style: GoogleFonts.inter(
-                      color: Colors.white70,
+                      color: const Color(0xFF475569),
                       fontSize: 13.5,
                       height: 1.6,
                     ),
