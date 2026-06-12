@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui' show ImageFilter;
 import '../components/app_layout.dart';
 import '../components/trend_line.dart';
 import '../services/api_service.dart';
@@ -422,122 +424,569 @@ class _ProfilePageState extends State<ProfilePage> {
 
         // Digital ID Card Overlay
         if (_showIdCard)
-          Positioned.fill(child: Container(
-            color: Colors.black.withValues(alpha: 0.9),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(top: 60, bottom: 40),
-              child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                Align(alignment: Alignment.topRight, child: Padding(padding: const EdgeInsets.all(16), child: GestureDetector(onTap: () => setState(() => _showIdCard = false), child: Container(width: 36, height: 36, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle, border: Border.all(color: Colors.white)), child: const Icon(Icons.close, color: Colors.white, size: 20))))),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: tier.color, width: 4), boxShadow: [const BoxShadow(color: Colors.black45, blurRadius: 50)]),
-                  child: Column(children: [
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Container(width: 40, height: 40, decoration: BoxDecoration(color: tier.color, borderRadius: BorderRadius.circular(8)), child: Icon(tier.icon, color: Colors.white)),
-                      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        const Text('CUBAG', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
-                        Text('Digital Identity', style: TextStyle(fontSize: 11, color: tier.color, fontWeight: FontWeight.bold)),
-                      ]),
-                    ]),
-                    const SizedBox(height: 24),
-                    Row(children: [
-                      Container(
-                        width: 90, height: 90,
-                        decoration: BoxDecoration(border: Border.all(color: tier.color, width: 3), borderRadius: BorderRadius.circular(12)),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: _user['profile_photo'] != null && _user['profile_photo'].toString().isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: _user['profile_photo'].toString(),
-                                width: 90, height: 90, fit: BoxFit.cover,
-                                placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                errorWidget: (_, _, _) => CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))))
-                            : CircleAvatar(radius: 45, backgroundColor: Colors.grey.shade100, child: Text(_initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey))),
-                        ),
-                      ),
-  
-                      const SizedBox(width: 20),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(_user['name']?.toString() ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-                        Text(_user['role']?.toString() ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                        const SizedBox(height: 8),
-                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: tier.color.withValues(alpha: 0.1), border: Border.all(color: tier.color.withValues(alpha: 0.2)), borderRadius: BorderRadius.circular(20)), child: Text(tier.badgeText, style: TextStyle(color: tier.color, fontWeight: FontWeight.bold, fontSize: 12))),
-                      ])),
-                    ]),
-                    const SizedBox(height: 20),
-                    Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.grey.shade50, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)), child: Column(children: [
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        const Text('MEMBER ID', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), 
-                        Text(_uniqueMemberId, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black))
-                      ]),
-                      if (daysLeft == null || daysLeft >= 0) ...[
-                        const SizedBox(height: 12),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                          const Text('LICENSE NO.', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                          Text(_user['license_number']?.toString() ?? (_user['status'] == 'active' ? 'CBG-${DateTime.now().year}-${_user['id']?.toString() ?? 'LIC'}' : 'PENDING'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                        ]),
-                      ],
-                      const SizedBox(height: 12),
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        const Text('LICENSE EXPIRES', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                          Text(
-                            expiry != null ? _formatDate(expiry) : 'Not Set',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: daysLeft == null ? Colors.grey
-                                   : daysLeft < 0 ? Colors.red
-                                   : daysLeft <= 30 ? Colors.orange
-                                   : Colors.black,
-                            ),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                color: const Color(0xFF020617).withValues(alpha: 0.85),
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: const Color(0xFFf08232).withValues(alpha: 0.3),
+                            width: 1.5,
                           ),
-                          if (daysLeft != null)
-                            Text(
-                              daysLeft < 0 ? 'EXPIRED' : daysLeft == 0 ? 'Expires Today' : '$daysLeft days left',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: daysLeft < 0 ? Colors.red : daysLeft <= 30 ? Colors.orange : Colors.green,
-                              ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: tier.color.withValues(alpha: 0.35),
+                              blurRadius: 40,
+                              spreadRadius: 2,
                             ),
-                        ]),
-                      ]),
-                      const SizedBox(height: 12),
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        const Text('COMPLIANCE RATING', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                        Row(children: [
-                          const Icon(Icons.star, color: Color(0xFFFFD700), size: 14),
-                          const SizedBox(width: 2),
-                          Text('${starRating.toStringAsFixed(1)} ($complianceScore%)', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                        ])
-                      ]),
-                    ])),
-                    const SizedBox(height: 24),
-                    // ── QR Code Section ──
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: CachedNetworkImage(
-                        imageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent('https://winningedgeinvestment.com/#/verify-member/${_user['id']}')}',
-                        width: 120,
-                        height: 120,
-                        errorWidget: (context, error, stackTrace) => Container(
-                          width: 120, height: 120,
-                          color: Colors.grey.shade100,
-                          child: const Icon(Icons.qr_code_2, size: 40, color: Colors.grey),
+                            BoxShadow(
+                              color: const Color(0xFFf08232).withValues(alpha: 0.15),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: Stack(
+                            children: [
+                              // Security Grid Watermark
+                              Positioned.fill(
+                                child: Opacity(
+                                  opacity: 0.04,
+                                  child: CustomPaint(
+                                    painter: _IdGridPainter(color: const Color(0xFF0F172A)),
+                                  ),
+                                ),
+                              ),
+                              // Glowing Orbs
+                              Positioned(
+                                top: -80,
+                                right: -80,
+                                child: Container(
+                                  width: 200,
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        const Color(0xFFf08232).withValues(alpha: 0.15),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: -100,
+                                left: -60,
+                                child: Container(
+                                  width: 220,
+                                  height: 220,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        tier.color.withValues(alpha: 0.15),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Content Column
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Header
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            // Tiny Logo Indicator
+                                            Container(
+                                              width: 32,
+                                              height: 32,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFf08232).withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: const Color(0xFFf08232).withValues(alpha: 0.3),
+                                                  width: 1.5,
+                                                ),
+                                              ),
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.shield,
+                                                  color: Color(0xFFf08232),
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'CUBAG',
+                                                  style: GoogleFonts.outfit(
+                                                    fontWeight: FontWeight.extrabold,
+                                                    fontSize: 18,
+                                                    color: const Color(0xFF0F172A),
+                                                    letterSpacing: 1,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'DIGITAL IDENTITY',
+                                                  style: GoogleFonts.inter(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 9,
+                                                    color: const Color(0xFFf08232),
+                                                    letterSpacing: 0.8,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        // Status Chip / Shield Icon
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: tier.color.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: tier.color.withValues(alpha: 0.2),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                tier.icon,
+                                                color: tier.color,
+                                                size: 12,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                tier.badgeText,
+                                                style: GoogleFonts.outfit(
+                                                  color: tier.color,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 10,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 24),
+                                    
+                                    // User Avatar & Frame
+                                    Stack(
+                                      alignment: Alignment.bottomRight,
+                                      children: [
+                                        Container(
+                                          width: 110,
+                                          height: 110,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(24),
+                                            border: Border.all(
+                                              color: tier.color,
+                                              width: 3,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: tier.color.withValues(alpha: 0.25),
+                                                blurRadius: 15,
+                                                offset: const Offset(0, 5),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(20),
+                                            child: _user['profile_photo'] != null &&
+                                                    _user['profile_photo'].toString().isNotEmpty
+                                                ? CachedNetworkImage(
+                                                    imageUrl: _user['profile_photo'].toString(),
+                                                    width: 110,
+                                                    height: 110,
+                                                    fit: BoxFit.cover,
+                                                    placeholder: (context, url) => const Center(
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Color(0xFFf08232),
+                                                      ),
+                                                    ),
+                                                    errorWidget: (_, _, _) => CircleAvatar(
+                                                      radius: 55,
+                                                      backgroundColor: const Color(0xFFF1F5F9),
+                                                      child: Text(
+                                                        _initials,
+                                                        style: GoogleFonts.outfit(
+                                                          fontSize: 32,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: const Color(0xFF64748B),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )
+                                                : CircleAvatar(
+                                                    radius: 55,
+                                                    backgroundColor: const Color(0xFFF1F5F9),
+                                                    child: Text(
+                                                      _initials,
+                                                      style: GoogleFonts.outfit(
+                                                        fontSize: 32,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: const Color(0xFF64748B),
+                                                      ),
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+                                        // Verification Check Badge
+                                        Container(
+                                          width: 28,
+                                          height: 28,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black12,
+                                                blurRadius: 4,
+                                              ),
+                                            ],
+                                          ),
+                                          child: Center(
+                                            child: Icon(
+                                              Icons.verified,
+                                              color: _user['status'] == 'active'
+                                                  ? const Color(0xFF10B981)
+                                                  : Colors.grey,
+                                              size: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    
+                                    // User Name & Title
+                                    Text(
+                                      _user['name']?.toString() ?? '',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _user['role']?.toString().toUpperCase() ?? 'BROKER MEMBER',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.inter(
+                                        color: const Color(0xFF64748B),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    
+                                    // Credentials Grid Container
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF8FAFC),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: const Color(0xFFE2E8F0),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          // Row 1: Member ID & License No.
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'MEMBER ID',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: const Color(0xFF94A3B8),
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 3),
+                                                    Text(
+                                                      _uniqueMemberId,
+                                                      style: GoogleFonts.outfit(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 13,
+                                                        color: const Color(0xFF0F172A),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Container(
+                                                height: 24,
+                                                width: 1,
+                                                color: const Color(0xFFE2E8F0),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'LICENSE NO.',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: const Color(0xFF94A3B8),
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 3),
+                                                    Text(
+                                                      _user['license_number']?.toString() ??
+                                                          (_user['status'] == 'active'
+                                                              ? 'CBG-${DateTime.now().year}-${_user['id']?.toString() ?? 'LIC'}'
+                                                              : 'PENDING'),
+                                                      style: GoogleFonts.outfit(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 13,
+                                                        color: const Color(0xFF0F172A),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 10),
+                                            child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+                                          ),
+                                          // Row 2: Expires & Compliance
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'LICENSE EXPIRES',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: const Color(0xFF94A3B8),
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 3),
+                                                    Text(
+                                                      expiry != null ? _formatDate(expiry) : 'Not Set',
+                                                      style: GoogleFonts.outfit(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 13,
+                                                        color: daysLeft == null
+                                                            ? const Color(0xFF64748B)
+                                                            : daysLeft < 0
+                                                                ? const Color(0xFFEF4444)
+                                                                : daysLeft <= 30
+                                                                    ? const Color(0xFFF59E0B)
+                                                                    : const Color(0xFF0F172A),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Container(
+                                                height: 24,
+                                                width: 1,
+                                                color: const Color(0xFFE2E8F0),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'COMPLIANCE RATING',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: const Color(0xFF94A3B8),
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 3),
+                                                    Row(
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.star,
+                                                          color: Color(0xFFFFD700),
+                                                          size: 14,
+                                                        ),
+                                                        const SizedBox(width: 2),
+                                                        Text(
+                                                          '${starRating.toStringAsFixed(1)} ($complianceScore%)',
+                                                          style: GoogleFonts.outfit(
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: 13,
+                                                            color: const Color(0xFF0F172A),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    
+                                    // QR Code Section
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: const Color(0xFFf08232).withValues(alpha: 0.2),
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFFf08232).withValues(alpha: 0.05),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          CachedNetworkImage(
+                                            imageUrl:
+                                                'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent('https://winningedgeinvestment.com/#/verify-member/${_user['id']}')}',
+                                            width: 110,
+                                            height: 110,
+                                            errorWidget: (context, error, stackTrace) => Container(
+                                              width: 110,
+                                              height: 110,
+                                              color: const Color(0xFFF8FAFC),
+                                              child: const Icon(
+                                                Icons.qr_code_2,
+                                                size: 40,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ),
+                                          // Futuristic horizontal scan line visual effect
+                                          Positioned(
+                                            top: 55,
+                                            left: 0,
+                                            right: 0,
+                                            child: Container(
+                                              height: 2,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFf08232),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color(0xFFf08232).withValues(alpha: 0.5),
+                                                    blurRadius: 4,
+                                                    spreadRadius: 1,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'SCAN AT CHECKPOINTS',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.extrabold,
+                                        color: const Color(0xFFf08232),
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Secure digital credential verification',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Close Button positioned absolutely inside the stack
+                              Positioned(
+                                top: 12,
+                                right: 12,
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _showIdCard = false),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: const Color(0xFFE2E8F0),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Color(0xFF64748B),
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text('Scan for verification at CUBAG checkpoints', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  ]),
+                  ),
                 ),
-              ]),
+              ),
             ),
           )),
       ]),
@@ -693,4 +1142,27 @@ class _ProfilePageState extends State<ProfilePage> {
 
 extension StringCapitalize on String {
   String capitalize() => isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
+}
+
+class _IdGridPainter extends CustomPainter {
+  final Color color;
+  _IdGridPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.1)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+    const spacing = 18.0;
+    for (double i = 0; i < size.width; i += spacing) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double i = 0; i < size.height; i += spacing) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
