@@ -200,7 +200,7 @@ class _AppLayoutState extends State<AppLayout> {
         PopupMenuItem<String>(
           enabled: false,
           child: Container(
-            width: 220,
+            width: 170,
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
@@ -254,7 +254,7 @@ class _AppLayoutState extends State<AppLayout> {
         PopupMenuItem<String>(
           onTap: () => context.go('/profile'),
           child: Container(
-            width: 220,
+            width: 170,
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
@@ -283,7 +283,7 @@ class _AppLayoutState extends State<AppLayout> {
         PopupMenuItem<String>(
           onTap: () => context.go(authService.userRole == 'admin' ? '/admin/settings' : '/settings'),
           child: Container(
-            width: 220,
+            width: 170,
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
@@ -320,7 +320,7 @@ class _AppLayoutState extends State<AppLayout> {
             context.go('/login');
           },
           child: Container(
-            width: 220,
+            width: 170,
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
