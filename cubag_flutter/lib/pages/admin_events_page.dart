@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
 import '../components/fetch_error_view.dart';
@@ -67,6 +68,16 @@ class _State extends State<AdminEventsPage> {
     }
   }
 
+  Future<void> _clearEventsCache() async {
+    try {
+      final box = Hive.box('api_cache');
+      final keysToRemove = box.keys.where((key) => key.toString().contains('events/admin/all')).toList();
+      for (final key in keysToRemove) {
+        await box.delete(key);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _fetch({bool refresh = false}) async {
     if (!mounted) return;
     if (refresh) {
@@ -82,13 +93,12 @@ class _State extends State<AdminEventsPage> {
         return;
       }
       if (data == null) { setState(() => _loading = false); return; }
-      final d = data as Map<String, dynamic>;
       setState(() { 
         _loading = false;
         _hasError = false;
-        _events = ApiService.ensureList(d); 
-        if (d.containsKey('total')) {
-          _total = d['total'];
+        _events = ApiService.ensureList(data); 
+        if (data is Map && data.containsKey('total')) {
+          _total = data['total'] ?? 0;
           _hasMore = _events.length < _total;
         } else {
           _hasMore = false;
@@ -103,11 +113,11 @@ class _State extends State<AdminEventsPage> {
     try {
       final res = await _api.get('/events/admin/all?page=$_page&per_page=20&status=$_tab');
       if (res.statusCode == 200) {
-        final d = res.data as Map<String, dynamic>;
+        final d = res.data;
         final newItems = ApiService.ensureList(d);
         setState(() {
           _events.addAll(newItems);
-          if (d.containsKey('total')) {
+          if (d is Map && d.containsKey('total')) {
             _hasMore = _events.length < d['total'];
           } else {
             _hasMore = newItems.isNotEmpty;
@@ -132,11 +142,13 @@ class _State extends State<AdminEventsPage> {
     await _api.postData('events', {'title': _titleCtrl.text, 'location': _locationCtrl.text, 'description': _descCtrl.text, 'date': _date, 'time': _time});
     _titleCtrl.clear(); _locationCtrl.clear(); _descCtrl.clear();
     setState(() { _date = ''; _time = ''; _submitting = false; _tab = 'upcoming'; });
+    await _clearEventsCache();
     await _fetch(refresh: true);
   }
 
   Future<void> _deleteEvent(int id) async {
     await _api.deleteData('events/$id');
+    await _clearEventsCache();
     await _fetch(refresh: true);
   }
 
@@ -145,6 +157,7 @@ class _State extends State<AdminEventsPage> {
     setState(() => _submitting = true);
     await _api.putData('events/${_editingEvent!['id']}', {'title': _eTitleCtrl.text, 'location': _eLocationCtrl.text, 'description': _eDescCtrl.text, 'date': _eDate, 'time': _eTime});
     setState(() { _editingEvent = null; _submitting = false; });
+    await _clearEventsCache();
     await _fetch(refresh: true);
   }
 
