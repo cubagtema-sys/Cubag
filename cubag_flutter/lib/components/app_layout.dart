@@ -281,7 +281,7 @@ class _AppLayoutState extends State<AppLayout> {
         ),
         // Settings Item
         PopupMenuItem<String>(
-          onTap: () => context.go(authService.userRole == 'admin' ? '/admin/settings' : '/settings'),
+          onTap: () => context.go((authService.userRole == 'admin' || authService.userRole == 'super_admin' || (authService.userRole == 'sub_admin' && authService.hasPermission('settings'))) ? '/admin/settings' : '/settings'),
           child: Container(
             width: 170,
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -665,6 +665,7 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   Widget _buildNavItems(BuildContext context, String? role, {ScrollController? controller}) {
+    final authService = Provider.of<AuthService>(context, listen: false);
     final isAdmin = role == 'admin';
     final currentRoute = GoRouterState.of(context).matchedLocation;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -698,7 +699,7 @@ class _AppLayoutState extends State<AppLayout> {
         ]),
       ];
     } else if (role == 'sub_admin') {
-      final auth = Provider.of<AuthService>(context, listen: false);
+      final auth = authService;
       final allAdminItems = <String, List<_NavItemData>>{
         'members':          [_NavItemData('Members', Icons.people_alt_rounded, '/admin/members')],
         'announcements':    [_NavItemData('Announcements', Icons.campaign_rounded, '/admin/announcements')],
@@ -710,11 +711,10 @@ class _AppLayoutState extends State<AppLayout> {
         'events':           [_NavItemData('Events', Icons.event_rounded, '/admin/events')],
         'surveys':          [_NavItemData('Surveys & Elections', Icons.how_to_vote_rounded, '/admin/surveys')],
         'audit_log':        [_NavItemData('Audit Log', Icons.history_rounded, '/admin/audit-log')],
-        'settings':         [_NavItemData('Settings', Icons.settings_rounded, '/admin/settings')],
       };
       
       final permittedItems = <_NavItemData>[];
-      final orderedKeys = ['members', 'announcements', 'schedules', 'intelligence', 'tickets', 'payments', 'fees', 'events', 'surveys', 'audit_log', 'settings'];
+      final orderedKeys = ['members', 'announcements', 'schedules', 'intelligence', 'tickets', 'payments', 'fees', 'events', 'surveys', 'audit_log'];
       for (final key in orderedKeys) {
         if (auth.hasPermission(key)) permittedItems.addAll(allAdminItems[key] ?? []);
       }
@@ -762,7 +762,7 @@ class _AppLayoutState extends State<AppLayout> {
           context, 
           'Settings', 
           Icons.settings_rounded, 
-          (isAdmin || role == 'sub_admin') ? '/admin/settings' : '/settings', 
+          (isAdmin || (role == 'sub_admin' && authService.hasPermission('settings'))) ? '/admin/settings' : '/settings', 
           currentRoute,
         ),
       ],
