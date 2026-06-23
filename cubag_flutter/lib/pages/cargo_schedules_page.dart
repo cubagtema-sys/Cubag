@@ -114,11 +114,13 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
     if (!mounted) return;
     if (!_isLoading) setState(() => _isLoading = true);
     
+    final fetchTab = _activeTab;
     try {
-      if (_activeTab == 'live tracking') {
+      if (fetchTab == 'live tracking') {
         await _fetchLiveVessels();
         await ApiService().fetchDataWithCache('/schedules?type=movement', (data, isCached, {bool hasError = false}) {
           if (mounted && data != null) {
+            if (_activeTab != fetchTab) return;
             setState(() {
               _schedules = ApiService.ensureList(data);
               _isLoading = false;
@@ -126,8 +128,9 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
           }
         });
       } else {
-        await ApiService().fetchDataWithCache('/schedules?type=$_activeTab', (data, isCached, {bool hasError = false}) {
+        await ApiService().fetchDataWithCache('/schedules?type=$fetchTab', (data, isCached, {bool hasError = false}) {
           if (mounted && data != null) {
+            if (_activeTab != fetchTab) return;
             setState(() {
               _schedules = ApiService.ensureList(data);
               _isLoading = false;
@@ -136,7 +139,7 @@ class _CargoSchedulesPageState extends State<CargoSchedulesPage> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() { _schedules = []; _isLoading = false; });
+      if (mounted && _activeTab == fetchTab) setState(() { _schedules = []; _isLoading = false; });
     }
   }
 

@@ -56,8 +56,10 @@ class _State extends State<AdminTicketsPage> {
     if (!mounted) return;
     setState(() { _page = page; _loading = true; });
     
-    await _api.fetchDataWithCache('/tickets/admin/all?page=$_page&per_page=10&status=$_tab', (data, isCached, {bool hasError = false}) {
+    final fetchTab = _tab;
+    await _api.fetchDataWithCache('/tickets/admin/all?page=$_page&per_page=10&status=$fetchTab', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (_tab != fetchTab) return;
       if (hasError && _tickets.isEmpty) {
         setState(() { _loading = false; _hasError = true; });
         return;

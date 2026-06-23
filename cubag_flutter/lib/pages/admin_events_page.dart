@@ -86,8 +86,10 @@ class _State extends State<AdminEventsPage> {
       if (!_loading) setState(() => _loading = true);
     }
     
-    await _api.fetchDataWithCache('/events/admin/all?page=$_page&per_page=20&status=$_tab', (data, isCached, {bool hasError = false}) {
+    final fetchTab = _tab;
+    await _api.fetchDataWithCache('/events/admin/all?page=$_page&per_page=20&status=$fetchTab', (data, isCached, {bool hasError = false}) {
       if (!mounted) return;
+      if (_tab != fetchTab) return;
       if (hasError && _events.isEmpty) {
         setState(() { _loading = false; _hasError = true; });
         return;

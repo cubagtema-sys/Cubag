@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:dio/dio.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -56,67 +55,69 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Future<void> _fetchData() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (_rawMembers.isEmpty) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     final api = ApiService();
+    bool statsLoaded = false;
+    bool membersLoaded = false;
+    bool dashboardFailed = false;
 
-    try {
-      final results = await Future.wait([
-        api.get('/admin/dashboard').catchError((e) => Response(requestOptions: RequestOptions(), statusCode: 500, data: {'message': e.toString()})),
-        api.get('/members/admin/all?page=1&limit=100&status=pending').catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 403, data: null)),
-      ]);
-
-      final dRes = results[0];
-      final mRes = results[1];
-
-      bool dashboardFailed = false;
-
-      // Handle Dashboard Stats
-      if (dRes.statusCode == 200 && dRes.data is Map) {
-        final dData = Map<String, dynamic>.from(dRes.data);
-        if (dData['kpis'] != null) {
-          final stats = Map<String, dynamic>.from(dData['kpis']);
-          _totalMembers = int.tryParse(stats['total_members']?.toString() ?? '') ?? 0;
-          _openTickets = int.tryParse(stats['open_tickets']?.toString() ?? '') ?? 0;
-          _revenue = double.tryParse(stats['revenue']?.toString() ?? '') ?? 0.0;
-        }
-      } else {
-        dashboardFailed = true;
-        if (dRes.data != null && dRes.data is Map) {
-          _error = dRes.data['message'] ?? dRes.data['error_details'];
-        } else {
-          _error = 'Server error loading dashboard stats';
-        }
-      }
-
-      // Handle Members (to show pending approvals)
-      if (mRes.statusCode == 200 && mRes.data != null) {
-        _rawMembers = ApiService.ensureList(mRes.data);
-      }
-
+    void checkDone() {
       if (mounted) {
         setState(() {
-          _loading = false;
-          if (dashboardFailed && _error == null) {
-            _error = 'Dashboard could not load critical data.';
+          if (statsLoaded && membersLoaded) {
+            _loading = false;
           }
-        });
-        // Prefetch other admin pages in background to make transitions instant
-        if (!dashboardFailed) {
-          _prefetchAdminData();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _error = 'An unexpected error occurred: $e';
         });
       }
     }
+
+    // Load Dashboard Stats
+    await api.fetchDataWithCache('/admin/dashboard', (data, isCached, {bool hasError = false}) {
+      if (!mounted) return;
+      if (hasError) {
+        dashboardFailed = true;
+        setState(() {
+          _error = 'Server error loading dashboard stats';
+          _loading = false;
+        });
+        return;
+      }
+      if (data is Map) {
+        final dData = Map<String, dynamic>.from(data);
+        if (dData['kpis'] != null) {
+          final stats = Map<String, dynamic>.from(dData['kpis']);
+          setState(() {
+            _totalMembers = int.tryParse(stats['total_members']?.toString() ?? '') ?? 0;
+            _openTickets = int.tryParse(stats['open_tickets']?.toString() ?? '') ?? 0;
+            _revenue = double.tryParse(stats['revenue']?.toString() ?? '') ?? 0.0;
+            statsLoaded = true;
+          });
+          checkDone();
+        }
+      }
+    });
+
+    // Load Pending Members list
+    await api.fetchDataWithCache('/members/admin/all?page=1&limit=100&status=pending', (data, isCached, {bool hasError = false}) {
+      if (!mounted) return;
+      if (data != null) {
+        setState(() {
+          _rawMembers = ApiService.ensureList(data);
+          membersLoaded = true;
+        });
+        checkDone();
+      }
+
+      if (!isCached && !dashboardFailed) {
+        _prefetchAdminData();
+      }
+    });
   }
 
   Future<void> _approveMember(dynamic id, String name) async {

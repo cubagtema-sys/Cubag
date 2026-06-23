@@ -42,16 +42,19 @@ class _DashboardPageState extends State<DashboardPage> {
     });
 
     try {
+      // Fetch core tasks and announcements concurrently (both use cache-first loading)
       await Future.wait([
         _fetchTasks(),
         _fetchAnnouncements(),
-        _fetchForex(),
       ]);
     } catch (e) {
       debugPrint('Dashboard data load error: $e');
     }
 
     if (mounted) setState(() => _loading = false);
+
+    // Load Forex rates in the background so it doesn't block page rendering
+    _fetchForex();
   }
 
   Future<void> _fetchTasks() async {
@@ -71,15 +74,36 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _fetchForex() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // 1. Immediately show cached rates if available
+    final cachedUsd = prefs.getString('forex_usd');
+    final cachedEur = prefs.getString('forex_eur');
+    if (cachedUsd != null && cachedEur != null && mounted) {
+      setState(() {
+        _forex = {'USD': cachedUsd, 'EUR': cachedEur};
+      });
+    }
+
+    // 2. Fetch fresh rates in background
     try {
-      final dio = Dio();
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+      ));
       final res = await dio.get('https://open.er-api.com/v6/latest/GHS');
       if (res.statusCode == 200 && mounted) {
         final rates = res.data['rates'] as Map<String, dynamic>;
+        final usd = (1 / (rates['USD'] ?? 1.0)).toStringAsFixed(2);
+        final eur = (1 / (rates['EUR'] ?? 1.0)).toStringAsFixed(2);
+
+        await prefs.setString('forex_usd', usd);
+        await prefs.setString('forex_eur', eur);
+
         setState(() {
           _forex = {
-            'USD': (1 / (rates['USD'] ?? 1.0)).toStringAsFixed(2),
-            'EUR': (1 / (rates['EUR'] ?? 1.0)).toStringAsFixed(2),
+            'USD': usd,
+            'EUR': eur,
           };
         });
       }
