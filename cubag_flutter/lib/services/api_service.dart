@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/session_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/router.dart';
 import 'auth_service.dart';
@@ -42,8 +42,7 @@ class ApiService {
 
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('cubag_token');
+        final token = await SessionStorage.instance.getString('cubag_token');
         if (token != null && !options.headers.containsKey('Authorization')) {
           options.headers['Authorization'] = 'Bearer $token';
         }

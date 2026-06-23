@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/session_storage.dart';
 import 'api_service.dart';
 import 'socket_service.dart';
 import 'push_notification_service.dart';
@@ -35,19 +35,17 @@ class AuthService extends ChangeNotifier {
 
   Future<void> updatePhoto(String url) async {
     _userPhotoUrl = url;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cubag_photo', url);
+    await SessionStorage.instance.setString('cubag_photo', url);
     notifyListeners();
   }
 
   Future<void> checkAuthStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('cubag_token');
-    _userRole = prefs.getString('cubag_role');
-    _userPhotoUrl = prefs.getString('cubag_photo');
-    _userName = prefs.getString('cubag_name');
-    _userEmail = prefs.getString('cubag_email');
-    _permissions = prefs.getStringList('cubag_permissions') ?? [];
+    final token = await SessionStorage.instance.getString('cubag_token');
+    _userRole = await SessionStorage.instance.getString('cubag_role');
+    _userPhotoUrl = await SessionStorage.instance.getString('cubag_photo');
+    _userName = await SessionStorage.instance.getString('cubag_name');
+    _userEmail = await SessionStorage.instance.getString('cubag_email');
+    _permissions = await SessionStorage.instance.getStringList('cubag_permissions') ?? [];
 
     if (token != null) {
       _isAuthenticated = true;
@@ -77,8 +75,7 @@ class AuthService extends ChangeNotifier {
       if (res.statusCode == 200) {
         final perms = List<String>.from(res.data['permissions'] ?? []);
         _permissions = perms;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setStringList('cubag_permissions', perms);
+        await SessionStorage.instance.setStringList('cubag_permissions', perms);
       }
     } catch (_) {}
   }
@@ -96,13 +93,12 @@ class AuthService extends ChangeNotifier {
         final user = data['user'] as Map<String, dynamic>? ?? {};
         final role = user['role']?.toString() ?? 'member';
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('cubag_token', token);
-        await prefs.setString('cubag_role', role);
-        if (user['id'] != null) await prefs.setString('cubag_id', user['id'].toString());
-        if (user['name'] != null) await prefs.setString('cubag_name', user['name'].toString());
-        if (user['email'] != null) await prefs.setString('cubag_email', user['email'].toString());
-        if (user['profile_photo'] != null) await prefs.setString('cubag_photo', user['profile_photo'].toString());
+        await SessionStorage.instance.setString('cubag_token', token);
+        await SessionStorage.instance.setString('cubag_role', role);
+        if (user['id'] != null) await SessionStorage.instance.setString('cubag_id', user['id'].toString());
+        if (user['name'] != null) await SessionStorage.instance.setString('cubag_name', user['name'].toString());
+        if (user['email'] != null) await SessionStorage.instance.setString('cubag_email', user['email'].toString());
+        if (user['profile_photo'] != null) await SessionStorage.instance.setString('cubag_photo', user['profile_photo'].toString());
 
         _isAuthenticated = true;
         _userRole = role;
@@ -130,14 +126,7 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('cubag_token');
-    await prefs.remove('cubag_role');
-    await prefs.remove('cubag_id');
-    await prefs.remove('cubag_name');
-    await prefs.remove('cubag_email');
-    await prefs.remove('cubag_photo');
-    await prefs.remove('cubag_permissions');
+    await SessionStorage.instance.clear();
     _isAuthenticated = false;
     _userRole = null;
     _userPhotoUrl = null;

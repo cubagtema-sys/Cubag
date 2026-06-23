@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/session_storage.dart';
 import '../pages/admin_analytics_page.dart';
 import '../pages/admin_audit_log_page.dart';
 import '../services/telemetry_service.dart';
@@ -68,10 +68,10 @@ final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   observers: [TelemetryRouteObserver()],
   redirect: (context, state) async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool loggedIn = prefs.getString('cubag_token') != null;
+    final token = await SessionStorage.instance.getString('cubag_token');
+    final bool loggedIn = token != null;
     final String loc = state.matchedLocation;
-    final role = prefs.getString('cubag_role');
+    final role = await SessionStorage.instance.getString('cubag_role');
 
     if (!loggedIn && !_isPublic(loc)) return '/login';
     if (loggedIn && _isAdminRoute(loc)) {
@@ -245,8 +245,8 @@ class _AdminUnavailableBodyState extends State<_AdminUnavailableBody> {
   }
 
   Future<void> _loadEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) setState(() => _email = prefs.getString('cubag_email'));
+    final email = await SessionStorage.instance.getString('cubag_email');
+    if (mounted) setState(() => _email = email);
   }
 
   Future<void> _logout() async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/session_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
@@ -32,12 +33,13 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _loadData() async {
     if (_tasks.isEmpty) setState(() => _loading = true);
 
-    final prefs = await SharedPreferences.getInstance();
+    final name = await SessionStorage.instance.getString('cubag_name');
+    final role = await SessionStorage.instance.getString('cubag_role');
     if (!mounted) return;
     setState(() {
       _user = {
-        'name': prefs.getString('cubag_name') ?? 'Member',
-        'role': prefs.getString('cubag_role') ?? ''
+        'name': name ?? 'Member',
+        'role': role ?? ''
       };
     });
 

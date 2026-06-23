@@ -1,5 +1,5 @@
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
-import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/session_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'api_service.dart';
 
@@ -34,8 +34,7 @@ class SocketService {
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('cubag_token');
+    final token = await SessionStorage.instance.getString('cubag_token');
     final url = _socketUrl;
 
     debugPrint('[Socket] Connecting to $url');
@@ -75,8 +74,7 @@ class SocketService {
   /// Update the auth token after login without full reconnect.
   Future<void> refreshToken() async {
     if (_socket == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('cubag_token');
+    final token = await SessionStorage.instance.getString('cubag_token');
     if (token != null && !kIsWeb) {
       _socket!.io.options?['extraHeaders'] = {'Authorization': 'Bearer $token'};
     }
