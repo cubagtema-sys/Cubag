@@ -54,11 +54,10 @@ class MobileMenuPage extends StatelessWidget {
         'events':           [_MenuItem('Events', Icons.event_rounded, '/admin/events')],
         'surveys':          [_MenuItem('Surveys & Elections', Icons.how_to_vote_rounded, '/admin/surveys')],
         'audit_log':        [_MenuItem('Audit Log', Icons.history_rounded, '/admin/audit-log')],
-        'settings':         [_MenuItem('Settings', Icons.settings_rounded, '/admin/settings')],
       };
       
       final permittedItems = <_MenuItem>[];
-      final orderedKeys = ['members', 'announcements', 'schedules', 'intelligence', 'tickets', 'payments', 'fees', 'events', 'surveys', 'audit_log', 'settings'];
+      final orderedKeys = ['members', 'announcements', 'schedules', 'intelligence', 'tickets', 'payments', 'fees', 'events', 'surveys', 'audit_log'];
       for (final key in orderedKeys) {
         if (auth.hasPermission(key)) permittedItems.addAll(allAdminItems[key] ?? []);
       }
@@ -92,8 +91,6 @@ class MobileMenuPage extends StatelessWidget {
       ];
     }
 
-    final isSubOrAdmin = isAdmin || role == 'sub_admin';
-
     return AppLayout(
       title: 'Menu',
       scrollable: true,
@@ -106,7 +103,7 @@ class MobileMenuPage extends StatelessWidget {
             children: [
               ...sections,
               _buildSection(context, 'ACCOUNT', [
-                _MenuItem('Settings', Icons.settings_rounded, isSubOrAdmin ? '/admin/settings' : '/settings'),
+                _MenuItem('Settings', Icons.settings_rounded, (isAdmin || (role == 'sub_admin' && auth.hasPermission('settings'))) ? '/admin/settings' : '/settings'),
                 _MenuItem('Sign Out', Icons.logout_rounded, '/login', isLogout: true),
               ]),
               const SizedBox(height: 32),
