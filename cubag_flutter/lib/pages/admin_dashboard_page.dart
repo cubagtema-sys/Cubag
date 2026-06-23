@@ -30,6 +30,31 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     _fetchData();
   }
 
+  void _prefetchAdminData() {
+    final api = ApiService();
+    // Warm up and cache critical admin pages in the background
+    Future.microtask(() async {
+      try {
+        // 1. Members Directory (first page)
+        await api.fetchDataWithCache('/members/admin/all?page=1&limit=20', (data, isCached, {bool hasError = false}) {});
+        // 2. Payments Directory (first page)
+        await api.fetchDataWithCache('/payments/admin/all?page=1&limit=20&search=&status=all', (data, isCached, {bool hasError = false}) {});
+        // 3. Support Tickets (first page)
+        await api.fetchDataWithCache('/tickets/admin/all?page=1&per_page=10&status=inbox', (data, isCached, {bool hasError = false}) {});
+        // 4. Announcements (active & archived)
+        await api.fetchDataWithCache('/announcements/admin/all?archived=false&page=1&limit=10', (data, isCached, {bool hasError = false}) {});
+        await api.fetchDataWithCache('/announcements/admin/all?archived=true&page=1&limit=10', (data, isCached, {bool hasError = false}) {});
+        // 5. Cargo Schedules
+        await api.fetchDataWithCache('schedules?status=All&page=1&per_page=10', (data, isCached, {bool hasError = false}) {});
+        // 6. Events (upcoming & history)
+        await api.fetchDataWithCache('/events/admin/all?page=1&per_page=20&status=upcoming', (data, isCached, {bool hasError = false}) {});
+        await api.fetchDataWithCache('/events/admin/all?page=1&per_page=20&status=history', (data, isCached, {bool hasError = false}) {});
+        // 7. Surveys (active)
+        await api.fetchDataWithCache('surveys/admin/all?page=1&per_page=20&status=active', (data, isCached, {bool hasError = false}) {});
+      } catch (_) {}
+    });
+  }
+
   Future<void> _fetchData() async {
     setState(() {
       _loading = true;
@@ -41,7 +66,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     try {
       final results = await Future.wait([
         api.get('/admin/dashboard').catchError((e) => Response(requestOptions: RequestOptions(), statusCode: 500, data: {'message': e.toString()})),
-        api.get('/members/admin/all?page=1&limit=500').catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 403, data: null)),
+        api.get('/members/admin/all?page=1&limit=100&status=pending').catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 403, data: null)),
       ]);
 
       final dRes = results[0];
@@ -70,10 +95,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       // Handle Members (to show pending approvals)
       if (mRes.statusCode == 200 && mRes.data != null) {
         _rawMembers = ApiService.ensureList(mRes.data);
-        // Sync total members count if we have direct member list
-        if (_rawMembers.isNotEmpty) {
-          _totalMembers = _rawMembers.length;
-        }
       }
 
       if (mounted) {
@@ -83,6 +104,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             _error = 'Dashboard could not load critical data.';
           }
         });
+        // Prefetch other admin pages in background to make transitions instant
+        if (!dashboardFailed) {
+          _prefetchAdminData();
+        }
       }
     } catch (e) {
       if (mounted) {

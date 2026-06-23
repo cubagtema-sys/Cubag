@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../components/app_layout.dart';
 import '../components/custom_dropdown.dart';
 import '../services/api_service.dart';
@@ -43,52 +44,60 @@ class _State extends State<AdminAnnouncementsPage> {
     _fetchArchived(page: 1);
   }
 
-  Future<void> _fetchActive({int page = 1}) async {
-    setState(() { _pageActive = page; _loadingActive = true; });
+  Future<void> _clearAnnouncementsCache() async {
     try {
-      final res = await _api.get('/announcements/admin/all?archived=false&page=$_pageActive&limit=10');
-      if (res.statusCode == 200) {
-        final data = res.data;
-        if (mounted) {
-          setState(() {
-          _active = ApiService.ensureList(data);
-          if (data is Map && data.containsKey('total')) {
-            _hasMoreActive = (_pageActive * 10) < data['total'];
-          } else {
-            _hasMoreActive = _active.length == 10;
-          }
-        });
-        }
+      final box = Hive.box('api_cache');
+      final keysToRemove = box.keys.where((key) => key.toString().contains('announcements/admin/all')).toList();
+      for (final key in keysToRemove) {
+        await box.delete(key);
       }
-    } catch (e) {
-      debugPrint('Error fetching active announcements: $e');
-    } finally {
-      if (mounted) setState(() => _loadingActive = false);
-    }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchActive({int page = 1}) async {
+    if (!mounted) return;
+    setState(() { _pageActive = page; _loadingActive = true; });
+    
+    await _api.fetchDataWithCache('/announcements/admin/all?archived=false&page=$_pageActive&limit=10', (data, isCached, {bool hasError = false}) {
+      if (!mounted) return;
+      if (hasError && _active.isEmpty) {
+        setState(() { _loadingActive = false; });
+        return;
+      }
+      if (data == null) { setState(() => _loadingActive = false); return; }
+      setState(() {
+        _loadingActive = false;
+        _active = ApiService.ensureList(data);
+        if (data is Map && data.containsKey('total')) {
+          _hasMoreActive = (_pageActive * 10) < data['total'];
+        } else {
+          _hasMoreActive = _active.length == 10;
+        }
+      });
+    });
   }
 
   Future<void> _fetchArchived({int page = 1}) async {
+    if (!mounted) return;
     setState(() { _pageArchived = page; _loadingArchived = true; });
-    try {
-      final res = await _api.get('/announcements/admin/all?archived=true&page=$_pageArchived&limit=10');
-      if (res.statusCode == 200) {
-        final data = res.data;
-        if (mounted) {
-          setState(() {
-          _archived = ApiService.ensureList(data);
-          if (data is Map && data.containsKey('total')) {
-            _hasMoreArchived = (_pageArchived * 10) < data['total'];
-          } else {
-            _hasMoreArchived = _archived.length == 10;
-          }
-        });
-        }
+    
+    await _api.fetchDataWithCache('/announcements/admin/all?archived=true&page=$_pageArchived&limit=10', (data, isCached, {bool hasError = false}) {
+      if (!mounted) return;
+      if (hasError && _archived.isEmpty) {
+        setState(() { _loadingArchived = false; });
+        return;
       }
-    } catch (e) {
-      debugPrint('Error fetching archived announcements: $e');
-    } finally {
-      if (mounted) setState(() => _loadingArchived = false);
-    }
+      if (data == null) { setState(() => _loadingArchived = false); return; }
+      setState(() {
+        _loadingArchived = false;
+        _archived = ApiService.ensureList(data);
+        if (data is Map && data.containsKey('total')) {
+          _hasMoreArchived = (_pageArchived * 10) < data['total'];
+        } else {
+          _hasMoreArchived = _archived.length == 10;
+        }
+      });
+    });
   }
 
   Future<void> _submit() async {
@@ -97,6 +106,7 @@ class _State extends State<AdminAnnouncementsPage> {
     await _api.postData('announcements', {'title': _titleCtrl.text, 'body': _bodyCtrl.text, 'category': _category, 'posted_by': 'System Administrator'});
     _titleCtrl.clear(); _bodyCtrl.clear();
     setState(() => _category = 'General');
+    await _clearAnnouncementsCache();
     await _fetchActive(page: 1);
     if (mounted) setState(() { _submitting = false; _msg = 'Announcement broadcasted!'; _tab = 'history'; });
     Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _msg = ''); });
@@ -109,6 +119,7 @@ class _State extends State<AdminAnnouncementsPage> {
       await _api.deleteData('announcements/$id');
       setState(() => _msg = 'Archived successfully.');
       Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _msg = ''); });
+      await _clearAnnouncementsCache();
       _fetchArchived(page: 1);
     } catch (_) {
       _fetchActive(page: _pageActive);
@@ -122,6 +133,7 @@ class _State extends State<AdminAnnouncementsPage> {
       await _api.patchData('announcements/$id/restore', {});
       setState(() => _msg = 'Restored.');
       Future.delayed(const Duration(seconds: 3), () { if (mounted) setState(() => _msg = ''); });
+      await _clearAnnouncementsCache();
       _fetchActive(page: 1);
     } catch (_) {
       _fetchArchived(page: _pageArchived);
