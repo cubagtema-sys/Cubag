@@ -25,9 +25,13 @@ class AdminSurveysPage extends StatefulWidget {
 
 class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin {
   final _api = ApiService();
-  List<dynamic> _surveys = [];
-  bool _loading = true, _submitting = false;
-  bool _hasError = false;
+  List<dynamic> _activeSurveys = [];
+  List<dynamic> _historySurveys = [];
+  bool _loadingActive = true;
+  bool _loadingHistory = true;
+  bool _hasErrorActive = false;
+  bool _hasErrorHistory = false;
+  bool _submitting = false;
   bool _loadingMore = false;
   String _tab = 'active';
   dynamic _viewingResults;
@@ -36,9 +40,12 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   Timer? _refreshTimer;
   int _countdown = 15;
   
-  int _page = 1;
-  int _total = 0;
-  bool _hasMore = true;
+  int _pageActive = 1;
+  int _pageHistory = 1;
+  int _totalActive = 0;
+  int _totalHistory = 0;
+  bool _hasMoreActive = true;
+  bool _hasMoreHistory = true;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -75,8 +82,14 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   void _onScroll() {
     if (_viewingResults != null) return;
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      if (!_loading && !_loadingMore && _hasMore && _tab != 'create') {
-        _fetchMore();
+      if (_tab == 'active') {
+        if (!_loadingActive && !_loadingMore && _hasMoreActive) {
+          _fetchMore();
+        }
+      } else if (_tab == 'history') {
+        if (!_loadingHistory && !_loadingMore && _hasMoreHistory) {
+          _fetchMore();
+        }
       }
     }
   }
@@ -85,7 +98,8 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
     if (_tab == newTab) return;
     setState(() => _tab = newTab);
     if (newTab != 'create') {
-      _fetch(refresh: true);
+      final hasData = newTab == 'active' ? _activeSurveys.isNotEmpty : _historySurveys.isNotEmpty;
+      _fetch(refresh: !hasData);
     }
   }
 
@@ -93,54 +107,109 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
 
   Future<void> _fetch({bool refresh = false}) async {
     if (!mounted) return;
-    if (refresh) {
-      setState(() { _page = 1; _hasMore = true; _loading = true; _surveys = []; });
-    } else {
-      if (!_loading) setState(() => _loading = true);
-    }
-    final fetchTab = _tab;
-    await _api.fetchDataWithCache('surveys/admin/all?page=$_page&per_page=20&status=$fetchTab', (data, isCached, {bool hasError = false}) {
-      if (!mounted) return;
-      if (_tab != fetchTab) return;
-      if (hasError && _surveys.isEmpty) {
-        setState(() { _loading = false; _hasError = true; });
-        return;
+    final targetTab = _tab;
+    if (targetTab == 'create') return;
+
+    if (targetTab == 'active') {
+      if (refresh) {
+        setState(() { _pageActive = 1; _hasMoreActive = true; _loadingActive = true; _activeSurveys = []; });
+      } else {
+        if (!_loadingActive) setState(() => _loadingActive = true);
       }
-      if (data == null) { setState(() => _loading = false); return; }
-      setState(() {
-        final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
-        _surveys = raw is List ? raw : [];
-        if (data is Map && data.containsKey('total')) {
-          _total = data['total'];
-          _hasMore = _surveys.length < _total;
-        } else {
-          _hasMore = false;
+      
+      await _api.fetchDataWithCache('surveys/admin/all?page=$_pageActive&per_page=20&status=active', (data, isCached, {bool hasError = false}) {
+        if (!mounted) return;
+        if (_tab != 'active') return;
+        if (hasError && _activeSurveys.isEmpty) {
+          setState(() { _loadingActive = false; _hasErrorActive = true; });
+          return;
         }
-        _loading = false;
-        _hasError = false;
+        if (data == null) { setState(() => _loadingActive = false); return; }
+        setState(() {
+          final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
+          _activeSurveys = raw is List ? raw : [];
+          if (data is Map && data.containsKey('total')) {
+            _totalActive = data['total'];
+            _hasMoreActive = _activeSurveys.length < _totalActive;
+          } else {
+            _hasMoreActive = false;
+          }
+          _loadingActive = false;
+          _hasErrorActive = false;
+        });
       });
-    });
+    } else if (targetTab == 'history') {
+      if (refresh) {
+        setState(() { _pageHistory = 1; _hasMoreHistory = true; _loadingHistory = true; _historySurveys = []; });
+      } else {
+        if (!_loadingHistory) setState(() => _loadingHistory = true);
+      }
+      
+      await _api.fetchDataWithCache('surveys/admin/all?page=$_pageHistory&per_page=20&status=history', (data, isCached, {bool hasError = false}) {
+        if (!mounted) return;
+        if (_tab != 'history') return;
+        if (hasError && _historySurveys.isEmpty) {
+          setState(() { _loadingHistory = false; _hasErrorHistory = true; });
+          return;
+        }
+        if (data == null) { setState(() => _loadingHistory = false); return; }
+        setState(() {
+          final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
+          _historySurveys = raw is List ? raw : [];
+          if (data is Map && data.containsKey('total')) {
+            _totalHistory = data['total'];
+            _hasMoreHistory = _historySurveys.length < _totalHistory;
+          } else {
+            _hasMoreHistory = false;
+          }
+          _loadingHistory = false;
+          _hasErrorHistory = false;
+        });
+      });
+    }
   }
 
   Future<void> _fetchMore() async {
-    setState(() => _loadingMore = true);
-    _page++;
-    try {
-      final data = await _api.fetchData('surveys/admin/all?page=$_page&per_page=20&status=$_tab');
-      if (mounted) {
-        final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
-        final newItems = raw is List ? raw : [];
-        setState(() {
-          _surveys.addAll(newItems);
-          if (data is Map && data.containsKey('total')) {
-            _hasMore = _surveys.length < data['total'];
-          } else {
-            _hasMore = newItems.isNotEmpty;
-          }
-        });
-      }
-    } catch (_) { _page--; }
-    if (mounted) setState(() => _loadingMore = false);
+    final targetTab = _tab;
+    if (targetTab == 'active') {
+      setState(() => _loadingMore = true);
+      _pageActive++;
+      try {
+        final data = await _api.fetchData('surveys/admin/all?page=$_pageActive&per_page=20&status=active');
+        if (mounted) {
+          final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
+          final newItems = raw is List ? raw : [];
+          setState(() {
+            _activeSurveys.addAll(newItems);
+            if (data is Map && data.containsKey('total')) {
+              _hasMoreActive = _activeSurveys.length < data['total'];
+            } else {
+              _hasMoreActive = newItems.isNotEmpty;
+            }
+          });
+        }
+      } catch (_) { _pageActive--; }
+      if (mounted) setState(() => _loadingMore = false);
+    } else if (targetTab == 'history') {
+      setState(() => _loadingMore = true);
+      _pageHistory++;
+      try {
+        final data = await _api.fetchData('surveys/admin/all?page=$_pageHistory&per_page=20&status=history');
+        if (mounted) {
+          final raw = data is Map ? (data['data'] ?? data['items'] ?? data) : data;
+          final newItems = raw is List ? raw : [];
+          setState(() {
+            _historySurveys.addAll(newItems);
+            if (data is Map && data.containsKey('total')) {
+              _hasMoreHistory = _historySurveys.length < data['total'];
+            } else {
+              _hasMoreHistory = newItems.isNotEmpty;
+            }
+          });
+        }
+      } catch (_) { _pageHistory--; }
+      if (mounted) setState(() => _loadingMore = false);
+    }
   }
 
   Future<void> _loadResults(dynamic survey) async {
@@ -347,6 +416,11 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
   // ── Survey Card List ─────────────────────────────────────────
 
   Widget _buildSurveyList(bool isDark, Color cardBg, Color borderColor, Color textColor, Color subTextColor) {
+    final surveys = _tab == 'active' ? _activeSurveys : _historySurveys;
+    final loading = _tab == 'active' ? _loadingActive : _loadingHistory;
+    final hasError = _tab == 'active' ? _hasErrorActive : _hasErrorHistory;
+    final total = _tab == 'active' ? _totalActive : _totalHistory;
+
     return LayoutBuilder(builder: (context, constraints) {
       double cardWidth = constraints.maxWidth;
       if (constraints.maxWidth > 1200) {
@@ -357,7 +431,7 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         cardWidth = (constraints.maxWidth - 16) / 2;
       }
 
-      if (_loading) {
+      if (loading) {
         return Wrap(
           spacing: 16,
           runSpacing: 16,
@@ -371,20 +445,20 @@ class _State extends State<AdminSurveysPage> with SingleTickerProviderStateMixin
         );
       }
 
-      if (_hasError && _surveys.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
-      if (_surveys.isEmpty) return _emptyState(cardBg, borderColor, subTextColor);
+      if (hasError && surveys.isEmpty) return FetchErrorView(onRetry: () => _fetch(refresh: true));
+      if (surveys.isEmpty) return _emptyState(cardBg, borderColor, subTextColor);
 
       return Column(children: [
         Wrap(
           spacing: 16,
           runSpacing: 16,
-          children: _surveys.map((s) => SizedBox(
+          children: surveys.map((s) => SizedBox(
             width: cardWidth,
             child: _surveyCard(s, isDark, cardBg, borderColor, textColor, subTextColor),
           )).toList(),
         ),
         if (_loadingMore) const Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: _kOrange)),
-        if (!_loading && _total > 0) Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Text('${_surveys.length} of $_total polls shown', style: GoogleFonts.outfit(fontSize: 13, color: subTextColor, fontWeight: FontWeight.w500))),
+        if (!loading && total > 0) Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Text('${surveys.length} of $total polls shown', style: GoogleFonts.outfit(fontSize: 13, color: subTextColor, fontWeight: FontWeight.w500))),
       ]);
     });
   }

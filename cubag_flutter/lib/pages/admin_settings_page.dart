@@ -48,12 +48,14 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   }
 
   Future<void> _fetchSettings() async {
-    setState(() => _fetchingSettings = true);
-    try {
-      final res = await ApiService().get('/compliance-settings');
-      if (res.statusCode == 200) {
+    if (_complianceSettings.isEmpty) {
+      setState(() => _fetchingSettings = true);
+    }
+    await ApiService().fetchDataWithCache('/compliance-settings', (data, isCached, {bool hasError = false}) {
+      if (!mounted) return;
+      if (data != null) {
         setState(() {
-          _complianceSettings = res.data ?? {};
+          _complianceSettings = Map<String, dynamic>.from(data as Map);
           _payPunctualCtrl.text = _complianceSettings['payment_punctual']?.toString() ?? '25';
           _payHistoryCtrl.text = _complianceSettings['payment_history']?.toString() ?? '15';
           _licActiveCtrl.text = _complianceSettings['license_active']?.toString() ?? '15';
@@ -62,12 +64,14 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
           _surveyCtrl.text = _complianceSettings['survey_completion']?.toString() ?? '10';
           _agmActiveCtrl.text = _complianceSettings['agm_active']?.toString() ?? '10';
           _agmInactiveCtrl.text = _complianceSettings['agm_inactive']?.toString() ?? '5';
+          _fetchingSettings = false;
         });
+      } else if (hasError) {
+        setState(() => _fetchingSettings = false);
+      } else if (!isCached) {
+        setState(() => _fetchingSettings = false);
       }
-    } catch (_) {}
-    if (mounted) {
-      setState(() => _fetchingSettings = false);
-    }
+    });
   }
 
   Future<void> _saveSettings() async {
@@ -111,18 +115,22 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   }
 
   Future<void> _fetchUser() async {
-    setState(() => _fetchingUser = true);
-    try {
-      final res = await ApiService().get('/auth/me');
-      if (res.statusCode == 200) {
-        setState(() {
-          _user = res.data ?? {};
-        });
-      }
-    } catch (_) {}
-    if (mounted) {
-      setState(() => _fetchingUser = false);
+    if (_user.isEmpty) {
+      setState(() => _fetchingUser = true);
     }
+    await ApiService().fetchDataWithCache('/auth/me', (data, isCached, {bool hasError = false}) {
+      if (!mounted) return;
+      if (data != null) {
+        setState(() {
+          _user = Map<String, dynamic>.from(data as Map);
+          _fetchingUser = false;
+        });
+      } else if (hasError) {
+        setState(() => _fetchingUser = false);
+      } else if (!isCached) {
+        setState(() => _fetchingUser = false);
+      }
+    });
   }
 
   Future<void> _changePassword() async {

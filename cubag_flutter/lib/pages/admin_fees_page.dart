@@ -23,14 +23,22 @@ class _State extends State<AdminFeesPage> {
   @override void initState() { super.initState(); _fetchFees(); }
 
   Future<void> _fetchFees() async {
-    setState(() => _fetching = true);
-    try {
-      final data = await _api.getPublic('settings/cubag_fees_v2');
-      if (mounted && data is List) {
-        setState(() => _fees = data.map((item) => Map<String, dynamic>.from(item as Map)).toList());
+    if (_fees.isEmpty) {
+      setState(() => _fetching = true);
+    }
+    await _api.fetchDataWithCache('settings/cubag_fees_v2', (data, isCached, {bool hasError = false}) {
+      if (!mounted) return;
+      if (data is List) {
+        setState(() {
+          _fees = data.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+          _fetching = false;
+        });
+      } else if (hasError) {
+        setState(() => _fetching = false);
+      } else if (!isCached) {
+        setState(() => _fetching = false);
       }
-    } catch (_) {}
-    if (mounted) setState(() => _fetching = false);
+    });
   }
 
   void _addFee() => setState(() => _fees.add({'id': DateTime.now().millisecondsSinceEpoch, 'label': '', 'amount': '0.00'}));
