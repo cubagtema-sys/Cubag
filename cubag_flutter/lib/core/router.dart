@@ -115,109 +115,212 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/public-services', builder: (c, s) => const Scaffold(body: Center(child: Text('Public Services are currently unavailable.')))),
     GoRoute(path: '/admin-unavailable', builder: (c, s) => const _AdminUnavailablePage()),
 
-    // ── Member pages (wrapped in UserShell for bottom nav) ────────────
-    ShellRoute(
-      builder: (context, state, child) => UserShell(child: child),
-      routes: [
-        GoRoute(path: '/dashboard',         builder: (c, s) => const DashboardPage()),
-        GoRoute(path: '/announcements',     builder: (c, s) => const AnnouncementsPage()),
-        GoRoute(path: '/cargo-schedules',   builder: (c, s) => const CargoSchedulesPage()),
-        GoRoute(path: '/engagement',        builder: (c, s) => const EngagementPage()),
-        GoRoute(path: '/events',            builder: (c, s) => const EventsPage()),
-        GoRoute(path: '/license-renewal',   builder: (c, s) => const LicenseRenewalPage()),
-        GoRoute(path: '/live-data',         builder: (c, s) => const LiveDataPage()),
-        GoRoute(
-          path: '/messaging',
-          builder: (c, s) => MessagingPage(
-            initialUserId: s.uri.queryParameters['id'],
-            initialUserName: s.uri.queryParameters['name'],
-            initialUserCompany: s.uri.queryParameters['company'],
-          ),
+    // ── Member pages (wrapped in UserShell for bottom nav, state kept alive) ──
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) => UserShell(child: navigationShell),
+      branches: [
+        StatefulShellBranch(routes: [GoRoute(path: '/dashboard', builder: (c, s) => const DashboardPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/announcements', builder: (c, s) => const AnnouncementsPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/cargo-schedules', builder: (c, s) => const CargoSchedulesPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/engagement', builder: (c, s) => const EngagementPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/events', builder: (c, s) => const EventsPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/license-renewal', builder: (c, s) => const LicenseRenewalPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/live-data', builder: (c, s) => const LiveDataPage())]),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/messaging',
+              builder: (c, s) => MessagingPage(
+                initialUserId: s.uri.queryParameters['id'],
+                initialUserName: s.uri.queryParameters['name'],
+                initialUserCompany: s.uri.queryParameters['company'],
+              ),
+            ),
+          ],
         ),
-        GoRoute(path: '/networking',        builder: (c, s) => const NetworkingPage()),
-        GoRoute(path: '/notifications',     builder: (c, s) => const NotificationsPage()),
-        GoRoute(path: '/menu',              builder: (c, s) => const MobileMenuPage()),
-        GoRoute(path: '/payment-history',   builder: (c, s) => const PaymentHistoryPage()),
-        GoRoute(path: '/payments',          builder: (c, s) => const PaymentsPage()),
-        GoRoute(path: '/profile',           builder: (c, s) => const ProfilePage()),
-        GoRoute(path: '/settings',          builder: (c, s) => const SettingsPage()),
-        GoRoute(path: '/surveys',           builder: (c, s) => const SurveysPage()),
-        GoRoute(path: '/tasks',             builder: (c, s) => const TasksPage()),
-        GoRoute(path: '/vanning-schedules', builder: (c, s) => const VanningSchedulesPage()),
-        GoRoute(path: '/vessel-movements',  builder: (c, s) => const VesselMovementsPage()),
-        GoRoute(
-          path: '/member-detail/:id',
-          builder: (c, s) => MemberDetailPage(memberId: s.pathParameters['id']),
+        StatefulShellBranch(routes: [GoRoute(path: '/networking', builder: (c, s) => const NetworkingPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/notifications', builder: (c, s) => const NotificationsPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/menu', builder: (c, s) => const MobileMenuPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/payment-history', builder: (c, s) => const PaymentHistoryPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/payments', builder: (c, s) => const PaymentsPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (c, s) => const ProfilePage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/settings', builder: (c, s) => const SettingsPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/surveys', builder: (c, s) => const SurveysPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/tasks', builder: (c, s) => const TasksPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/vanning-schedules', builder: (c, s) => const VanningSchedulesPage())]),
+        StatefulShellBranch(routes: [GoRoute(path: '/vessel-movements', builder: (c, s) => const VesselMovementsPage())]),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/member-detail/:id',
+              builder: (c, s) => MemberDetailPage(memberId: s.pathParameters['id']),
+            ),
+          ],
         ),
       ],
     ),
 
-    // ── Admin pages — smooth fade transition (no flash on sidebar navigation) ──
-    ShellRoute(
-      // The shell keeps the AppLayout sidebar alive; only the content fades in
-      builder: (context, state, child) => child,
-      routes: [
-        _adminRoute('/admin/announcements',    const AdminAnnouncementsPage()),
-        _adminRoute('/admin/analytics',        const AdminAnalyticsPage()),
-        _adminRoute('/admin/audit-log',        const AdminAuditLogPage()),
-        _adminRoute('/admin/cargo-schedules',  const AdminCargoSchedulesPage()),
-        _adminRoute('/admin/dashboard',        const AdminDashboardPage()),
-        _adminRoute('/admin/events',           const AdminEventsPage()),
-        GoRoute(
-          path: '/admin/events/:id/attendees',
-          pageBuilder: (context, state) => CustomTransitionPage<void>(
-            key: state.pageKey,
-            child: AdminEventAttendeesPage(
-              eventId: int.parse(state.pathParameters['id'] ?? '0'),
-              title: state.uri.queryParameters['title'] ?? 'Event',
+    // ── Admin pages — state kept alive using StatefulShellRoute (instant tab switching, no reload) ──
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) => navigationShell,
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/announcements',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminAnnouncementsPage()),
             ),
-            transitionDuration: const Duration(milliseconds: 200),
-            reverseTransitionDuration: const Duration(milliseconds: 150),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut), child: child);
-            },
-          ),
+          ],
         ),
-        _adminRoute('/admin/fees',             const AdminFeesPage()),
-        _adminRoute('/admin/intelligence',     const AdminIntelligencePage()),
-        _adminRoute('/admin/license-renewal',  const AdminLicenseRenewalPage()),
-        _adminRoute('/admin/members',          const AdminMembersPage()),
-        _adminRoute('/admin/payments',         const AdminPaymentsPage()),
-        _adminRoute('/admin/payment-settings', const AdminPaymentSettingsPage()),
-        _adminRoute('/admin/settings',         const AdminSettingsPage()),
-        _adminRoute('/admin/surveys',          const AdminSurveysPage()),
-        _adminRoute('/admin/tasks',            const AdminTasksPage()),
-        _adminRoute('/admin/tickets',          const AdminTicketsPage()),
-        _adminRoute('/admin/sub-admins',       const AdminSubAdminsPage()),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/analytics',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminAnalyticsPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/audit-log',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminAuditLogPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/cargo-schedules',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminCargoSchedulesPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/dashboard',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminDashboardPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/events',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminEventsPage()),
+              routes: [
+                GoRoute(
+                  path: ':id/attendees',
+                  pageBuilder: (context, state) => CustomTransitionPage<void>(
+                    key: state.pageKey,
+                    child: AdminEventAttendeesPage(
+                      eventId: int.parse(state.pathParameters['id'] ?? '0'),
+                      title: state.uri.queryParameters['title'] ?? 'Event',
+                    ),
+                    transitionDuration: const Duration(milliseconds: 200),
+                    reverseTransitionDuration: const Duration(milliseconds: 150),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut), child: child);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/fees',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminFeesPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/intelligence',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminIntelligencePage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/license-renewal',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminLicenseRenewalPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/members',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminMembersPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/payments',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminPaymentsPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/payment-settings',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminPaymentSettingsPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/settings',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminSettingsPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/surveys',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminSurveysPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/tasks',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminTasksPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/tickets',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminTicketsPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/admin/sub-admins',
+              pageBuilder: (c, s) => const NoTransitionPage(child: AdminSubAdminsPage()),
+            ),
+          ],
+        ),
       ],
     ),
   ],
 );
-
-/// Returns a [GoRoute] that fades the admin content in (200 ms).
-/// The sidebar is part of [AppLayout] which stays rendered inside
-/// each page — this fade only animates the content body, giving
-/// a premium SPA-like feel with zero white flash.
-GoRoute _adminRoute(String path, Widget page) {
-  return GoRoute(
-    path: path,
-    pageBuilder: (context, state) => CustomTransitionPage<void>(
-      key: state.pageKey,
-      child: page,
-      transitionDuration: const Duration(milliseconds: 200),
-      reverseTransitionDuration: const Duration(milliseconds: 150),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOut,
-          ),
-          child: child,
-        );
-      },
-    ),
-  );
-}
 
 class _AdminUnavailablePage extends StatelessWidget {
   const _AdminUnavailablePage();
