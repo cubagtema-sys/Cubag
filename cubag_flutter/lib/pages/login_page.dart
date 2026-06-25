@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -445,6 +446,9 @@ class _LoginPageState extends State<LoginPage> {
       TextFormField(
         controller: _identifierCtrl,
         keyboardType: _loginMode == 'email' ? TextInputType.emailAddress : TextInputType.phone,
+        inputFormatters: _loginMode == 'phone'
+            ? [FilteringTextInputFormatter.deny(RegExp(r'[a-zA-Z]'))]
+            : null,
         decoration: _inputDecoration(
           hint: _loginMode == 'email' ? 'name@agency.com' : '024 000 0000',
           icon: _loginMode == 'email' ? Icons.mail_outline : Icons.phone_android_outlined,
