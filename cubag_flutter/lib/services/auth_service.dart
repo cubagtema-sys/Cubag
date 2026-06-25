@@ -109,7 +109,9 @@ class AuthService extends ChangeNotifier {
         _initServices();
 
         if (role == 'admin' || role == 'sub_admin') {
-          await _fetchPermissions();
+          _fetchPermissions().then((_) {
+            notifyListeners();
+          });
         }
 
         notifyListeners();
