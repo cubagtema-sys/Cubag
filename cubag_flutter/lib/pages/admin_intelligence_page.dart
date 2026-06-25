@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../components/skeleton_loader.dart';
 import '../services/api_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../components/cors_image_widget.dart';
 
 const _kOrange = Color(0xFFf08232);
 
@@ -403,12 +403,12 @@ class _State extends State<AdminIntelligencePage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: a.thumbnail.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: '${ApiService.baseUrl}/news/proxy-image?url=${Uri.encodeComponent(a.thumbnail)}',
+                ? CorsImageWidget(
+                    url: a.thumbnail,
                     width: 90, 
                     height: 90,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
+                    placeholder: Container(
                       width: 90,
                       height: 90,
                       decoration: BoxDecoration(
@@ -426,7 +426,7 @@ class _State extends State<AdminIntelligencePage> {
                         ),
                       ),
                     ),
-                    errorWidget: (context, error, stack) => Container(
+                    errorWidget: Container(
                       width: 90,
                       height: 90,
                       color: isDark ? const Color(0xFF334155) : const Color(0xFFf1f5f9),
