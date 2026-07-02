@@ -299,22 +299,36 @@ def login():
     conn = get_db()
     try:
         with conn.cursor() as cursor:
-            # Detect if input looks like a phone number (digits, spaces, dashes, +)
-            import re
-            is_phone = bool(re.match(r'^[\d\s\+\-\(\)]+$', identifier))
-
-            if is_phone:
-                # Normalize: strip all non-digit chars for flexible matching
-                digits_only = re.sub(r'\D', '', identifier)
-                cursor.execute(
-                    "SELECT * FROM members WHERE regexp_replace(phone, '[^0-9]', '', 'g') = %s",
-                    (digits_only,)
-                )
-            else:
-                cursor.execute("SELECT * FROM members WHERE LOWER(email) = LOWER(%s)", (identifier,))
+            # First, check by email address (case-insensitive)
+            cursor.execute("SELECT * FROM members WHERE LOWER(email) = LOWER(%s)", (identifier,))
             member = cursor.fetchone()
 
-            if not member or not check_password_hash(member['password_hash'], password):
+            # If not found by email, check phone number if it contains at least 7 digits
+            if not member:
+                import re
+                digits_only = re.sub(r'\D', '', identifier)
+                if len(digits_only) >= 7:
+                    cursor.execute(
+                        "SELECT * FROM members WHERE regexp_replace(phone, '[^0-9]', '', 'g') = %s",
+                        (digits_only,)
+                    )
+                    member = cursor.fetchone()
+
+            # If still not found, check agency_code or license_number
+            if not member:
+                cursor.execute(
+                    "SELECT * FROM members WHERE LOWER(agency_code) = LOWER(%s) OR LOWER(license_number) = LOWER(%s)",
+                    (identifier, identifier)
+                )
+                member = cursor.fetchone()
+
+            if not member:
+                return jsonify({'message': 'Invalid credentials'}), 401
+
+            # Check password (both exact and stripped of mobile/autofill accidental whitespace)
+            raw_pw = str(password or '')
+            stripped_pw = raw_pw.strip()
+            if not (check_password_hash(member['password_hash'], raw_pw) or check_password_hash(member['password_hash'], stripped_pw)):
                 return jsonify({'message': 'Invalid credentials'}), 401
 
             # ── Block suspended / inactive accounts ───────────────────────────

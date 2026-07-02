@@ -12,7 +12,35 @@ class ApiService {
 
   late Dio _dio;
 
-  static const _base = 'https://cubag-backend.onrender.com/api';
+  static String get _base {
+    // Allows overriding via compile-time --dart-define=API_URL=...
+    const overrideUrl = String.fromEnvironment('API_URL');
+    if (overrideUrl.isNotEmpty) {
+      return overrideUrl;
+    }
+
+    // In release mode (production hosting), always use the live backend
+    if (kReleaseMode) {
+      return 'https://cubag-backend.onrender.com/api';
+    }
+
+    // In local development (debug/profile modes):
+    if (kIsWeb) {
+      final host = Uri.base.host;
+      if (host == 'localhost' || host == '127.0.0.1' || host.startsWith('192.168.')) {
+        return 'http://localhost:5001/api';
+      }
+    } else {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        // 10.0.2.2 is the loopback alias to the host machine for Android emulators
+        return 'http://10.0.2.2:5001/api';
+      } else {
+        return 'http://localhost:5001/api';
+      }
+    }
+
+    return 'https://cubag-backend.onrender.com/api';
+  }
 
   static String get _normalizedBase {
     String url = _base.trim();

@@ -112,6 +112,10 @@ final GoRouter appRouter = GoRouter(
       path: '/verify-member/:id',
       builder: (c, s) => VerifyMemberPage(memberId: s.pathParameters['id']),
     ),
+    GoRoute(
+      path: '/member-detail/:id',
+      builder: (c, s) => MemberDetailPage(memberId: s.pathParameters['id']),
+    ),
     GoRoute(path: '/public-services', builder: (c, s) => const Scaffold(body: Center(child: Text('Public Services are currently unavailable.')))),
     GoRoute(path: '/admin-unavailable', builder: (c, s) => const _AdminUnavailablePage()),
 
@@ -149,14 +153,6 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(routes: [GoRoute(path: '/tasks', builder: (c, s) => const TasksPage())]),
         StatefulShellBranch(routes: [GoRoute(path: '/vanning-schedules', builder: (c, s) => const VanningSchedulesPage())]),
         StatefulShellBranch(routes: [GoRoute(path: '/vessel-movements', builder: (c, s) => const VesselMovementsPage())]),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/member-detail/:id',
-              builder: (c, s) => MemberDetailPage(memberId: s.pathParameters['id']),
-            ),
-          ],
-        ),
       ],
     ),
 

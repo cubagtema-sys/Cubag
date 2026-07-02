@@ -1,4 +1,27 @@
 # Removed eventlet to avoid psycopg2 kqueue bugs on macOS
+import hashlib
+try:
+    # macOS system Python is compiled against LibreSSL and lacks hashlib.scrypt.
+    # We monkey-patch it using cryptography's implementation if missing.
+    if not hasattr(hashlib, 'scrypt'):
+        from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+        from cryptography.hazmat.backends import default_backend
+
+        def _scrypt_fallback(password, *, salt, n, r, p, maxmem=0, dklen=64):
+            kdf = Scrypt(
+                salt=salt,
+                length=dklen,
+                n=n,
+                r=r,
+                p=p,
+                backend=default_backend()
+            )
+            return kdf.derive(password)
+
+        hashlib.scrypt = _scrypt_fallback
+except Exception:
+    pass
+
 import os
 import json
 import logging

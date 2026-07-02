@@ -37,29 +37,31 @@ class DashboardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SkeletonLoader(height: 160, borderRadius: 16),
-          const SizedBox(height: 24),
-          const SkeletonLoader(width: 150, height: 24),
-          const SizedBox(height: 16),
-          const SkeletonLoader(height: 100, borderRadius: 12),
-          const SizedBox(height: 16),
-          const SkeletonLoader(height: 100, borderRadius: 12),
-          const SizedBox(height: 24),
-          const SkeletonLoader(width: 150, height: 24),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: SkeletonLoader(height: 80, borderRadius: 12)),
-              const SizedBox(width: 12),
-              Expanded(child: SkeletonLoader(height: 80, borderRadius: 12)),
-            ],
-          )
-        ],
+    return const SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkeletonLoader(height: 160, borderRadius: 16),
+            SizedBox(height: 24),
+            SkeletonLoader(width: 150, height: 24),
+            SizedBox(height: 16),
+            SkeletonLoader(height: 100, borderRadius: 12),
+            SizedBox(height: 16),
+            SkeletonLoader(height: 100, borderRadius: 12),
+            SizedBox(height: 24),
+            SkeletonLoader(width: 150, height: 24),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: SkeletonLoader(height: 80, borderRadius: 12)),
+                SizedBox(width: 12),
+                Expanded(child: SkeletonLoader(height: 80, borderRadius: 12)),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
