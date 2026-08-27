@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../components/app_layout.dart';
 import '../services/api_service.dart';
+import '../services/calendar_service.dart';
 import '../components/shimmer_loader.dart';
+import '../services/socket_service.dart';
+import '../utils/app_logger.dart';
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -35,17 +38,26 @@ class _EventsPageState extends State<EventsPage> {
         });
       }
     });
+    SocketService().on('events_updated', _onRealtimeEventsUpdate);
+  }
+
+  void _onRealtimeEventsUpdate(dynamic _) {
+    if (mounted) {
+      _fetch(refresh: true);
+    }
   }
 
   @override
   void dispose() {
+    SocketService().off('events_updated', _onRealtimeEventsUpdate);
     _scrollController.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_loading && !_loadingMore && _hasMore) {
         _fetchMore();
       }
@@ -61,27 +73,40 @@ class _EventsPageState extends State<EventsPage> {
         _events = [];
       });
     } else {
-      if (!_loading) setState(() => _loading = true);
+      if (!_loading && _events.isEmpty) setState(() => _loading = true);
     }
 
-    final includePast = _selectedFilter == 'past';
-    await ApiService().fetchDataWithCache(
-      '/events?page=$_page&limit=20&include_past=$includePast',
-      (data, isCached, {bool hasError = false}) {
-        if (mounted && data != null) {
-          setState(() {
-            _loading = false;
-            _events = ApiService.ensureList(data);
-            if (data is Map && data.containsKey('total')) {
-              _total = data['total'];
-              _hasMore = _events.length < _total;
-            } else {
-              _hasMore = false;
-            }
-          });
+    final isPast = _selectedFilter == 'past';
+    final endpoint =
+        '/events?page=$_page&limit=20&status=${isPast ? 'past' : 'upcoming'}&include_past=$isPast';
+    await ApiService().fetchDataWithCache(endpoint, (
+      data,
+      isCached, {
+      bool hasError = false,
+    }) {
+      if (!mounted) return;
+      if (data != null) {
+        final items = ApiService.ensureList(data);
+        // If cached data is empty while network is still fetching, maintain loading shimmer
+        if (isCached && items.isEmpty) {
+          return;
         }
-      },
-    );
+        setState(() {
+          _loading = false;
+          _events = items;
+          if (data is Map && data.containsKey('total')) {
+            _total = data['total'];
+            _hasMore = _events.length < _total;
+          } else {
+            _hasMore = false;
+          }
+        });
+      } else if (!isCached || hasError) {
+        if (mounted) {
+          setState(() => _loading = false);
+        }
+      }
+    });
   }
 
   Future<void> _fetchMore() async {
@@ -89,7 +114,9 @@ class _EventsPageState extends State<EventsPage> {
     _page++;
     try {
       final includePast = _selectedFilter == 'past';
-      final data = await ApiService().fetchData('/events?page=$_page&limit=20&include_past=$includePast');
+      final data = await ApiService().fetchData(
+        '/events?page=$_page&limit=20&include_past=$includePast',
+      );
       if (mounted) {
         final newItems = ApiService.ensureList(data);
         setState(() {
@@ -125,11 +152,19 @@ class _EventsPageState extends State<EventsPage> {
           color: isSelected ? primary : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? primary : const Color(0xFFcbd5e1).withAlpha(120),
+            color: isSelected
+                ? primary
+                : const Color(0xFFcbd5e1).withAlpha(120),
             width: 1.5,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: primary.withAlpha(40), blurRadius: 8, offset: const Offset(0, 3))]
+              ? [
+                  BoxShadow(
+                    color: primary.withAlpha(40),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
               : null,
         ),
         child: Text(
@@ -154,7 +189,10 @@ class _EventsPageState extends State<EventsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+            border: Border.all(
+              color: const Color(0xFFcbd5e1).withAlpha(120),
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withAlpha(8),
@@ -167,12 +205,24 @@ class _EventsPageState extends State<EventsPage> {
             controller: _searchCtrl,
             decoration: InputDecoration(
               hintText: 'Search events by title, description, location...',
-              hintStyle: GoogleFonts.outfit(color: const Color(0xFF94a3b8), fontSize: 13.5, fontWeight: FontWeight.w500),
+              hintStyle: GoogleFonts.outfit(
+                color: const Color(0xFF94a3b8),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+              ),
               border: InputBorder.none,
-              icon: const Icon(Icons.search_rounded, color: Color(0xFF94a3b8), size: 22),
+              icon: const Icon(
+                Icons.search_rounded,
+                color: Color(0xFF94a3b8),
+                size: 22,
+              ),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear_rounded, color: Color(0xFF94a3b8), size: 18),
+                      icon: const Icon(
+                        Icons.clear_rounded,
+                        color: Color(0xFF94a3b8),
+                        size: 18,
+                      ),
                       onPressed: () {
                         _searchCtrl.clear();
                         setState(() => _searchQuery = '');
@@ -208,7 +258,20 @@ class _EventsPageState extends State<EventsPage> {
         child: Icon(Icons.calendar_month_rounded, color: primary, size: 24),
       );
     }
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final monthStr = months[date.month - 1].toUpperCase();
     final dayStr = '${date.day}';
 
@@ -218,7 +281,10 @@ class _EventsPageState extends State<EventsPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(150), width: 1.5),
+        border: Border.all(
+          color: const Color(0xFFcbd5e1).withAlpha(150),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(8),
@@ -235,7 +301,9 @@ class _EventsPageState extends State<EventsPage> {
             padding: const EdgeInsets.symmetric(vertical: 2.5),
             decoration: BoxDecoration(
               color: primary,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(10),
+              ),
             ),
             child: Text(
               monthStr,
@@ -254,7 +322,7 @@ class _EventsPageState extends State<EventsPage> {
               child: Text(
                 dayStr,
                 style: GoogleFonts.outfit(
-                  color: const Color(0xFF1e293b),
+                  color: const Color(0xFF281710),
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
                   height: 1.0,
@@ -267,7 +335,11 @@ class _EventsPageState extends State<EventsPage> {
     );
   }
 
-  Widget _buildStatusPill(String label, Color color, {bool isBlinking = false}) {
+  Widget _buildStatusPill(
+    String label,
+    Color color, {
+    bool isBlinking = false,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -296,7 +368,12 @@ class _EventsPageState extends State<EventsPage> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value, Color primary) {
+  Widget _buildDetailRow(
+    IconData icon,
+    String label,
+    String value,
+    Color primary,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -327,7 +404,7 @@ class _EventsPageState extends State<EventsPage> {
                 value,
                 style: GoogleFonts.outfit(
                   fontSize: 13,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF4D2D20),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -338,7 +415,12 @@ class _EventsPageState extends State<EventsPage> {
     );
   }
 
-  void _showEventDetails(BuildContext context, Map<String, dynamic> e, DateTime? date, Color primary) {
+  void _showEventDetails(
+    BuildContext context,
+    Map<String, dynamic> e,
+    DateTime? date,
+    Color primary,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -346,7 +428,10 @@ class _EventsPageState extends State<EventsPage> {
       builder: (ctx) => Align(
         alignment: Alignment.bottomCenter,
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: BoxConstraints(
+            maxWidth: 600,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+          ),
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -362,7 +447,10 @@ class _EventsPageState extends State<EventsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: primary.withAlpha(20),
                         borderRadius: BorderRadius.circular(8),
@@ -378,25 +466,29 @@ class _EventsPageState extends State<EventsPage> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748b)),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF64748b),
+                      ),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
               ),
               const Divider(height: 1, color: Color(0xFFf1f5f9)),
-              // Content
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              // Scrollable Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     Text(
                       e['title']?.toString() ?? '',
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w900,
                         fontSize: 20,
-                        color: const Color(0xFF1e293b),
+                        color: const Color(0xFF281710),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -407,7 +499,8 @@ class _EventsPageState extends State<EventsPage> {
                       '${e['date']?.toString() ?? ''}${e['time'] != null ? ' at ${e['time']}' : ''}',
                       primary,
                     ),
-                    if (e['location'] != null && e['location'].toString().isNotEmpty) ...[
+                    if (e['location'] != null &&
+                        e['location'].toString().isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _buildDetailRow(
                         Icons.location_on_rounded,
@@ -416,7 +509,8 @@ class _EventsPageState extends State<EventsPage> {
                         primary,
                       ),
                     ],
-                    if (e['capacity'] != null && e['capacity'].toString().isNotEmpty) ...[
+                    if (e['capacity'] != null &&
+                        e['capacity'].toString().isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _buildDetailRow(
                         Icons.people_alt_rounded,
@@ -431,7 +525,7 @@ class _EventsPageState extends State<EventsPage> {
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w800,
                         fontSize: 13.5,
-                        color: const Color(0xFF1e293b),
+                        color: const Color(0xFF281710),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -441,10 +535,13 @@ class _EventsPageState extends State<EventsPage> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFf8fafc),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(80)),
+                        border: Border.all(
+                          color: const Color(0xFFcbd5e1).withAlpha(80),
+                        ),
                       ),
                       child: Text(
-                        e['description']?.toString() ?? 'No description provided.',
+                        e['description']?.toString() ??
+                            'No description provided.',
                         style: GoogleFonts.outfit(
                           fontSize: 13,
                           color: const Color(0xFF475569),
@@ -462,39 +559,77 @@ class _EventsPageState extends State<EventsPage> {
                           backgroundColor: primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           elevation: 0,
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Added to your agenda schedule!',
-                                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: const Color(0xFF10b981),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
+                          final title = e['title']?.toString() ?? 'CUBAG Event';
+                          final description =
+                              e['description']?.toString() ?? '';
+                          final location = e['location']?.toString() ?? 'Ghana';
+                          final rawDate = e['date']?.toString();
+                          DateTime startDate = DateTime.now().add(
+                            const Duration(days: 1),
                           );
+                          if (rawDate != null) {
+                            startDate = DateTime.tryParse(rawDate) ?? startDate;
+                          }
+
+                          await CalendarService.addEventToCalendar(
+                            title: title,
+                            description: description,
+                            location: location,
+                            startDate: startDate,
+                          );
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Syncing event "$title" with your device calendar...',
+                                        style: GoogleFonts.outfit(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: const Color(0xFF10b981),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          }
                         },
-                        icon: const Icon(Icons.event_available_rounded, size: 18),
+                        icon: const Icon(
+                          Icons.event_available_rounded,
+                          size: 18,
+                        ),
                         label: Text(
-                          'Add to Agenda',
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                          'Add to Phone Calendar',
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ),
                   ],
+                  ),
                 ),
               ),
             ],
@@ -515,11 +650,33 @@ class _EventsPageState extends State<EventsPage> {
       );
     }
 
+    final now = DateTime.now();
+    final todayDate = DateTime(now.year, now.month, now.day);
+
     final filteredList = _events.where((e) {
       final title = (e['title']?.toString() ?? '').toLowerCase();
       final desc = (e['description']?.toString() ?? '').toLowerCase();
       final loc = (e['location']?.toString() ?? '').toLowerCase();
-      return title.contains(_searchQuery) || desc.contains(_searchQuery) || loc.contains(_searchQuery);
+      final matchesSearch =
+          title.contains(_searchQuery) ||
+          desc.contains(_searchQuery) ||
+          loc.contains(_searchQuery);
+      if (!matchesSearch) return false;
+
+      DateTime? date;
+      try {
+        date = DateTime.parse(e['date'].toString());
+      } catch (e, st) {
+        AppLogger.error('events_page', e, st);
+      }
+      if (date == null) return true;
+      final eventDay = DateTime(date.year, date.month, date.day);
+
+      if (_selectedFilter == 'past') {
+        return eventDay.isBefore(todayDate);
+      } else {
+        return eventDay.isAfter(todayDate) || eventDay == todayDate;
+      }
     }).toList();
 
     if (filteredList.isEmpty) {
@@ -535,14 +692,24 @@ class _EventsPageState extends State<EventsPage> {
                 color: Color(0xFFf1f5f9),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.event_busy_rounded, size: 40, color: Color(0xFF94a3b8)),
+              child: const Icon(
+                Icons.event_busy_rounded,
+                size: 40,
+                color: Color(0xFF94a3b8),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               _searchQuery.isNotEmpty
                   ? 'No matching events found'
-                  : (_selectedFilter == 'upcoming' ? 'No Upcoming Events' : 'No Past Events'),
-              style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 16, color: const Color(0xFF1e293b)),
+                  : (_selectedFilter == 'upcoming'
+                        ? 'No Upcoming Events'
+                        : 'No Past Events'),
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                color: const Color(0xFF281710),
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -550,7 +717,11 @@ class _EventsPageState extends State<EventsPage> {
                   ? 'Try refining your search keyword.'
                   : 'Check back later for meetings and seminars.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.outfit(color: const Color(0xFF64748b), fontSize: 13, fontWeight: FontWeight.w500),
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF64748b),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -562,16 +733,24 @@ class _EventsPageState extends State<EventsPage> {
         DateTime? date;
         try {
           date = DateTime.parse(e['date'].toString());
-        } catch (_) {}
+        } catch (e, st) {
+          AppLogger.error('events_page', e, st);
+        }
 
         final now = DateTime.now();
         final todayDate = DateTime(now.year, now.month, now.day);
-        final eventDay = date != null ? DateTime(date.year, date.month, date.day) : null;
+        final eventDay = date != null
+            ? DateTime(date.year, date.month, date.day)
+            : null;
 
         Widget? statusPill;
         if (eventDay != null) {
           if (eventDay == todayDate) {
-            statusPill = _buildStatusPill('Today', const Color(0xFF10b981), isBlinking: true);
+            statusPill = _buildStatusPill(
+              'Today',
+              const Color(0xFF10b981),
+              isBlinking: true,
+            );
           } else if (eventDay.isAfter(todayDate)) {
             statusPill = _buildStatusPill('Upcoming', const Color(0xFF3b82f6));
           } else {
@@ -584,7 +763,10 @@ class _EventsPageState extends State<EventsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFcbd5e1).withAlpha(120), width: 1.5),
+            border: Border.all(
+              color: const Color(0xFFcbd5e1).withAlpha(120),
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withAlpha(5),
@@ -620,7 +802,7 @@ class _EventsPageState extends State<EventsPage> {
                                   style: GoogleFonts.outfit(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 14.5,
-                                    color: const Color(0xFF1e293b),
+                                    color: const Color(0xFF281710),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -649,11 +831,16 @@ class _EventsPageState extends State<EventsPage> {
                             spacing: 14,
                             runSpacing: 6,
                             children: [
-                              if (e['time'] != null && e['time'].toString().isNotEmpty)
+                              if (e['time'] != null &&
+                                  e['time'].toString().isNotEmpty)
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF94a3b8)),
+                                    const Icon(
+                                      Icons.access_time_rounded,
+                                      size: 13,
+                                      color: Color(0xFF94a3b8),
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       e['time'].toString(),
@@ -665,11 +852,16 @@ class _EventsPageState extends State<EventsPage> {
                                     ),
                                   ],
                                 ),
-                              if (e['location'] != null && e['location'].toString().isNotEmpty)
+                              if (e['location'] != null &&
+                                  e['location'].toString().isNotEmpty)
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFF94a3b8)),
+                                    const Icon(
+                                      Icons.location_on_rounded,
+                                      size: 13,
+                                      color: Color(0xFF94a3b8),
+                                    ),
                                     const SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
@@ -685,11 +877,16 @@ class _EventsPageState extends State<EventsPage> {
                                     ),
                                   ],
                                 ),
-                              if (e['capacity'] != null && e['capacity'].toString().isNotEmpty)
+                              if (e['capacity'] != null &&
+                                  e['capacity'].toString().isNotEmpty)
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.people_outline_rounded, size: 13, color: Color(0xFF94a3b8)),
+                                    const Icon(
+                                      Icons.people_outline_rounded,
+                                      size: 13,
+                                      color: Color(0xFF94a3b8),
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       'Limit: ${e['capacity']}',
@@ -709,7 +906,11 @@ class _EventsPageState extends State<EventsPage> {
                     const SizedBox(width: 8),
                     const Align(
                       alignment: Alignment.center,
-                      child: Icon(Icons.chevron_right_rounded, color: Color(0xFF94a3b8), size: 20),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF94a3b8),
+                        size: 20,
+                      ),
                     ),
                   ],
                 ),
@@ -776,7 +977,8 @@ class _BlinkingDot extends StatefulWidget {
   State<_BlinkingDot> createState() => _BlinkingDotState();
 }
 
-class _BlinkingDotState extends State<_BlinkingDot> with SingleTickerProviderStateMixin {
+class _BlinkingDotState extends State<_BlinkingDot>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -803,10 +1005,7 @@ class _BlinkingDotState extends State<_BlinkingDot> with SingleTickerProviderSta
       child: Container(
         width: 6,
         height: 6,
-        decoration: BoxDecoration(
-          color: widget.color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
       ),
     );
   }

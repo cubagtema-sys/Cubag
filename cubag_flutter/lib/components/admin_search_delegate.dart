@@ -164,7 +164,7 @@ class _DebouncedSearchBodyState extends State<_DebouncedSearchBody> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFf08232)),
+        child: CircularProgressIndicator(color: Color(0xFFFF5000)),
       );
     }
 
@@ -196,7 +196,10 @@ class _DebouncedSearchBodyState extends State<_DebouncedSearchBody> {
         final label = _labelForType(type);
 
         return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 2,
+          ),
           leading: Container(
             width: 36,
             height: 36,
@@ -222,7 +225,11 @@ class _DebouncedSearchBodyState extends State<_DebouncedSearchBody> {
             ),
             child: Text(
               label.toUpperCase(),
-              style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color),
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
           onTap: () => widget.onNavigate(r),

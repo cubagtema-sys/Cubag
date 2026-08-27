@@ -18,12 +18,17 @@ class FetchErrorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64, height: 64,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
                 color: Colors.orange.withAlpha(20),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 30),
+              child: const Icon(
+                Icons.wifi_off_rounded,
+                color: Colors.orange,
+                size: 30,
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -32,7 +37,8 @@ class FetchErrorView extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              message ?? 'The server may be starting up.\nPlease wait a moment and try again.',
+              message ??
+                  'The server may be starting up.\nPlease wait a moment and try again.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
@@ -40,12 +46,20 @@ class FetchErrorView extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Retry',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 0,
               ),
             ),
