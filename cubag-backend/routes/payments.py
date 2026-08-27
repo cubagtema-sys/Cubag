@@ -39,20 +39,14 @@ _WP_API = f'{WHITSUNPAY_BASE_URL}/api/v1'
 
 
 def _whitsunpay_headers():
-    """Build headers for WhitsunPay API requests (Enhanced to bypass Cloudflare)."""
+    """Build clean API headers for WhitsunPay requests."""
     return {
         'Content-Type': 'application/json',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'application/json',
         'x-client-id': WHITSUNPAY_CLIENT_ID,
         'x-api-key': WHITSUNPAY_API_KEY,
         'x-callback-url': WHITSUNPAY_CALLBACK_URL,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-        'Referer': 'https://developer.whitsun.dev/',
-        'Origin': 'https://developer.whitsun.dev',
-        'Sec-Ch-Ua': '"Not(A:Brand";v="24", "Chromium";v="122"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
+        'User-Agent': 'CUBAG-Server/2.0 (Ghana Customs Platform)'
     }
 
 @payments_bp.route('/test-gateway', methods=['GET'])

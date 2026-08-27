@@ -1381,8 +1381,11 @@ class _ProgressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
               Text(
                 'Document Progress',
@@ -1391,12 +1394,21 @@ class _ProgressCard extends StatelessWidget {
                   color: isDark ? Colors.white : _kTextDark,
                 ),
               ),
-              Text(
-                '$uploaded / $total',
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.bold,
-                  color: _kPrimary,
-                  fontSize: 15,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (uploaded == total && total > 0)
+                      ? _kGreen.withAlpha(20)
+                      : _kPrimary.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$uploaded / $total Uploaded',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    color: (uploaded == total && total > 0) ? _kGreen : _kPrimary,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],
