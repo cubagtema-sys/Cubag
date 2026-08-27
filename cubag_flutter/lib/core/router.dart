@@ -174,39 +174,7 @@ final GoRouter appRouter = GoRouter(
       }
     }
 
-    if (loggedIn && (loc == '/login' || loc == '/register')) {
-      if (role == 'admin' || role == 'sub_admin' || role == 'super_admin') {
-        if (!kIsWeb) return '/admin-unavailable';
-        if (role == 'sub_admin') {
-          final perms = storage.getStringListSync('cubag_permissions') ?? auth.permissions;
-          if (!perms.contains('dashboard')) {
-            if (perms.contains('announcements')) return '/admin/announcements';
-            if (perms.contains('members')) return '/admin/members';
-            if (perms.contains('events')) return '/admin/events';
-            if (perms.contains('compliance')) return '/admin/compliance';
-            if (perms.contains('intelligence')) return '/admin/intelligence';
-            if (perms.contains('messaging')) return '/admin/messages';
-            if (perms.isNotEmpty) return '/admin/${perms.first}';
-          }
-        }
-        return '/admin/dashboard';
-      }
-      final status = (storage.getStringSync('cubag_member_status') ??
-              storage.getStringSync('cubag_status') ??
-              auth.membershipStatus)
-          .toLowerCase()
-          .trim();
-      final regPaidStr = storage.getStringSync('cubag_registration_fee_paid');
-      final bool isRegFeePaid = regPaidStr == 'true' || auth.isRegistrationFeePaid;
-      final bool isDocApproved = status == 'active' || status == 'approved';
-      final bool canAccessDashboard = isDocApproved && isRegFeePaid;
-
-      if (!canAccessDashboard) {
-        return '/application-documents';
-      }
-      return '/dashboard';
-    }
-
+    // Do not auto-redirect away from /login or /register so users can always enter credentials.
     return null;
   },
   routes: [
