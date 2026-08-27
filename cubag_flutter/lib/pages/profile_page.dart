@@ -505,8 +505,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 16),
 
                           // Quick Action Buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 10,
+                            runSpacing: 10,
                             children: [
                               ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
@@ -520,7 +522,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 icon: const Icon(Icons.badge_rounded, size: 18),
                                 label: Text('View Digital ID', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
                               ),
-                              const SizedBox(width: 10),
                               OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: textPrimary,
@@ -973,7 +974,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   onPressed: () => context.go(isPackagePending ? '/payments?fee=New%20Membership%20Dues' : '/compliance'),
                   icon: Icon(isPackagePending ? Icons.payment_rounded : Icons.verified_user_rounded, size: 16),
-                  label: Text(isPackagePending ? 'Pay Entrance Package' : 'Compliance Hub', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12)),
+                  label: Text(isPackagePending ? 'Pay' : 'Compliance Hub', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ),
             ],
