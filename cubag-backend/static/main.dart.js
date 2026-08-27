@@ -87696,7 +87696,8 @@ d=J.i(J.q(a8.e,"is_renewal_paid"),!0)||J.i(J.q(a8.e,"renewal_paid"),!0)
 o=!d
 c=o&&e!=null&&e<=30&&e>=0
 b=o&&e!=null&&e<0
-a=J.i(J.q(a8.e,"is_good_standing"),!0)||J.i(J.q(a8.e,"good_standing"),!0)||a8.z||J.i(J.q(a8.e,"status"),"active")||b2.as||b2.Q==="active"
+if(a8.z)a=J.i(J.q(a8.e,"is_good_standing"),!0)||J.i(J.q(a8.e,"good_standing"),!0)||b2.as
+else a=!1
 o=t.p
 n=A.a([A.b("DIGITAL MEMBERSHIP CARD",a9,a9,a9,a9,A.e().$4$color$fontSize$fontWeight$letterSpacing(B.u,12,B.k,1.2),a9,a9,a9),B.M,A.eH(new A.bnq(a,s,b8,p,j,i,h)),B.bO,A.b("YOUR REGISTERED SERVICES & DUES BREAKDOWN",a9,a9,a9,a9,A.e().$4$color$fontSize$fontWeight$letterSpacing(B.u,12,B.k,1.2),a9,a9,a9),B.M],o)
 if(a8.d)n.push(B.tl)

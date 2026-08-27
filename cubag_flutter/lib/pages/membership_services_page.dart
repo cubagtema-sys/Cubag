@@ -176,12 +176,10 @@ class _MembershipServicesPageState extends State<MembershipServicesPage> {
     final bool isRenewalDueSoon = !isRenewalPaid && daysLeft != null && daysLeft <= 30 && daysLeft >= 0;
     final bool isRenewalExpired = !isRenewalPaid && daysLeft != null && daysLeft < 0;
 
-    final bool isGoodStanding = _memberInfo['is_good_standing'] == true ||
-        _memberInfo['good_standing'] == true ||
-        _isPackageFeePaid ||
-        _memberInfo['status'] == 'active' ||
-        authService.goodStanding ||
-        authService.membershipStatus == 'active';
+    final bool isGoodStanding = _isPackageFeePaid &&
+        (_memberInfo['is_good_standing'] == true ||
+            _memberInfo['good_standing'] == true ||
+            authService.goodStanding);
 
     return AppLayout(
       title: 'Membership Services',
